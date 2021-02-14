@@ -16,7 +16,7 @@ Pinout RS485 (Plug):<br/>
 3. B- (Green)
 4. A+ (Red)
 5. +25V (Black)
-6. +25V (Black)
+6. +25V (White)
 </kbd>
 <br/>
 
