@@ -11,7 +11,7 @@ from jsmin import jsmin
 
 
 content = ""
-with open('index.html','rt') as f:
+with open('index.html','rt',encoding="utf-8") as f:
     content=f.read()
 
 
@@ -21,13 +21,6 @@ content = htmlmin.minify(content, remove_comments=True, remove_empty_space=True,
 import re
 regex = r"<script>(.+?)<\/script>"
 content = re.sub(regex, lambda x: "<script>"+jsmin(x.group(1))+"</script>" ,content, 0, re.DOTALL)
-
-
-#with gzip.open('htmltest.html.gz', 'wb') as f:
-#    f.write(content.encode("UTF-8"))
-
-#with open('htmltest.html.z','wb') as f:
-#    f.write(zlib.compress(content.encode("UTF-8"),9))
 
 result =""
 for c in zlib.compress(content.encode("UTF-8"),9):
