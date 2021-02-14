@@ -1,13 +1,40 @@
 # HCPBridge
-emulates Hörmann HAP 1 HCP on ESP8622
+emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
+**Funktionen:**
+- Abrufen des aktuellen Status (Tor, Licht)
+- Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
+- WebInterface
+- WebService
 
-WebInterface:<br/>
+**WebInterface:**<br/>
 <kbd>
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
 </kbd>
 <br/>
 
-Pinout RS485 (Plug):<br/>
+**WebService:**<br/>
+<kbd>
+Aktion ausführen
+http://<deviceip>/command?action=<command>
+| Action | Beschreibung |
+| --- | --- |
+| 0 | schließe Tor |
+| 1 | öffne Tor |
+| 2 | stoppe Tor |
+| 3 | Lüftungsstellung |
+| 4 | 1/2 öffnen |
+| 5 | Lampe an/an |  
+  
+<br/>
+Status abfragen
+http://<deviceip>/status
+  
+</kbd>
+<br/>
+
+
+  
+**Pinout RS485 (Plug):**<br/>
 <kbd>
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
 </kbd>
@@ -20,7 +47,7 @@ Pinout RS485 (Plug):<br/>
 </kbd>
 <br/>
 
-RS485 Adapter:<br/>
+**RS485 Adapter:**<br/>
 <kbd>
   ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 </kbd>
