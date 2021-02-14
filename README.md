@@ -1,5 +1,5 @@
 # HCPBridge
-emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
+Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 ## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
 - Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
@@ -12,9 +12,10 @@ emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 
 ## WebService:
 ### Aktion ausführen
-'''
-http://<deviceip>/command?action=<id>
-'''
+
+***http://[deviceip]/command?action=[id]***
+
+  
 | Action | Beschreibung |
 | --- | --- |
 | 0 | schließe Tor |
@@ -26,8 +27,9 @@ http://<deviceip>/command?action=<id>
   
 
 ### Status abfragen:
+
 '''
-http://<deviceip>/status
+***http://[deviceip]/status***
 '''
   
 Response:
