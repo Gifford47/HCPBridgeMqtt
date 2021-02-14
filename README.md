@@ -28,11 +28,9 @@ Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 
 ### Status abfragen:
 
-'''
 ***http://[deviceip]/status***
-'''
   
-Response:
+Response (JSON):
  ```
 {
   "valid" : true,
@@ -57,6 +55,11 @@ Response:
 ## RS485 Adapter:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
+
+## Installation
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
+Adapter am Bus anschließen (grüner Pfeil)
+Busscan aussführen (blauer Pfeil auf off und wieder zurück auf on). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
 
 ## Changelog
 TODO
