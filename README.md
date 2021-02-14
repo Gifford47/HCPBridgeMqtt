@@ -12,7 +12,9 @@ emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 
 ## WebService:
 ### Aktion ausführen
+'''
 http://<deviceip>/command?action=<id>
+'''
 | Action | Beschreibung |
 | --- | --- |
 | 0 | schließe Tor |
@@ -24,8 +26,10 @@ http://<deviceip>/command?action=<id>
   
 
 ### Status abfragen:
+'''
 http://<deviceip>/status
-
+'''
+  
 Response:
  ```
 {
@@ -52,3 +56,5 @@ Response:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
 
+## Changelog
+TODO
