@@ -1,5 +1,6 @@
 # HCPBridge
 Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
+
 ## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
 - Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
@@ -42,7 +43,7 @@ Response (JSON):
   "lastresponse" : 0
 }
 ```
-  
+
 ## Pinout RS485 (Plug):
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
 1. GND (Blue)
@@ -55,6 +56,9 @@ Response (JSON):
 ## RS485 Adapter:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
+
+## Schaltung
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/schaltung.png)  
 
 ## Installation
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
