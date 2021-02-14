@@ -1,6 +1,14 @@
 # HCPBridge
 Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 
+**Kompatible Torantriebe (HCP2-Bus - Modbus):**
+- SupraMatic E/P Serie 4
+- ProMatic Serie 4
+
+Bitte beachten, das Projekt emuliert UAP 1 **HCP** und ist auch **nur** mit der Serie 4 kompatibel! Ältere Antriebe als Serie 4 haben eine andere Pinbelegung und ein komplett anderes Protokoll.
+
+
+
 ## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
 - Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
