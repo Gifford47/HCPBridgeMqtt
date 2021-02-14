@@ -8,15 +8,10 @@ emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 - Schalten eines Relay mit der Beleuchtung
 
 ## WebInterface:
-<br/>
-<kbd>
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
-</kbd>
-<br/>
 
 ## WebService:
-<br/>
-Aktion ausführen<br/>
+### Aktion ausführen
 http://<deviceip>/command?action=<id>
 | Action | Beschreibung |
 | --- | --- |
@@ -27,12 +22,11 @@ http://<deviceip>/command?action=<id>
 | 4 | 1/2 öffnen |
 | 5 | Lampe an/an |  
   
-<br/>
-Status abfragen<br/>
+
+### Status abfragen:
 http://<deviceip>/status
-<br/>
+
 Response:
-<br/>
  ```
 {
   "valid" : true,
@@ -44,32 +38,17 @@ Response:
   "lastresponse" : 0
 }
 ```
-
-  
-
-<br/>
-
-
   
 ## Pinout RS485 (Plug):
-<br/>
-<kbd>
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
-</kbd>
 1. GND (Blue)
 2. GND (Yellow)
 3. B- (Green)
 4. A+ (Red)
 5. +25V (Black)
 6. +25V (White)
-</kbd>
-<br/>
 
 ## RS485 Adapter:
-<br/>
-<kbd>
-  ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
-</kbd>
-<br/>
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
-<br/>
+
