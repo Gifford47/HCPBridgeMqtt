@@ -5,6 +5,7 @@ emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 - Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
 - WebInterface
 - WebService
+- Schalten eines Relay mit der Beleuchtung
 
 **WebInterface:**<br/>
 <kbd>
@@ -14,8 +15,8 @@ emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
 
 **WebService:**<br/>
 <kbd>
-Aktion ausführen
-http://<deviceip>/command?action=<command>
+Aktion ausführen<br/>
+http://deviceip//command?action=id
 | Action | Beschreibung |
 | --- | --- |
 | 0 | schließe Tor |
@@ -26,8 +27,8 @@ http://<deviceip>/command?action=<command>
 | 5 | Lampe an/an |  
   
 <br/>
-Status abfragen
-http://<deviceip>/status
+Status abfragen<br/>
+http://deviceip/status
   
 </kbd>
 <br/>
