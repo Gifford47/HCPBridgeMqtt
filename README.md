@@ -1,22 +1,21 @@
 # HCPBridge
-emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
-**Funktionen:**
+Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
+## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
 - Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
 - WebInterface
 - WebService
 - Schalten eines Relay mit der Beleuchtung
 
-**WebInterface:**<br/>
-<kbd>
+## WebInterface:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
-</kbd>
-<br/>
 
-**WebService:**<br/>
-<kbd>
-Aktion ausführen<br/>
-http://deviceip//command?action=id
+## WebService:
+### Aktion ausführen
+
+***http://[deviceip]/command?action=[id]***
+
+  
 | Action | Beschreibung |
 | --- | --- |
 | 0 | schließe Tor |
@@ -26,32 +25,41 @@ http://deviceip//command?action=id
 | 4 | 1/2 öffnen |
 | 5 | Lampe an/an |  
   
-<br/>
-Status abfragen<br/>
-http://deviceip/status
-  
-</kbd>
-<br/>
 
+### Status abfragen:
 
+***http://[deviceip]/status***
   
-**Pinout RS485 (Plug):**<br/>
-<kbd>
+Response (JSON):
+ ```
+{
+  "valid" : true,
+  "doorstate" : 1,
+  "doorposition" : 0,
+  "doortarget" : 0,
+  "lamp" : true,
+  "debug" : 0,
+  "lastresponse" : 0
+}
+```
+  
+## Pinout RS485 (Plug):
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
-</kbd>
 1. GND (Blue)
 2. GND (Yellow)
 3. B- (Green)
 4. A+ (Red)
 5. +25V (Black)
 6. +25V (White)
-</kbd>
-<br/>
 
-**RS485 Adapter:**<br/>
-<kbd>
-  ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
-</kbd>
-<br/>
+## RS485 Adapter:
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
-<br/>
+
+## Installation
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
+- Adapter am Bus anschließen (grüner Pfeil)
+- Busscan aussführen (blauer Pfeil auf off und wieder zurück auf on). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
+
+## Changelog
+TODO
