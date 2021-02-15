@@ -55,5 +55,5 @@ while True:
         else:
             print("invalid response code "+ r.status_code)
     except requests.exceptions.RequestException as e:
-        print("error: " + e)
+        print(e)
     time.sleep(intervall*60)
