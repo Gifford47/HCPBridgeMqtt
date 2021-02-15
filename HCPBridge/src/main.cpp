@@ -34,6 +34,10 @@ HCIEmulator emulator(&RS485);
 // webserver on port 80
 AsyncWebServer server(80);
 
+// called by ESPAsyncTCP-esphome:SyncClient.cpp (see patch) instead of delay to avoid connection breaks
+void DelayHandler(void){
+    emulator.poll();
+}
 
 // switch GPIO4 und GPIO2 sync to the lamp
 void onStatusChanged(const SHCIState& state){
@@ -57,6 +61,8 @@ void switchLamp(bool on){
   }    
 }
 
+
+
 // setup mcu
 void setup(){
   
@@ -71,7 +77,7 @@ void setup(){
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
   while (WiFi.status() != WL_CONNECTED) {
-    emulator.poll();     
+    emulator.poll(); 
   }
 
   // setup http server
@@ -158,6 +164,6 @@ void setup(){
 }
 
 // mainloop
-void loop(){  
-    emulator.poll();    
+void loop(){     
+    emulator.poll();
 }
