@@ -11,10 +11,10 @@ Bitte beachten, das Projekt emuliert UAP 1 **HCP** und ist auch **nur** mit der 
 
 ## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
-- Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
+- Auslösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
 - WebInterface
 - WebService
-- Schalten eines Relay mit der Beleuchtung
+- Schalten eines Relais mit der Beleuchtung
 
 ## WebInterface:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
