@@ -1,0 +1,9 @@
+{
+  "valid" : true,
+  "doorstate" : 1,
+  "doorposition" : 0,
+  "doortarget" : 0,
+  "lamp" : true,
+  "debug" : 0,
+  "lastresponse" : 0
+}

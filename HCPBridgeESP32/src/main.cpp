@@ -5,10 +5,6 @@
 #include "hciemulator.h"
 #include "index_html.h"
 
-!!! DONT USE THIS, BECAUSE OF TIMING PROBLEMS !!!
-!!! USE THE ISR VERSION OR SWITCH TO ESP32 !!!
-
-
 /* create this file and add your wlan credentials
   const char* ssid = "MyWLANSID";
   const char* password = "MYPASSWORD";
@@ -65,6 +61,24 @@ void switchLamp(bool on){
   }    
 }
 
+volatile unsigned long lastCall = 0;
+volatile unsigned long maxPeriod = 0;
+
+void modBusPolling( void * parameter) {
+  while(true){
+      if(lastCall>0){
+          maxPeriod = _max(micros()-lastCall,maxPeriod);
+      }
+      lastCall=micros();
+      emulator.poll();  
+      vTaskDelay(1);    
+  }
+  vTaskDelete(NULL);
+}
+
+
+TaskHandle_t modBusTask;
+
 // setup mcu
 void setup(){
   
@@ -74,13 +88,24 @@ void setup(){
   RS485.swap();  
   #endif  
 
-  
+
+  xTaskCreatePinnedToCore(
+      modBusPolling, /* Function to implement the task */
+      "ModBusTask", /* Name of the task */
+      10000,  /* Stack size in words */
+      NULL,  /* Task input parameter */
+      //1,  /* Priority of the task */
+      configMAX_PRIORITIES -1,
+      &modBusTask,  /* Task handle. */
+      1); /* Core where the task should run */
+
+
   //setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
   while (WiFi.status() != WL_CONNECTED) {
-    emulator.poll(); 
+    delay(100);
   }
 
   // setup http server
@@ -100,7 +125,11 @@ void setup(){
     root["doortarget"] = doorstate.doorTargetPosition;
     root["lamp"] = doorstate.lampOn;
     root["debug"] = doorstate.reserved;
-    root["lastresponse"] = emulator.getMessageAge()/1000;
+    root["lastresponse"] = emulator.getMessageAge()/1000;    
+    root["looptime"] = maxPeriod;    
+
+    lastCall = maxPeriod = 0;
+    
     serializeJson(root,*response);
     request->send(response);
   }); 
@@ -168,5 +197,4 @@ void setup(){
 
 // mainloop
 void loop(){     
-    emulator.poll();
 }

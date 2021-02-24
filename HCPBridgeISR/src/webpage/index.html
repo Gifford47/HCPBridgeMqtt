@@ -1,0 +1,159 @@
+<!DOCTYPE HTML><html>
+<head>
+  <title>Garagentor Steuerung</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:,">
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 3.0rem;}
+    p {font-size: 3.0rem;}
+    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+    .switch {position: relative; display: inline-block; width: 80px; height: 48px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px}
+    .slider:before {position: absolute; content: ""; height: 32px; width: 32px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 3px}
+    input:checked+.slider {background-color: #b30000}
+    input:checked+.slider:before {-webkit-transform: translateX(32px); -ms-transform: translateX(32px); transform: translateX(32px)}
+	
+	.button {
+		border: 4px;
+		border-style: solid;
+		color: black;
+		width: 100px;
+		height: 100px;
+		text-align: center;
+		display: inline;
+		text-decoration: none;
+		display: inline-block;
+		font-weight: bold;
+		font-size: 20px;
+		margin: 4px 2px;
+		cursor: pointer;
+		border-radius: 50px;
+	}
+	.buttonred {border-color: #ED5961;}
+	.buttonyellow {border-color: #fcca00;}
+	.buttongreen {border-color: #48bd81;}  
+  </style>
+</head>
+<body>
+  <h2>Garagentor</h2>  
+	<canvas width="250px" height="250px" id="dc"></canvas>
+	<h3 id="status">warte auf Verbindung.</h3>	
+	
+	<hr/>
+	<button class="button buttonred" onclick="doCommand(1)">Auf</button> <button class="button buttonyellow" onclick="doCommand(2)">Stop</button> <button class="button buttongreen" onclick="doCommand(0)">Zu</button>
+	<hr/>
+	<h4>Licht</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+	<hr/>
+					
+	<script>
+	
+	
+	doorpos = 10;
+	dir = -1;
+	isconnected = false;
+	var animation;
+	function startDoorAnimation() {
+		if(!animation){
+			animation = setInterval(Draw, 200);
+		}
+		
+	}
+	function stopDoorAnimation() {
+		if(animation){
+			clearInterval(animation);
+		}
+		animation = null;
+	}
+	
+	function Draw(){		
+		var svg =document.getElementById("svg");
+		var dc = document.getElementById("dc");		
+		var ctx = dc.getContext("2d");
+		width = dc.width;
+		height = dc.height;
+		ctx.clearRect(0, 0, width, height);		
+		xa= [18,18,10,3,174,347,340,332,332,297,297,52,52,18];
+		ya= [327,114,117,100,22,100,117,114,327,327,112,112,327,327];
+		
+		ctx.fillStyle = "black";
+		ctx.beginPath();
+		for (i =0;i<xa.length;i++){			
+			if(i==0){
+				ctx.moveTo((xa[i]/350) * width , (ya[i]/350)*width);
+			}else{
+				ctx.lineTo((xa[i]/350) * width, (ya[i]/350)*width);
+			}
+		}
+		ctx.fill();
+		
+		for(i=0;i<doorpos;i++){			
+			ctx.fillRect((62/350) * width, ((120+21*i)/350) * width, (225/350) * width, (18/350) * width);
+		}
+		doorpos+=dir;	
+		
+		if(dir<0 && doorpos<=0){
+			dir=dir*-1;			
+		}
+		if(dir>0 &&doorpos>=10){
+			dir=dir*-1;			
+		}
+	}
+	
+	function doCommand(action) {
+      if(!isconnected){return;}
+	  var xhr = new XMLHttpRequest();
+	  xhr.open("GET", "/command?action="+action, true); 	  
+	  xhr.send();
+	}  
+	
+	function setDoorState(state){
+		stopDoorAnimation();		
+		if(state == 0) {doorpos = 10;dir = -1};
+		if(state == 1) {doorpos = 0; dir = 1};		
+		if(state == 2) {doorpos = 5; dir = 1};		
+		Draw();		
+		if(state == 3) startDoorAnimation();
+	}
+	
+	function getStatusText(id){
+		result = "Das Tor "
+		switch(id)
+		{
+			case 0x20: setDoorState(1); return result+"ist geöffnet.";
+			case 0x40: setDoorState(0); return result+"ist geschlossen.";
+			case 0x80: setDoorState(2); return result+"ist teilgeöffnet.";
+			case 0x00: setDoorState(2); return result+"ist teilgeöffnet.";
+			case 0x02: setDoorState(3); return result+"schließt.";
+			case 0x01: setDoorState(3); return result+"öffnet.";
+			case -1: setDoorState(0); return "keine Verbindung zum Tor.";
+			default: return "unbekanter Status: " + id;
+		}    
+	}
+	
+	function updateData(){
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function() {
+			  if (this.readyState == 4 && this.status == 200) {
+				var status = JSON.parse(this.responseText);	
+                isconnected = status.valid;
+				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:-1);
+				document.getElementById("light").checked = status.lamp & status.valid;
+				return;
+			  }
+			  isconnected= false;
+			};			
+			xmlhttp.open("GET", "/status", true);
+			xmlhttp.send();
+	}
+		
+	Draw();
+	updateData();	
+	setInterval(updateData, 3000);
+	
+	
+</script>
+</body>
+</html>

@@ -74,4 +74,4 @@ Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des 
 - Busscan aussführen (blauer Pfeil auf off und wieder zurück auf on). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
 
 ## Changelog
-TODO
+24.02.2021: Neue Version via Interrupt und für ESP32 zur Vermeidung von Timing-Problemen

@@ -5,10 +5,6 @@
 #include "hciemulator.h"
 #include "index_html.h"
 
-!!! DONT USE THIS, BECAUSE OF TIMING PROBLEMS !!!
-!!! USE THE ISR VERSION OR SWITCH TO ESP32 !!!
-
-
 /* create this file and add your wlan credentials
   const char* ssid = "MyWLANSID";
   const char* password = "MYPASSWORD";
@@ -32,36 +28,36 @@
 #define LED_PIN          ESP8266_GPIO2
 
 
-// Hörmann HCP2 based on modbus rtu @57.6kB 8E1
-HCIEmulator emulator(&RS485);
-
 // webserver on port 80
 AsyncWebServer server(80);
 
-// called by ESPAsyncTCP-esphome:SyncClient.cpp (see patch) instead of delay to avoid connection breaks
-void DelayHandler(void){
-    emulator.poll();
-}
-
+#ifdef USERELAY
 // switch GPIO4 und GPIO2 sync to the lamp
-void onStatusChanged(const SHCIState& state){
+void onStatusChanged(SHCIState* state){
   //see https://ucexperiment.wordpress.com/2016/12/18/yunshan-esp8266-250v-15a-acdc-network-wifi-relay-module/
   //Setting GPIO4 high, causes the relay to close the NO contact with
-  if(state.valid){    
-      digitalWrite( ESP8266_GPIO4, state.lampOn ); 
-      digitalWrite(LED_PIN, state.lampOn);
+  if(state->valid){    
+      digitalWrite( ESP8266_GPIO4, state->lampOn ); 
+      digitalWrite(LED_PIN, state->lampOn);
   }else
   {
       digitalWrite( ESP8266_GPIO4, false ); 
       digitalWrite(LED_PIN, false);
   }
 }
+#else
+void onStatusChanged(SHCIState* state){
+}
+#endif
+
+
 
 // toggle lamp to expected state
 void switchLamp(bool on){
-  bool toggle = (on && !emulator.getState().lampOn) || (!on && emulator.getState().lampOn);
+  int lampon = getHCIState()->lampOn;
+  bool toggle = (on && !lampon) || (!on && lampon);
   if(toggle){
-    emulator.toggleLamp();
+    toggleLamp();
   }    
 }
 
@@ -69,18 +65,15 @@ void switchLamp(bool on){
 void setup(){
   
   //setup modbus
-  RS485.begin(57600,SERIAL_8E1);
-  #ifdef SWAPUART
-  RS485.swap();  
-  #endif  
+  // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
+  uart0_open(57600,UART_FLAGS_8E1);
 
-  
   //setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
   while (WiFi.status() != WL_CONNECTED) {
-    emulator.poll(); 
+    delay(100);
   }
 
   // setup http server
@@ -91,16 +84,16 @@ void setup(){
   }); 
 
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
-    const SHCIState& doorstate = emulator.getState();
+    SHCIState *doorstate = getHCIState();
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     DynamicJsonDocument root(1024);
-    root["valid"] = doorstate.valid;
-    root["doorstate"] = doorstate.doorState;
-    root["doorposition"] = doorstate.doorCurrentPosition;
-    root["doortarget"] = doorstate.doorTargetPosition;
-    root["lamp"] = doorstate.lampOn;
-    root["debug"] = doorstate.reserved;
-    root["lastresponse"] = emulator.getMessageAge()/1000;
+    root["valid"] = doorstate->valid;
+    root["doorstate"] = doorstate->doorState;
+    root["doorposition"] = doorstate->doorCurrentPosition;
+    root["doortarget"] = doorstate->doorTargetPosition;
+    root["lamp"] = doorstate->lampOn;
+    root["debug"] = doorstate->reserved;
+    root["lastresponse"] = getMessageAge()/1000;
     serializeJson(root,*response);
     request->send(response);
   }); 
@@ -110,22 +103,22 @@ void setup(){
       int actionid = request->getParam("action")->value().toInt();
       switch (actionid){
       case 0:
-          emulator.closeDoor();
+          closeDoor();
         break;
       case 1:
-          emulator.openDoor();
+          openDoor();
           break;
       case 2:
-          emulator.stopDoor();
+          stopDoor();
           break;
       case 3:
-          emulator.ventilationPosition();
+          ventilationPosition();
           break;
       case 4:
-          emulator.openDoorHalf();
+          openDoorHalf();
           break;
       case 5:
-          emulator.toggleLamp();
+          toggleLamp();
           break;      
       default:
         break;
@@ -140,9 +133,9 @@ void setup(){
       String state = request->getParam("state")->value();
       if(channel.equals("door")){
         if(state=="1"){
-          emulator.openDoor();
+          openDoor();
         }else{
-          emulator.closeDoor();
+          closeDoor();
         }          
       }
       if(channel.equals("light")){
@@ -160,13 +153,17 @@ void setup(){
   pinMode( ESP8266_GPIO5, INPUT_PULLUP ); // Input pin.
   pinMode( LED_PIN, OUTPUT );             // ESP8266 module blue L
   digitalWrite( ESP8266_GPIO4, 0 );
-  digitalWrite(LED_PIN,0);
-  emulator.onStatusChanged(onStatusChanged);
+  digitalWrite(LED_PIN,0);  
 #endif
   
 }
 
 // mainloop
+bool isLampOn = false;
 void loop(){     
-    emulator.poll();
+   bool newisLampOn = getHCIState()->valid && getHCIState()->lampOn;
+   if(isLampOn!=newisLampOn){
+     onStatusChanged(getHCIState());
+     isLampOn = newisLampOn;
+   }
 }
