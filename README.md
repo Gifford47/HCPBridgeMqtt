@@ -11,10 +11,10 @@ Bitte beachten, das Projekt emuliert UAP 1 **HCP** und ist auch **nur** mit der 
 
 ## Funktionen:
 - Abrufen des aktuellen Status (Tor, Licht)
-- Aulösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
+- Auslösen der Aktionen (Licht an/aus, Tor öffen, schließen, stoppen sowie Lüftungsstellung
 - WebInterface
 - WebService
-- Schalten eines Relay mit der Beleuchtung
+- Schalten eines Relais mit der Beleuchtung
 
 ## WebInterface:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
@@ -71,7 +71,7 @@ Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des 
 ## Installation
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
 - Adapter am Bus anschließen (grüner Pfeil)
-- Busscan aussführen (blauer Pfeil auf off und wieder zurück auf on). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
+- Busscan ausführen (blauer Pfeil auf off und wieder zurück auf off). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
 
 ## Changelog
 24.02.2021: Neue Version via Interrupt und für ESP32 zur Vermeidung von Timing-Problemen
