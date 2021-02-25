@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
-#include "AsyncJson.h"
-#include "ArduinoJson.h"
+#include <AsyncElegantOTA.h>
+#include <AsyncJson.h>
+#include <ArduinoJson.h>
 #include "hciemulator.h"
 #include "index_html.h"
+
 
 /* create this file and add your wlan credentials
   const char* ssid = "MyWLANSID";
@@ -126,25 +128,36 @@ void setup(){
     }
     request->send(200, "text/plain", "OK");
   });
+  
+  server.on("/sysinfo", HTTP_GET, [] (AsyncWebServerRequest *request) {    
+    String freemem;
+    String ResetReason;
+    freemem = ESP.getFreeHeap(); 
+    rst_info* rinfo = ESP.getResetInfoPtr();
+  
+    //JSONencoder["uptimed"] = Day2;
+    //JSONencoder["uptimeh"] = Hour2;
+    //JSONencoder["uptimem"] = Minute2;
+    //JSONencoder["uptimes"] = Second2;
+    
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    DynamicJsonDocument root(1024);
+    root["freemem"] = freemem;
+    ResetReason += String(rinfo->reason);
+    ResetReason += String(" - ");
+    ResetReason += String(ESP.getResetReason().c_str());
+    root["hostname"] = String(WiFi.hostname());
+    root["dsdd"] = WiFi.localIP().toString();
+    root["ssid"] = String(ssid);
+    root["wifistatus"] = String(WiFi.status());
+    root["resetreason"] =ResetReason;
+    root["errors"] =  rinfo->exccause;
+    serializeJson(root,*response);
 
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {    
-    if (request->hasParam("channel") && request->hasParam("state")) {
-      String channel = request->getParam("channel")->value();
-      String state = request->getParam("state")->value();
-      if(channel.equals("door")){
-        if(state=="1"){
-          openDoor();
-        }else{
-          closeDoor();
-        }          
-      }
-      if(channel.equals("light")){
-        switchLamp(state=="1");
-      }      
-    }
-    request->send(200, "text/plain", "OK");
+    request->send(response);    
   });
 
+  AsyncElegantOTA.begin(&server);
   server.begin();
 
   //setup relay board
@@ -166,4 +179,5 @@ void loop(){
      onStatusChanged(getHCIState());
      isLampOn = newisLampOn;
    }
+   AsyncElegantOTA.loop();
 }

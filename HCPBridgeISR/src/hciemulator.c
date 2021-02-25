@@ -63,7 +63,6 @@
 
 bool skipFrame = false;
 
-
 int recvTime = 0;
 int lastSendTime = 0;
 int lastStateTime = 0;
