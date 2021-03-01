@@ -20,7 +20,7 @@
  * #define readUInt16(arr, index) word(arr[index], arr[index + 1])
  * #define readCRC(arr, length) word(arr[(length - MODBUS_CRC_LENGTH) + 1], arr[length - MODBUS_CRC_LENGTH])
  */
-uint16_t calculateCRC(uint8_t *buffer, int length)
+uint16_t ICACHE_RAM_ATTR calculateCRC(uint8_t *buffer, int length)
 {
     int i, j;
     uint16_t crc = 0xFFFF;

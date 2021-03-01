@@ -1,6 +1,7 @@
 /*
- * modified/reduced to provide HCP Modbus low level functions
- *
+ * ISR Code to emulate the modbus rtu protocol for hoermann HCP2
+ * 
+ * code based on https://github.com/juhovh/esp-uart
  * The MIT License (MIT)
  *
  * Copyright (c) 2016 Juho Vähä-Herttua (juhovh@iki.fi)
@@ -136,7 +137,7 @@ SHCIState* getHCIState(){
 
 const unsigned char ResponseTemplate_Fcn17_Cmd03_L08 []= {0x02,0x17,0x10,0x3E,0x00,0x03,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x74,0x1B};
 const unsigned char ResponseTemplate_Fcn17_Cmd04_L02 []= {0x02,0x17,0x04,0x0F,0x00,0x04,0xFD,0x0A,0x72};
-static void processDeviceStatusFrame(){
+static void ICACHE_RAM_ATTR processDeviceStatusFrame(){
     if(rxlen==0x11){  
         unsigned char counter = rxbuffer[11];
         unsigned char cmd = rxbuffer[12];
@@ -267,7 +268,7 @@ static void processDeviceStatusFrame(){
 }
 
 const unsigned char ResponseTemplate_Fcn17_Cmd02_L05 []= {0x02,0x17,0x0a,0x00,0x00,0x02,0x05,0x04,0x30,0x10,0xff,0xa8,0x45,0x0e,0xdf};
-static void processDeviceBusScanFrame(){
+static void ICACHE_RAM_ATTR processDeviceBusScanFrame(){
     //      00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16
     //0013: 02 17 9C B9 00 05 9C 41 00 03 06 00 02 00 00 01 02 f8 35
     //res=> 02 17 0a 00 00 02 05 04 30 10 ff a8 45 0e df
@@ -282,7 +283,7 @@ static void processDeviceBusScanFrame(){
     //Log(LL_INFO,"Busscan received");  
 }
 
-static void processBroadcastStatusFrame(){
+static void ICACHE_RAM_ATTR processBroadcastStatusFrame(){
     //001B: 00 10 9D 31 00 09 12 64 00 00 00 40 60 00 00 00 00 00 00 00 00 00 01 00 00 CA 22    
     bool hasStateChanged = false;
     CHECKCHANGEDSET(state.lampOn,rxbuffer[20] == 0x14,hasStateChanged);      
@@ -293,8 +294,7 @@ static void processBroadcastStatusFrame(){
     CHECKCHANGEDSET(state.valid, true,hasStateChanged);                       
 }    
 
-static bool processFrame(){
-    
+static bool ICACHE_RAM_ATTR processFrame(){    
     switch (rxlen)
     {
       case 0x1b:
@@ -355,8 +355,7 @@ static bool processFrame(){
 }
 
 
-
-static void processMessage (){    
+static void ICACHE_RAM_ATTR processMessage (){    
     // check frame, process frame    
     if(statemachine!= WAITING && lastStateTime+2000<millis()){
         statemachine = WAITING;
@@ -382,9 +381,7 @@ static void processMessage (){
 
 //--------------------------------------------------------------
 
-static uint16
-uart0_receive()
-{
+static uint16 ICACHE_RAM_ATTR uart0_receive(){
   uint16 i;
   uint16 uart0_rxfifo_len = UART_RXFIFO_LEN(UART0);
 
@@ -413,9 +410,7 @@ uart0_receive()
   return i;
 }
 
-static uint16
-uart0_send()
-{
+static uint16 ICACHE_RAM_ATTR uart0_send(){
   uint16 i;
   for (i=UART_TXFIFO_LEN(UART0); i<UART_TXFIFO_SIZE; i++) {
       if (txpos==txlen) {
@@ -430,9 +425,7 @@ uart0_send()
 }
 
 
-static void
-uart0_intr_handler(void *arg)
-{
+static void ICACHE_RAM_ATTR uart0_intr_handler(void *arg){
   uint32 uart0_status;
   uart0_status = READ_PERI_REG(UART_INT_ST(UART0));
   if (uart0_status & UART_RXFIFO_TOUT_INT_ST) {    
@@ -454,8 +447,7 @@ uart0_intr_handler(void *arg)
 }
 
 void ICACHE_FLASH_ATTR
-uart0_open(uint32 baud_rate, uint32 flags)
-{
+uart0_open(uint32 baud_rate, uint32 flags){
   uint32 clkdiv;
 
   ETS_UART_INTR_DISABLE();
@@ -480,8 +472,7 @@ uart0_open(uint32 baud_rate, uint32 flags)
 }
 
 void ICACHE_FLASH_ATTR
-uart0_reset()
-{
+uart0_reset(){
   // Disable interrupts while resetting UART0
   ETS_UART_INTR_DISABLE();
 

@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "EspSaveCrash.h"
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 #include <AsyncJson.h>
@@ -29,6 +30,9 @@
 #define ESP8266_GPIO5    5 // Optocoupler input.
 #define LED_PIN          ESP8266_GPIO2
 
+EspSaveCrash SaveCrash;
+// the buffer to put the Crash log to
+char *_debugOutputBuffer;
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -70,6 +74,8 @@ void setup(){
   // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
   uart0_open(57600,UART_FLAGS_8E1);
 
+  _debugOutputBuffer = (char *) calloc(2048, sizeof(char));
+
   //setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -89,7 +95,7 @@ void setup(){
     SHCIState *doorstate = getHCIState();
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     DynamicJsonDocument root(1024);
-    root["valid"] = doorstate->valid;
+    root["valid"] = doorstate->valid && (getMessageAge()/1000)<3000;
     root["doorstate"] = doorstate->doorState;
     root["doorposition"] = doorstate->doorCurrentPosition;
     root["doortarget"] = doorstate->doorTargetPosition;
@@ -129,29 +135,33 @@ void setup(){
     request->send(200, "text/plain", "OK");
   });
   
-  server.on("/sysinfo", HTTP_GET, [] (AsyncWebServerRequest *request) {    
-    String freemem;
-    String ResetReason;
-    freemem = ESP.getFreeHeap(); 
+  server.on("/crashinfo", HTTP_GET, [] (AsyncWebServerRequest *request){    
+    strcpy(_debugOutputBuffer, "");    
+    SaveCrash.print(_debugOutputBuffer,2048);
+    if (request->hasParam("clear")) {
+      SaveCrash.clear();
+    }
+    request->send(200, "text/plain", _debugOutputBuffer);
+  });
+
+  server.on("/sysinfo", HTTP_GET, [] (AsyncWebServerRequest *request) {      
+    char buffer[150];
     rst_info* rinfo = ESP.getResetInfoPtr();
   
-    //JSONencoder["uptimed"] = Day2;
-    //JSONencoder["uptimeh"] = Hour2;
-    //JSONencoder["uptimem"] = Minute2;
-    //JSONencoder["uptimes"] = Second2;
-    
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     DynamicJsonDocument root(1024);
-    root["freemem"] = freemem;
-    ResetReason += String(rinfo->reason);
-    ResetReason += String(" - ");
-    ResetReason += String(ESP.getResetReason().c_str());
-    root["hostname"] = String(WiFi.hostname());
-    root["dsdd"] = WiFi.localIP().toString();
+    root["freemem"] = ESP.getFreeHeap();    
+    root["hostname"] = WiFi.hostname();
+    root["ip"] = WiFi.localIP().toString();
     root["ssid"] = String(ssid);
-    root["wifistatus"] = String(WiFi.status());
-    root["resetreason"] =ResetReason;
+    root["wifistatus"] = WiFi.status();
+    root["resetreason"] =ESP.getResetReason();
     root["errors"] =  rinfo->exccause;
+    
+    //The	address	of	the	last	crash	is	printed,	which	is	used	to    
+    sprintf(buffer, "epc1=0x%08x, epc2=0x%08x, epc3=0x%08x, excvaddr=0x%08x, depc=0x%08x, exccause=0x%x, reason=0x%x",
+      rinfo->epc1,	rinfo->epc2,	rinfo->epc3,	rinfo->excvaddr,	rinfo->depc, rinfo->exccause, rinfo->reason); 
+    root["rstinfo"] =  buffer;
     serializeJson(root,*response);
 
     request->send(response);    

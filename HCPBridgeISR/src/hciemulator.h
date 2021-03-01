@@ -1,4 +1,7 @@
-/* modified/reduced to provide HCP Modbus low level functions
+/*
+ * ISR Code to emulate the modbus rtu protocol for hoermann HCP2
+ * 
+ * code based on https://github.com/juhovh/esp-uart
  * The MIT License (MIT)
  *
  * Copyright (c) 2016 Juho Vähä-Herttua (juhovh@iki.fi)
