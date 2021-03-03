@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <AsyncElegantOTA.h>
 #include <ESPAsyncWebServer.h>
 #include "AsyncJson.h"
 #include "ArduinoJson.h"
@@ -163,24 +164,23 @@ void setup(){
     request->send(200, "text/plain", "OK");
   });
 
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {    
-    if (request->hasParam("channel") && request->hasParam("state")) {
-      String channel = request->getParam("channel")->value();
-      String state = request->getParam("state")->value();
-      if(channel.equals("door")){
-        if(state=="1"){
-          emulator.openDoor();
-        }else{
-          emulator.closeDoor();
-        }          
-      }
-      if(channel.equals("light")){
-        switchLamp(state=="1");
-      }      
-    }
-    request->send(200, "text/plain", "OK");
+  server.on("/sysinfo", HTTP_GET, [] (AsyncWebServerRequest *request) {      
+  
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    DynamicJsonDocument root(1024);
+    root["freemem"] = ESP.getFreeHeap();    
+    root["hostname"] = WiFi.getHostname();
+    root["ip"] = WiFi.localIP().toString();
+    root["ssid"] = String(ssid);
+    root["wifistatus"] = WiFi.status();
+    root["resetreason"] =esp_reset_reason();    
+    serializeJson(root,*response);
+
+    request->send(response);    
   });
 
+  AsyncElegantOTA.begin(&server);
+  
   server.begin();
 
   //setup relay board
@@ -197,4 +197,5 @@ void setup(){
 
 // mainloop
 void loop(){     
+  AsyncElegantOTA.loop();
 }
