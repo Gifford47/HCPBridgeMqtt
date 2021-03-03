@@ -145,8 +145,8 @@ static void ICACHE_RAM_ATTR processDeviceStatusFrame(){
                 // expose internal state
             //      00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16
             //0011: 02 17 9C B9 00 08 9C 41 00 02 04 3E 03 00 00 EB CC
-            //res=> 02 17 10 3E 00 03 01 00 00 00 00 00 00 00 00 00 00 00 00 74 1B                 
-            memcpy_P(txbuffer, ResponseTemplate_Fcn17_Cmd03_L08, sizeof(ResponseTemplate_Fcn17_Cmd03_L08));  
+            //res=> 02 17 10 3E 00 03 01 00 00 00 00 00 00 00 00 00 00 00 00 74 1B                             
+            memcpy(txbuffer, ResponseTemplate_Fcn17_Cmd03_L08, sizeof(ResponseTemplate_Fcn17_Cmd03_L08));  
             txbuffer[0] = rxbuffer[0];
             txbuffer[3] = counter;
             txbuffer[5] = cmd;
@@ -256,7 +256,7 @@ static void ICACHE_RAM_ATTR processDeviceStatusFrame(){
             //      00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16
             //0011: 02 17 9C B9 00 02 9C 41 00 02 04 0F 04 17 00 7B 21
             //res=> 02 17 04 0F 00 04 FD 0A 72     
-            memcpy_P(txbuffer, ResponseTemplate_Fcn17_Cmd04_L02, sizeof(ResponseTemplate_Fcn17_Cmd04_L02));  
+            memcpy(txbuffer, ResponseTemplate_Fcn17_Cmd04_L02, sizeof(ResponseTemplate_Fcn17_Cmd04_L02));  
             txbuffer[0] = rxbuffer[0];
             txbuffer[3] = counter;
             txbuffer[5] = cmd;
@@ -274,7 +274,7 @@ static void ICACHE_RAM_ATTR processDeviceBusScanFrame(){
     //res=> 02 17 0a 00 00 02 05 04 30 10 ff a8 45 0e df
     unsigned char counter = rxbuffer[11];
     unsigned char cmd = rxbuffer[12];
-    memcpy_P(txbuffer, ResponseTemplate_Fcn17_Cmd02_L05, sizeof(ResponseTemplate_Fcn17_Cmd02_L05));  
+    memcpy(txbuffer, ResponseTemplate_Fcn17_Cmd02_L05, sizeof(ResponseTemplate_Fcn17_Cmd02_L05));  
     txbuffer[0] = rxbuffer[0];
     txbuffer[3] = counter;
     txbuffer[5] = cmd;
