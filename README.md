@@ -81,4 +81,5 @@ ESP8266 ISR (instabil!, WLAN-Probleme können die ModBus-Verbindung beenden, dan
 - Busscan ausführen (blauer Pfeil auf off und wieder zurück auf off). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
 
 ## Changelog
+06.03.2021: Neue Version mit Arduino Pro Mini als Co MCU
 24.02.2021: Neue Version via Interrupt und für ESP32 zur Vermeidung von Timing-Problemen
