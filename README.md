@@ -1,5 +1,5 @@
 # HCPBridge
-Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622.<br/>
+Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622 bzw. ESP32 und Arduino.<br/>
 
 **Kompatible Torantriebe (HCP2-Bus - Modbus):**
 - SupraMatic E/P Serie 4
