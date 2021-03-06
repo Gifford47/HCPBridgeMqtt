@@ -66,11 +66,14 @@ Response (JSON):
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
 
 ## Schaltung
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/combo.png) 
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/combo.png) <br/>
 ESP8266 + Arduino Combo (Bisher stabil, benötigt allerdings zwei MCU)
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/schaltung.png) 
-ESP8266 ISR (instabil, WLAN Probleme können die ModBus-Verbindung beenden, dann wir ein Neuanlernen erforderlich) 
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/esp32.png) <br/>
+ESP32 (Bisher stabil durch Nutzung beider Kerne)
+
+![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/schaltung.png) <br/>
+ESP8266 ISR (instabil!, WLAN-Probleme können die ModBus-Verbindung beenden, dann ist ein Neuanlernen erforderlich) 
 
 ## Installation
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
