@@ -8,7 +8,12 @@
 #include "hciemulator.h"
 #include "../../WebUI/index_html.h"
 #include <sstream>
-#include "credentials.h"
+#include "configuration.h"
+
+#ifdef USE_DS18X20
+  #include <OneWire.h>
+  #include <DallasTemperature.h>
+#endif
 
 // switch relay sync to the lamp
 // e.g. the Wifi Relay Board U4648
@@ -30,6 +35,14 @@ HCIEmulator emulator(&RS485);
 
 // webserver on port 80
 AsyncWebServer server(80);
+
+#ifdef USE_DS18X20
+  // Setup a oneWire instance to communicate with any OneWire devices
+  OneWire oneWire(oneWireBus);
+  DallasTemperature sensors(&oneWire);
+  float ds18x20_temp = -99.99;
+  unsigned long lastMillis = 0L ;
+#endif
 
 // mqtt
 volatile bool mqttConnected;
@@ -517,9 +530,13 @@ void setup()
 {
   // setup modbus
   RS485.begin(57600, SERIAL_8E1);
-#ifdef SWAPUART
-  RS485.swap();
-#endif
+  #ifdef SWAPUART
+    RS485.swap();
+  #endif
+  #ifdef USE_DS18X20
+    // Start the DS18B20 sensor
+    sensors.begin();
+  #endif
   strcpy(lastCommandTopic, "topic");
   strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
@@ -644,4 +661,9 @@ void setup()
 void loop()
 {
   AsyncElegantOTA.loop();
+  if (millis() - lastMillis >= SENSE_PERIOD){
+    ds18x20_temp = sensors.getTempCByIndex(0);
+    lastMillis = millis();
+    mqttClient.publish("home/garage/door/temp", 1, true, ds18x20_temp);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+  }
 }
