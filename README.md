@@ -93,8 +93,10 @@ ESP8266 ISR (instabil!, WLAN-Probleme können die ModBus-Verbindung beenden, dan
 
 ## Installation
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
-- Adapter am Bus anschließen (grüner Pfeil)
-- Busscan ausführen (blauer Pfeil auf off und wieder zurück auf off). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
+- Adapter am Bus anschließen (grüner Pfeil) <br/>
+- Busscan ausführen:
+  - alte HW-Version: Busscan ausführen (blauer Pfeil auf off und wieder zurück auf off). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen.
+  - neue HW-Version: Der Busscan wird bei neueren HW-Versionen mittels des LC-Displays im Menü 37 durchgeführt. Weiteres siehe: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
 
 # HCPBridge MQTT (HomeAssistant topics)
 Integrate https://github.com/hkiam/HCPBridge into HomeAssistant through MQTT.
