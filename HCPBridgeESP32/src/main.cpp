@@ -667,9 +667,11 @@ void loop()
       ds18x20_temp = sensors.getTempCByIndex(0);
       lastMillis = millis();
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
-        DynamicJsonDocument json(1024);
-        json["ds18x20"] = ds18x20_temp;
-        mqttClient.publish("home/garage/door/temp", 1, true, json);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        DynamicJsonDocument doc(1024);
+        doc["ds18x20"] = ds18x20_temp;
+        char payload[1024];
+        serializeJson(doc, payload);
+        mqttClient.publish("home/garage/door/temp", 1, true, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
       }
       ds18x20_last_temp = ds18x20_temp;
     }
