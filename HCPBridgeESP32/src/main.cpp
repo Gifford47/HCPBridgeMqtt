@@ -8,6 +8,7 @@
 #include "hciemulator.h"
 #include "../../WebUI/index_html.h"
 #include <sstream>
+#include "credentials.h"
 
 // switch relay sync to the lamp
 // e.g. the Wifi Relay Board U4648
@@ -478,7 +479,7 @@ void mqttTaskFunc(void *parameter)
         mqttClient.onDisconnect(onMqttDisconnect);
         mqttClient.onMessage(onMqttMessage);
         mqttClient.onPublish(onMqttPublish);
-        mqttClient.setServer("192.168.178.10", 1883);
+        mqttClient.setServer(MQTTSERVER, MQTTPORT);
         setWill();
         connectToMqtt();
       }
@@ -534,7 +535,7 @@ void setup()
   // setup wifi
   WiFi.setHostname("Garagentor");
   WiFi.mode(WIFI_STA);
-  WiFi.begin("YourWifiSSID", "YourWifiPassword");
+  WiFi.begin(SSID, PASSWORD);
 
   WiFi.setAutoReconnect(true);
   while (WiFi.status() != WL_CONNECTED)
