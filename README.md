@@ -1,12 +1,4 @@
-# HCPBridge MQTT
-Integrate https://github.com/hkiam/HCPBridge into HomeAssistant through MQTT.
-
-This is just a quick and dirty impmlementation and needs refactoring. However, it works fine for me.
-
-![alt text](Images/HA.png)
-
-
-# HCPBridge @ hkiam
+# HCPBridge @ hkiam with MQTT + HomeAssistant Support
 Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622 bzw. ESP32 und Arduino.<br/>
 
 **Kompatible Torantriebe (HCP2-Bus - Modbus):**
@@ -89,6 +81,13 @@ ESP8266 ISR (instabil!, WLAN-Probleme können die ModBus-Verbindung beenden, dan
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
 - Adapter am Bus anschließen (grüner Pfeil)
 - Busscan ausführen (blauer Pfeil auf off und wieder zurück auf off). Der Adapter bekommt erst dann Strom über die 25V Leitung und muss während des Busscans antworten, sonst wird der Strom wieder abgeschaltet. Im Falle eines Fehlers oder wenn der Adapter abgezogen werden soll, einfach die Busscan Prozedur (On/Off) wiederholen. 
+
+# HCPBridge MQTT (HomeAssistant topics)
+Integrate https://github.com/hkiam/HCPBridge into HomeAssistant through MQTT.
+
+This is just a quick and dirty impmlementation and needs refactoring. However, it works fine for me.
+
+![alt text](Images/HA.png)
 
 ## Changelog
 06.03.2021: Neue Version mit Arduino Pro Mini als Co MCU
