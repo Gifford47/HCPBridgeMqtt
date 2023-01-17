@@ -41,6 +41,7 @@ AsyncWebServer server(80);
   OneWire oneWire(oneWireBus);
   DallasTemperature sensors(&oneWire);
   float ds18x20_temp = -99.99;
+  float ds18x20_last_temp = -99.99;
   unsigned long lastMillis = 0L ;
 #endif
 
@@ -661,9 +662,16 @@ void setup()
 void loop()
 {
   AsyncElegantOTA.loop();
-  if (millis() - lastMillis >= SENSE_PERIOD){
-    ds18x20_temp = sensors.getTempCByIndex(0);
-    lastMillis = millis();
-    mqttClient.publish("home/garage/door/temp", 1, true, ds18x20_temp);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-  }
+  #ifdef USE_DS18X20
+    if (millis() - lastMillis >= SENSE_PERIOD){
+      ds18x20_temp = sensors.getTempCByIndex(0);
+      lastMillis = millis();
+      if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
+        DynamicJsonDocument json(1024);
+        json["ds18x20"] = ds18x20_temp;
+        mqttClient.publish("home/garage/door/temp", 1, true, json);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+      }
+      ds18x20_last_temp = ds18x20_temp;
+    }
+  #endif
 }
