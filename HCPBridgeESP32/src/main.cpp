@@ -643,7 +643,7 @@ void setup()
 
               request->send(response); });
 
-  AsyncElegantOTA.begin(&server);
+  AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
 
