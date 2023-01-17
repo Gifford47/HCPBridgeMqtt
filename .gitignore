@@ -1,3 +1,4 @@
-﻿HCPBridge/.vscode
+HCPBridgeMqtt/.vscode
 Investigation/bussniffer/tools/opendooralert/opendooralert.py.bak
 tools/opendooralert/opendooralert.py.bak
+credentials.h
