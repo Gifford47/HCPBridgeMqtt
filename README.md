@@ -17,6 +17,8 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 - WebInterface
 - WebService
 - Schalten eines Relais mit der Beleuchtung
+- OTA Update
+- DS18X20 Temperatur Sensor
 
 ## WebInterface:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
