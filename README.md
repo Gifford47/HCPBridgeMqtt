@@ -35,9 +35,8 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 | 3 | Lüftungsstellung |
 | 4 | 1/2 öffnen |
 | 5 | Lampe an/an |  
-  
 
-### Status abfragen:
+### Türstatus abfragen:
 
 ***http://[deviceip]/status***
   
@@ -54,6 +53,15 @@ Response (JSON):
 }
 ```
 
+### Wifi Status abfragen:
+
+***http://[deviceip]/sysinfo***
+
+### OTA Firmware update (AsyncElegantOTA):
+
+***http://[deviceip]/update***
+
+
 ## Pinout RS485 (Plug):
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
 1. GND (Blue)
@@ -66,6 +74,10 @@ Response (JSON):
 ## RS485 Adapter:
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS! 
+
+## DS18X20 Temperature Sensor
+![DS18X20](Images/ds18x20.jpg) <br/>
+DS18X20 connected to GPIO4.
 
 ## Schaltung
 ![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/combo.png) <br/>
