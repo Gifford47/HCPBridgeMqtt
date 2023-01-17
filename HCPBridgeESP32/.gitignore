@@ -3,3 +3,10 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/extensions.json
+clean.bat
+config.h
+*.bak
+*.bin
