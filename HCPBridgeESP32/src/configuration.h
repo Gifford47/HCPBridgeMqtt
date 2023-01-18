@@ -1,11 +1,9 @@
 //WIFI
-const char* SSID = "MyWLANSID";
-const char* PASSWORD = "MYPASSWORD";
 const char* AP_PASSWD = "MYPASSWORD";
 const char HOSTNAME[] = "HCPBridge";
 
 //MQTT
-const char* MQTTSERVER = "192.168.1.10";
+const char* MQTTSERVER = "192.168.1.100";
 const int MQTTPORT = 1883;
 
 //OTA Update
