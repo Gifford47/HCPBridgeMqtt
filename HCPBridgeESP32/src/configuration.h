@@ -1,6 +1,8 @@
 //WIFI
 const char* SSID = "MyWLANSID";
 const char* PASSWORD = "MYPASSWORD";
+const char* AP_PASSWD = "MYPASSWORD";
+const char HOSTNAME[] = "HCPBridge";
 
 //MQTT
 const char* MQTTSERVER = "192.168.1.10";
