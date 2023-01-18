@@ -15,12 +15,11 @@
   #include <DallasTemperature.h>
 #endif
 
-// switch relay sync to the lamp
-// e.g. the Wifi Relay Board U4648
-//#define USERELAY
-
-// use alternative uart pins
-//#define SWAPUART
+#ifdef USE_BME
+  #include <Wire.h>
+  #include <Adafruit_Sensor.h>
+  #include <Adafruit_BME280.h>
+#endif
 
 #define RS485 Serial
 
@@ -42,8 +41,18 @@ AsyncWebServer server(80);
   DallasTemperature sensors(&oneWire);
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
-  unsigned long lastMillis = 0L ;
 #endif
+#ifdef USE_BME
+  TwoWire I2CBME = TwoWire(0);
+  Adafruit_BME280 bme;
+  float bme_temp = -99.99;
+  float bme_last_temp = -99.99;
+  float bme_hum = -99.99;
+  float bme_last_hum = -99.99;
+  float bme_pres = -99.99;
+  float bme_last_pres = -99.99;
+#endif
+unsigned long lastMillis = 0L ;
 
 // mqtt
 volatile bool mqttConnected;
@@ -526,6 +535,36 @@ void modBusPolling(void *parameter)
 
 TaskHandle_t modBusTask;
 
+void SensorCheck(){
+  if (millis() - lastMillis >= SENSE_PERIOD){
+    DynamicJsonDocument doc(1024);
+    char payload[1024];
+    #ifdef USE_DS18X20
+      ds18x20_temp = sensors.getTempCByIndex(0);
+      if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
+        doc["ds18x20"] = ds18x20_temp;
+        ds18x20_last_temp = ds18x20_temp; 
+      }
+    #endif
+    #ifdef USE_BME
+      bme_temp = bme.readTemperature();
+      bme_hum = bme.readHumidity();
+      bme_pres = bme.readPressure();
+      if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+        doc["bme_temp"] = bme_temp;
+        doc["bme_hum"] = bme_temp;
+        doc["bme_pres"] = bme_temp;
+        bme_last_temp = bme_temp;
+        bme_last_hum = bme_hum;
+        bme_last_pres = bme_pres;
+      }
+    #endif
+    serializeJson(doc, payload);
+    mqttClient.publish("home/garage/door/temp", 1, true, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    lastMillis = millis();
+  }
+}
+
 // setup mcu
 void setup()
 {
@@ -537,6 +576,11 @@ void setup()
   #ifdef USE_DS18X20
     // Start the DS18B20 sensor
     sensors.begin();
+  #endif
+  #ifdef USE_BME
+    I2CBME.begin(I2C_SDA, I2C_SCL, 400000);
+    bool status;
+    status = bme.begin(0x76, &I2CBME);  // check sensor
   #endif
   strcpy(lastCommandTopic, "topic");
   strcpy(lastCommandPayload, "payload");
@@ -649,10 +693,10 @@ void setup()
 
   // setup relay board
 #ifdef USERELAY
-  pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
-  pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
+  pinMode(RELAY_PIN, OUTPUT);       // Relay control pin.
+  pinMode(RELAY_INPUT, INPUT_PULLUP); // Input pin.
   pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
-  digitalWrite(ESP8266_GPIO4, 0);
+  digitalWrite(RELAY_PIN, 0);
   digitalWrite(LED_PIN, 0);
   emulator.onStatusChanged(onStatusChanged);
 #endif
@@ -662,18 +706,7 @@ void setup()
 void loop()
 {
   AsyncElegantOTA.loop();
-  #ifdef USE_DS18X20
-    if (millis() - lastMillis >= SENSE_PERIOD){
-      ds18x20_temp = sensors.getTempCByIndex(0);
-      lastMillis = millis();
-      if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
-        DynamicJsonDocument doc(1024);
-        doc["ds18x20"] = ds18x20_temp;
-        char payload[1024];
-        serializeJson(doc, payload);
-        mqttClient.publish("home/garage/door/temp", 1, true, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-      }
-      ds18x20_last_temp = ds18x20_temp;
-    }
+  #ifdef SENSORS
+    SensorCheck();
   #endif
 }
