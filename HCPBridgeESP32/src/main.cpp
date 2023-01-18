@@ -556,15 +556,15 @@ void SensorCheck(){
       bme_pres = bme.readPressure();
       if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
         doc["bme_temp"] = bme_temp;
-        doc["bme_hum"] = bme_temp;
-        doc["bme_pres"] = bme_temp;
+        doc["bme_hum"] = bme_hum;
+        doc["bme_pres"] = bme_pres;
         bme_last_temp = bme_temp;
         bme_last_hum = bme_hum;
         bme_last_pres = bme_pres;
       }
     #endif
     serializeJson(doc, payload);
-    mqttClient.publish("home/garage/door/temp", 1, true, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    mqttClient.publish("home/garage/door/sensor", 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     lastMillis = millis();
   }
 }
