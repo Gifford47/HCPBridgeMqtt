@@ -8,6 +8,10 @@
 #include "hciemulator.h"
 #include "../../WebUI/index_html.h"
 #include <sstream>
+
+#include <ESPAsyncWiFiManager.h>
+DNSServer dns;
+
 #include "configuration.h"
 
 #ifdef USE_DS18X20
@@ -595,15 +599,10 @@ void setup()
       1);          /* Core where the task should run */
 
   // setup wifi
-  WiFi.setHostname("Garagentor");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWORD);
+  WiFi.setHostname(HOSTNAME);
+  AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
 
-  WiFi.setAutoReconnect(true);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(100);
-  }
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
