@@ -552,8 +552,8 @@ void SensorCheck(){
       bme_pres = bme.readPressure();
       if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
         doc["bme_temp"] = bme_temp;
-        doc["bme_hum"] = bme_temp;
-        doc["bme_pres"] = bme_temp;
+        doc["bme_hum"] = bme_hum;
+        doc["bme_pres"] = bme_pres;
         bme_last_temp = bme_temp;
         bme_last_hum = bme_hum;
         bme_last_pres = bme_pres;
