@@ -47,8 +47,8 @@ AsyncWebServer server(80);
   float ds18x20_last_temp = -99.99;
 #endif
 #ifdef USE_BME
-  TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
+  unsigned bme_status;
   float bme_temp = -99.99;
   float bme_last_temp = -99.99;
   float bme_hum = -99.99;
@@ -62,24 +62,6 @@ unsigned long lastMillis = 0L ;
 volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
-
-const char *HA_ON = "true";
-const char *HA_OFF = "false";
-
-const char *HA_OPEN = "open";
-const char *HA_CLOSE = "close";
-const char *HA_HALF = "half";
-const char *HA_STOP = "stop";
-const char *HA_OPENING = "opening";
-const char *HA_CLOSING = "closing";
-const char *HA_CLOSED = "closed";
-const char *HA_OPENED = "open";
-
-const char *HA_ONLINE = "online";
-const char *HA_OFFLINE = "offline";
-const char *AVAILABILITY_TOPIC = "home/garage/door/availability";
-
-const char *HA_VERSION = "0.0.2.0";
 
 char lastCommandTopic[64];
 char lastCommandPayload[64];
@@ -195,7 +177,7 @@ void onStatusChanged(const SHCIState &state)
     char payload[1024];
     serializeJson(doc, payload);
 
-    mqttClient.publish("home/garage/door/state", 1, true, payload);
+    mqttClient.publish(STATE_TOPIC, 1, true, payload);
   }
 }
 
@@ -207,7 +189,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   auto payloadEqualsOn = Equals(HA_ON, payload);
   auto payloadEqualsOff = Equals(HA_OFF, payload);
 
-  if (Equals("home/garage/door/command/lamp", topic))
+  if (Equals(LAMP_TOPIC, topic))
   {
     if (payloadEqualsOn)
     {
@@ -222,7 +204,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       emulator.toggleLamp();
     }
   }
-  else if (Equals("home/garage/door/command/door", topic))
+  else if (Equals(DOOR_TOPIC, topic))
   {
 
     auto payloadEqualsOpen = Equals(HA_OPEN, payload);
@@ -271,7 +253,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 {
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/binary_sensor/garage/%s/config", topic);
+  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, topic);
 
   char uid[64];
   sprintf(uid, "garagedoor_binary_sensor_%s", topic);
@@ -282,7 +264,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = "home/garage/door/state";
+  doc["state_topic"] = STATE_TOPIC;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
@@ -322,14 +304,14 @@ void sendDiscoveryMessageForAVSensor()
   char payload[1024];
   serializeJson(doc, payload);
   //-//Serial.write(payload);
-  mqttClient.publish("homeassistant/sensor/garage/available/config", 1, true, payload);
+  mqttClient.publish(HA_DISCOVERY_AV_SENSOR, 1, true, payload);
 }
 
 void sendDiscoveryMessageForSensor(const char name[], const char topic[])
 {
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/sensor/garage/%s/config", topic);
+  sprintf(full_topic, HA_DISCOVERY_SENSOR, topic);
 
   char uid[64];
   sprintf(uid, "garagedoor_sensor_%s", topic);
@@ -340,7 +322,7 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[])
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = "home/garage/door/state";
+  doc["state_topic"] = STATE_TOPIC;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
@@ -363,10 +345,10 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[])
 void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const char off[], const char on[], bool optimistic = false)
 {
   char command_topic[64];
-  sprintf(command_topic, "home/garage/door/command/%s", topic);
+  sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/switch/garage/%s/config", topic);
+  sprintf(full_topic, HA_DISCOVERY_SWITCH, topic);
 
   char value_template[64];
   sprintf(value_template, "{{ value_json.%s }}", topic);
@@ -377,7 +359,7 @@ void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const 
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = "home/garage/door/state";
+  doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
   doc["payload_on"] = on;
   doc["payload_off"] = off;
@@ -406,10 +388,10 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
 {
 
   char command_topic[64];
-  sprintf(command_topic, "home/garage/door/command/%s", topic);
+  sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/cover/garage/%s/config", topic);
+  sprintf(full_topic, HA_DISCOVERY_COVER, topic);
 
   char uid[64];
   sprintf(uid, "garagedoor_cover_%s", topic);
@@ -420,7 +402,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = "home/garage/door/state";
+  doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
 
   doc["payload_open"] = HA_OPEN;
@@ -486,7 +468,7 @@ void onMqttConnect(bool sessionPresent)
   }
 
   sendOnline();
-  mqttClient.subscribe("home/garage/door/command/#", 1);
+  mqttClient.subscribe(CMD_TOPIC "/#", 1);
   const SHCIState &doorstate = emulator.getState();
   onStatusChanged(doorstate);
   sendDiscoveryMessage();
@@ -551,6 +533,9 @@ void SensorCheck(){
       }
     #endif
     #ifdef USE_BME
+      if (!bme_status) {
+        doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
+      }
       bme_temp = bme.readTemperature();
       bme_hum = bme.readHumidity();
       bme_pres = bme.readPressure();
@@ -564,7 +549,7 @@ void SensorCheck(){
       }
     #endif
     serializeJson(doc, payload);
-    mqttClient.publish("home/garage/door/sensor", 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     lastMillis = millis();
   }
 }
@@ -582,9 +567,8 @@ void setup()
     sensors.begin();
   #endif
   #ifdef USE_BME
-    I2CBME.begin(I2C_SDA, I2C_SCL, 400000);
-    bool status;
-    status = bme.begin(0x76, &I2CBME);  // check sensor
+    //I2CBME.begin(I2C_SDA, I2C_SCL, 400000);
+    bme_status = bme.begin(0x77, &Wire);  // check sensor
   #endif
   strcpy(lastCommandTopic, "topic");
   strcpy(lastCommandPayload, "payload");
