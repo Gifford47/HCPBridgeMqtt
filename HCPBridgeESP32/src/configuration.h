@@ -38,11 +38,17 @@ const char *HA_VERSION = "0.0.2.0";
 const char* OTA_USERNAME = "admin";
 const char* OTA_PASSWD = "admin";
 
+//MODBUS
+const int READ_DELAY = 6000;           // intervall (ms) to read modbus for new status
+
 // switch relay sync to the lamp
 // e.g. the Wifi Relay Board U4648
 //#define USERELAY              //enable/disable relay
-#define RELAY_PIN  ESP8266_GPIO4       // Relay control pin.
-#define RELAY_INPUT  ESP8266_GPIO5       // Input pin.
+// Relay Board parameters
+#define ESP8266_GPIO2 2 // Blue LED.
+#define ESP8266_GPIO4 4 // Relay control.
+#define ESP8266_GPIO5 5 // Optocoupler input.
+#define LED_PIN ESP8266_GPIO2
 
 // use alternative uart pins
 //#define SWAPUART
