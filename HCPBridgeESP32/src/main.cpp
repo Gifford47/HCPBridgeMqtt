@@ -27,14 +27,9 @@ DNSServer dns;
 
 #define RS485 Serial
 
-// Relay Board parameters
-#define ESP8266_GPIO2 2 // Blue LED.
-#define ESP8266_GPIO4 4 // Relay control.
-#define ESP8266_GPIO5 5 // Optocoupler input.
-#define LED_PIN ESP8266_GPIO2
-
 // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
 HCIEmulator emulator(&RS485);
+const SHCIState &doorstate;
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -494,9 +489,14 @@ void mqttTaskFunc(void *parameter)
       }
       else
       {
-        const SHCIState &doorstate = emulator.getState();
-        onStatusChanged(doorstate);
-        vTaskDelay(6000);
+        const SHCIState &new_doorstate = emulator.getState();
+        // onyl send updates when state changed
+        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition)[
+          //const SHCIState &doorstate = emulator.getState();
+          doorstate = new_doorstate;  //copy new states
+          onStatusChanged(doorstate);
+        ]
+        vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
   }
@@ -676,10 +676,10 @@ void setup()
 
   // setup relay board
 #ifdef USERELAY
-  pinMode(RELAY_PIN, OUTPUT);       // Relay control pin.
-  pinMode(RELAY_INPUT, INPUT_PULLUP); // Input pin.
+  pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
+  pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
   pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
-  digitalWrite(RELAY_PIN, 0);
+  digitalWrite(ESP8266_GPIO4, 0);
   digitalWrite(LED_PIN, 0);
   emulator.onStatusChanged(onStatusChanged);
 #endif
