@@ -29,7 +29,7 @@ DNSServer dns;
 
 // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
 HCIEmulator emulator(&RS485);
-const SHCIState &doorstate;
+SHCIState doorstate = emulator.getState();
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -491,11 +491,11 @@ void mqttTaskFunc(void *parameter)
       {
         const SHCIState &new_doorstate = emulator.getState();
         // onyl send updates when state changed
-        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition)[
+        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
           //const SHCIState &doorstate = emulator.getState();
           doorstate = new_doorstate;  //copy new states
           onStatusChanged(doorstate);
-        ]
+        }
         vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
@@ -525,16 +525,19 @@ void SensorCheck(){
   if (millis() - lastMillis >= SENSE_PERIOD){
     DynamicJsonDocument doc(1024);
     char payload[1024];
+    bool changed = false;
     #ifdef USE_DS18X20
       ds18x20_temp = sensors.getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
         doc["ds18x20"] = ds18x20_temp;
         ds18x20_last_temp = ds18x20_temp; 
+        changed = true;
       }
     #endif
     #ifdef USE_BME
       if (!bme_status) {
         doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
+        bme_status = bme.begin();  // check sensor again
       }
       bme_temp = bme.readTemperature();
       bme_hum = bme.readHumidity();
@@ -546,10 +549,13 @@ void SensorCheck(){
         bme_last_temp = bme_temp;
         bme_last_hum = bme_hum;
         bme_last_pres = bme_pres;
+        changed = true;
       }
     #endif
-    serializeJson(doc, payload);
-    mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    if (changed){
+      serializeJson(doc, payload);
+      mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    }
     lastMillis = millis();
   }
 }
@@ -568,7 +574,7 @@ void setup()
   #endif
   #ifdef USE_BME
     //I2CBME.begin(I2C_SDA, I2C_SCL, 400000);
-    bme_status = bme.begin(0x77, &Wire);  // check sensor
+    bme_status = bme.begin();  // check sensor
   #endif
   strcpy(lastCommandTopic, "topic");
   strcpy(lastCommandPayload, "payload");
