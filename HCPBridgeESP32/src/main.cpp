@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Esp.h>
 #include <AsyncElegantOTA.h>
 #include <ESPAsyncWebServer.h>
 #include "AsyncJson.h"
@@ -648,6 +649,9 @@ void setup()
                   break;
                 case 5:
                   emulator.toggleLamp();
+                  break;
+                case 6:
+                  ESP.restart();
                   break;
                 default:
                   break;
