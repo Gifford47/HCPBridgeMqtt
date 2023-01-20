@@ -18,8 +18,9 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 * WebInterface
 * WebService
 * Schalten eines Relais mit der Beleuchtung
-* OTA Update
+* OTA Update (with username and password)
 * DS18X20 Temperatur Sensor (mit Threshold)
+* Send only MQTT Message if Door state changed
 
 ## WebInterface:
 
