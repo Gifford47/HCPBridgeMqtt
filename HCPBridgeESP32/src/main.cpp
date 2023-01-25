@@ -43,6 +43,7 @@ AsyncWebServer server(80);
   float ds18x20_last_temp = -99.99;
 #endif
 #ifdef USE_BME
+  TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
   unsigned bme_status;
   float bme_temp = -99.99;
@@ -524,7 +525,7 @@ TaskHandle_t modBusTask;
 
 void SensorCheck(){
   if (millis() - lastMillis >= SENSE_PERIOD){
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
     bool changed = false;
     #ifdef USE_DS18X20
@@ -538,15 +539,19 @@ void SensorCheck(){
     #ifdef USE_BME
       if (!bme_status) {
         doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        bme_status = bme.begin();  // check sensor again
+        //bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
       }
-      bme_temp = bme.readTemperature();
+      bme_temp = bme.readTemperature();   // round float
       bme_hum = bme.readHumidity();
-      bme_pres = bme.readPressure();
+      bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
       if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
-        doc["bme_temp"] = bme_temp;
-        doc["bme_hum"] = bme_hum;
-        doc["bme_pres"] = bme_pres;
+        char buf[20];
+        dtostrf(bme_temp,2,2,buf);    // convert to string
+        doc["bme_temp"] = buf;
+        dtostrf(bme_hum,2,2,buf);    // convert to string
+        doc["bme_hum"] = buf;
+        dtostrf(bme_pres,2,1,buf);    // convert to string
+        doc["bme_pres"] = buf;
         bme_last_temp = bme_temp;
         bme_last_hum = bme_hum;
         bme_last_pres = bme_pres;
@@ -569,14 +574,7 @@ void setup()
   #ifdef SWAPUART
     RS485.swap();
   #endif
-  #ifdef USE_DS18X20
-    // Start the DS18B20 sensor
-    sensors.begin();
-  #endif
-  #ifdef USE_BME
-    //I2CBME.begin(I2C_SDA, I2C_SCL, 400000);
-    bme_status = bme.begin();  // check sensor
-  #endif
+
   strcpy(lastCommandTopic, "topic");
   strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
@@ -657,6 +655,7 @@ void setup()
                   emulator.toggleLamp();
                   break;
                 case 6:
+                  setWill();
                   ESP.restart();
                   break;
                 default:
@@ -685,14 +684,26 @@ void setup()
   server.begin();
 
   // setup relay board
-#ifdef USERELAY
-  pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
-  pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
-  pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
-  digitalWrite(ESP8266_GPIO4, 0);
-  digitalWrite(LED_PIN, 0);
-  emulator.onStatusChanged(onStatusChanged);
-#endif
+  #ifdef USERELAY
+    pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
+    pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
+    pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
+    digitalWrite(ESP8266_GPIO4, 0);
+    digitalWrite(LED_PIN, 0);
+    emulator.onStatusChanged(onStatusChanged);
+  #endif
+
+  #ifdef SENSORS
+    #ifdef USE_DS18X20
+      // Start the DS18B20 sensor
+      sensors.begin();
+    #endif
+    #ifdef USE_BME
+      I2CBME.begin(I2C_SDA, I2C_SCL, 400000);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+    #endif
+    SensorCheck();
+  #endif
 }
 
 // mainloop
