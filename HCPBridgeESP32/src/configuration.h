@@ -1,5 +1,5 @@
 //WIFI
-const char* AP_PASSWD = "MYPASSWORD";
+const char* AP_PASSWD = "admin";
 const char HOSTNAME[] = "HCPBridge";
 
 //MQTT
@@ -54,7 +54,7 @@ const int READ_DELAY = 6000;           // intervall (ms) to read modbus for new 
 //#define SWAPUART
 
 #define SENSORS              //Uncomment to globally enable sensors
-#define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
+#define SENSE_PERIOD (5*60*1000L)  //read interval of all defined sensors
 
 #define temp_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
 #define hum_threshold 2    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
@@ -65,6 +65,6 @@ const int READ_DELAY = 6000;           // intervall (ms) to read modbus for new 
 const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 
 //BME280                      //Uncomment to use a I2C BME280 Sensor
-//#define USE_BME             //Uncomment to use a DS18X20 Sensor
+#define USE_BME             //Uncomment to use a DS18X20 Sensor
 #define I2C_SDA 21
 #define I2C_SCL 22
