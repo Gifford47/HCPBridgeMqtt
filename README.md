@@ -1,8 +1,8 @@
-# HCPBridge @ hkiam with MQTT + HomeAssistant Support
+# HCPBridge with MQTT + HomeAssistant Support
 
-Emuliert ein Hörmann HAP 1 HCP auf dem ESP8622 bzw. ESP32 und Arduino.<br/>
+Emulates Hörmann HAP 1 HCP using an ESP32 and a RS485 converter.<br/>
 
-**Kompatible Torantriebe (HCP2-Bus - Modbus):**
+**Compatible with the following motors (HCP2-Bus - Modbus):**
 
 * SupraMatic E/P Serie 4
 * ProMatic Serie 4
@@ -29,7 +29,7 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 
 ## WebInterface:
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/webinterface.PNG)
+![alt text](Images/webinterface.PNG)
 
 ## WebService:
 
@@ -74,18 +74,18 @@ Response (JSON):
 
 ## Pinout RS485 (Plug):
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/plug-min.png)
+![alt text](Images/plug-min.png)
 
 1. GND (Blue)
 2. GND (Yellow)
 3. B- (Green)
 4. A+ (Red)
-5. \+25V (Black)
-6. \+25V (White)
+5. \+24V (Black)
+6. \+24V (White)
 
 ## RS485 Adapter:
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/rs485board-min.png)  
+![alt text](Images/rs485board-min.png)  
 Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS!
 
 ## DS18X20 Temperature Sensor
@@ -95,18 +95,12 @@ DS18X20 connected to GPIO4.
 
 ## Schaltung
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/combo.png) <br/>
-ESP8266 + Arduino Combo (Bisher stabil, benötigt allerdings zwei MCU)
-
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/esp32.png) <br/>
+![alt text](Images/esp32.png) <br/>
 ESP32 (Bisher stabil durch Nutzung beider Kerne, 25V auf 5V durch LM2596S DC-DC Step Down Module)
-
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/schaltung.png) <br/>
-ESP8266 ISR (instabil!, WLAN-Probleme können die ModBus-Verbindung beenden, dann ist ein Neuanlernen erforderlich)
 
 ## Installation
 
-![alt text](https://github.com/hkiam/HCPBridge/raw/master/Images/antrieb-min.png)
+![alt text](Images/antrieb-min.png)
 
 * Adapter am Bus anschließen (grüner Pfeil) <br/>
 * Busscan ausführen: 
