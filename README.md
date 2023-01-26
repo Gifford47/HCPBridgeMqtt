@@ -45,6 +45,7 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 | 3 | Lüftungsstellung |
 | 4 | 1/2 öffnen |
 | 5 | Lampe an/an |
+| 6 | Restart |
 
 ### Türstatus abfragen:
 
@@ -64,7 +65,7 @@ Response (JSON):
 }
 ```
 
-### Wifi Status abfragen:
+### Wifi Status:
 
 ***http://[deviceip]/sysinfo***
 
@@ -86,7 +87,7 @@ Response (JSON):
 ## RS485 Adapter:
 
 ![alt text](Images/rs485board-min.png)  
-Zwischen A+ (Red) und B- (Green) ist ein 120 Ohm Widerstand zum terminieren des BUS!
+Pins A+ (Red) und B- (Green) need a 120 Ohm resistor for BUS termination.
 
 ## DS18X20 Temperature Sensor
 
@@ -96,7 +97,7 @@ DS18X20 connected to GPIO4.
 ## Schaltung
 
 ![alt text](Images/esp32.png) <br/>
-ESP32 (Bisher stabil durch Nutzung beider Kerne, 25V auf 5V durch LM2596S DC-DC Step Down Module)
+ESP32 (requires a Step Down Module such as LM2596S DC-DC, but any will do 24VDC ==> 5VDC will do)
 
 ## Installation
 
@@ -114,8 +115,3 @@ Integrate https://github.com/hkiam/HCPBridge into HomeAssistant through MQTT.
 This is just a quick and dirty impmlementation and needs refactoring. However, it works fine for me.
 
 ![alt text](Images/HA.png)
-
-## Changelog
-
-06\.03.2021: Neue Version mit Arduino Pro Mini als Co MCU
-24\.02.2021: Neue Version via Interrupt und für ESP32 zur Vermeidung von Timing-Problemen
