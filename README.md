@@ -19,8 +19,13 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 * WebService
 * Schalten eines Relais mit der Beleuchtung
 * OTA Update (with username and password)
+* AsyncWifiManger hinzugefügt (Hotspot bei getrennter Verbindung)
 * DS18X20 Temperatur Sensor (mit Threshold)
 * Send only MQTT Message if Door state changed
+
+## Known Bugs:
+* Licht kann nicht per WebUI geschaltet werden
+* ESP.restart()/ doCommand(6) wird nicht ausgeführt
 
 ## WebInterface:
 
