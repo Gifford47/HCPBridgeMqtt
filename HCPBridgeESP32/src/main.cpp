@@ -53,7 +53,6 @@ AsyncWebServer server(80);
   float bme_pres = -99.99;
   float bme_last_pres = -99.99;
 #endif
-unsigned long lastMillis = 0L ;
 
 // mqtt
 volatile bool mqttConnected;
@@ -524,7 +523,6 @@ void modBusPolling(void *parameter)
 TaskHandle_t modBusTask;
 
 void SensorCheck(){
-  if (millis() - lastMillis >= SENSE_PERIOD){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
     bool changed = false;
@@ -562,9 +560,10 @@ void SensorCheck(){
       serializeJson(doc, payload);
       mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     }
-    lastMillis = millis();
-  }
+  vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
 }
+
+TaskHandle_t sensorTask;
 
 // setup mcu
 void setup()
@@ -592,16 +591,37 @@ void setup()
   AsyncWiFiManager wifiManager(&server,&dns);
   wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
 
-
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
       "MqttTask",   /* Name of the task */
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 1,
+      configMAX_PRIORITIES - 2,
       &mqttTask, /* Task handle. */
       1);        /* Core where the task should run */
+
+
+  #ifdef SENSORS
+    #ifdef USE_DS18X20
+      // Start the DS18B20 sensor
+      sensors.begin();
+    #endif
+    #ifdef USE_BME
+      I2CBME.begin(I2C_SDA, I2C_SCL, 400000);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+    #endif
+      xTaskCreatePinnedToCore(
+      SensorCheck, /* Function to implement the task */
+      "SensorTask",   /* Name of the task */
+      10000,        /* Stack size in words */
+      NULL,         /* Task input parameter */
+      // 1,  /* Priority of the task */
+      configMAX_PRIORITIES - 3,
+      &sensorTask, /* Task handle. */
+      1);        /* Core where the task should run */
+  #endif
+
 
   // setup http server
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -693,24 +713,15 @@ void setup()
     emulator.onStatusChanged(onStatusChanged);
   #endif
 
+  // read sensors initially
   #ifdef SENSORS
-    #ifdef USE_DS18X20
-      // Start the DS18B20 sensor
-      sensors.begin();
+    #if defined(USE_DS18X20) || defined(USE_BME)
+      SensorCheck();
     #endif
-    #ifdef USE_BME
-      I2CBME.begin(I2C_SDA, I2C_SCL, 400000);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
-      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-    #endif
-    SensorCheck();
   #endif
 }
 
 // mainloop
 void loop()
 {
-  AsyncElegantOTA.loop();
-  #ifdef SENSORS
-    SensorCheck();
-  #endif
 }
