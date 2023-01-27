@@ -359,9 +359,6 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   char uid[64];
   sprintf(uid, "garagedoor_cover_%s", topic);
 
-  char value_template[64];
-  sprintf(value_template, "{{ value_json.%s }}", topic);
-
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
@@ -372,7 +369,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
-  doc["value_template"] = value_template;
+  doc["value_template"] = "{{ value_json.doorstate }}";
   doc["state_open"] = HA_OPEN;
   doc["state_opening"] = HA_OPENING;
   doc["state_closed"] = HA_CLOSED;
