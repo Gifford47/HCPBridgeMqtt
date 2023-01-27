@@ -657,16 +657,6 @@ void setup()
 
   server.begin();
 
-  // setup relay board
-  #ifdef USERELAY
-    pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
-    pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
-    pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
-    digitalWrite(ESP8266_GPIO4, 0);
-    digitalWrite(LED_PIN, 0);
-    emulator.onStatusChanged(onStatusChanged);
-  #endif
-
   // read sensors initially
   #ifdef SENSORS
     #if defined(USE_DS18X20) || defined(USE_BME)
