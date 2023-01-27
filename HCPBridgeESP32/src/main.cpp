@@ -522,7 +522,7 @@ void modBusPolling(void *parameter)
 
 TaskHandle_t modBusTask;
 
-void SensorCheck(){
+void SensorCheck(void *parameter){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
     bool changed = false;
@@ -620,6 +620,8 @@ void setup()
       configMAX_PRIORITIES - 3,
       &sensorTask, /* Task handle. */
       1);        /* Core where the task should run */
+
+      TaskHandle_t sensorTask;
   #endif
 
 
@@ -713,12 +715,6 @@ void setup()
     emulator.onStatusChanged(onStatusChanged);
   #endif
 
-  // read sensors initially
-  #ifdef SENSORS
-    #if defined(USE_DS18X20) || defined(USE_BME)
-      SensorCheck();
-    #endif
-  #endif
 }
 
 // mainloop
