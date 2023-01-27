@@ -1,6 +1,7 @@
 NOTE: this is a fork of the work of various people who did 99% of the work. I just did some cleanups, translated to english and fixed various bugs.
 
 # HCPBridge with MQTT + HomeAssistant Support
+![image](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
 Emulates Hörmann UAP1-HCP board using an ESP32 and a RS485 converter, and exposes garage door controls over web page and MQTT.
 
