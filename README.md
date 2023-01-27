@@ -75,9 +75,11 @@ Response (JSON)
 
 ***http://[deviceip]/sysinfo***
 
-### OTA Firmware update (AsyncElegantOTA):
+### OTA Firmware update (AsyncElegantOTA)
 
 ***http://[deviceip]/update***
+
+![image](https://user-images.githubusercontent.com/14005124/215216505-8c5abe46-5d40-402b-963a-e3825c63d417.png)
 
 ## Pinout RS485 (Plug)
 
