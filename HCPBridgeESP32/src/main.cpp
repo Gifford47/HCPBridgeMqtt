@@ -551,7 +551,7 @@ void setup()
       // 1,  /* Priority of the task */
       configMAX_PRIORITIES - 2,
       &mqttTask, /* Task handle. */
-      1);        /* Core where the task should run */
+      0);        /* Core where the task should run */
 
 
   #ifdef SENSORS
