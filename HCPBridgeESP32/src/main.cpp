@@ -260,7 +260,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
-  device["manufacturer"] = "Andreas Strauß";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -281,7 +281,7 @@ void sendDiscoveryMessageForAVSensor()
   device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
-  device["manufacturer"] = "Andreas Strauß";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -316,7 +316,7 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[])
   device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
-  device["manufacturer"] = "Andreas Strauß";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -358,7 +358,7 @@ void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const 
   device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
-  device["manufacturer"] = "Andreas Strauß";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -408,7 +408,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
-  device["manufacturer"] = "Andreas Strauß";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
