@@ -57,15 +57,9 @@ volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
 
-char lastCommandTopic[64];
-char lastCommandPayload[64];
+//char lastCommandTopic[64];
+//char lastCommandPayload[64];
 
-bool Equals(const char *first, const char *second)
-{
-  strcpy(lastCommandTopic, first);
-  strcpy(lastCommandPayload, second);
-  return strcmp(first, second) == 0;
-}
 
 const char *ToHA(bool value)
 {
@@ -163,19 +157,18 @@ void onStatusChanged(const SHCIState &state)
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  // strcpy(lastCommandTopic,topic);
-  // strcpy(lastCommandPayload, payload);
 
-  auto payloadEqualsOn = Equals(HA_ON, payload);
-  auto payloadEqualsOff = Equals(HA_OFF, payload);
+  // Note that payload is NOT a string; it contains raw data.
+  // https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/5.-Troubleshooting.md
 
-  if (Equals(LAMP_TOPIC, topic))
+  if (strcmp(topic, LAMP_TOPIC) == 0)
   {
-    if (payloadEqualsOn)
+
+    if (strncmp(payload, HA_ON, len) == 0)
     {
       switchLamp(true);
     }
-    else if (payloadEqualsOff)
+    else if (strncmp(payload, HA_OFF, len) == 0)
     {
       switchLamp(false);
     }
@@ -185,40 +178,28 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     }
   }
 
-  else if (Equals(DOOR_TOPIC, topic))
+  else if (strcmp(DOOR_TOPIC, topic) == 0)
   {
 
-    auto payloadEqualsOpen = Equals(HA_OPEN, payload);
-    auto payloadEqualsClose = Equals(HA_CLOSE, payload);
-    auto payloadEqualsStop = Equals(HA_STOP, payload);
-    auto payloadEqualsHalf = Equals(HA_HALF, payload);
-
-    if (payloadEqualsOpen)
+    if (strncmp(payload, HA_OPEN, len) == 0)
     {
       emulator.openDoor();
     }
-    else if (payloadEqualsClose)
+    else if (strncmp(payload, HA_CLOSE, len) == 0)
     {
       emulator.closeDoor();
     }
-    else if (payloadEqualsStop)
+    else if (strncmp(payload, HA_STOP, len) == 0)
     {
       emulator.stopDoor();
     }
-    else if (payloadEqualsHalf)
+    else if (strncmp(payload, HA_HALF, len) == 0)
     {
       emulator.openDoorHalf();
     }
 
-    else
-    {
-      strcpy(lastCommandTopic, "UNKNOWN DOOR COMMAND");
-      strcpy(lastCommandPayload, payload);
-    }
   }
 
-  const SHCIState &doorstate = emulator.getState();
-  onStatusChanged(doorstate);
 }
 
 void sendOnline()
@@ -545,8 +526,8 @@ void setup()
     RS485.swap();
   #endif
 
-  strcpy(lastCommandTopic, "topic");
-  strcpy(lastCommandPayload, "payload");
+  //strcpy(lastCommandTopic, "topic");
+  //strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
       modBusPolling, /* Function to implement the task */
       "ModBusTask",  /* Name of the task */
@@ -614,7 +595,8 @@ void setup()
               //root["debug"] = doorstate.reserved;
               root["lastresponse"] = emulator.getMessageAge() / 1000;
               root["looptime"] = maxPeriod;
-
+              //root["lastCommandTopic"] = lastCommandTopic;
+              //root["lastCommandPayload"] = lastCommandPayload;
               lastCall = maxPeriod = 0;
 
               serializeJson(root, *response);
@@ -654,8 +636,9 @@ void setup()
                 }
               }
               request->send(200, "text/plain", "OK");
-              const SHCIState &doorstate = emulator.getState();
-              onStatusChanged(doorstate); });
+              //const SHCIState &doorstate = emulator.getState();
+              //onStatusChanged(doorstate);
+              });
 
   server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
             {
