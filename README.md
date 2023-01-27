@@ -130,4 +130,5 @@ It is possible to implement it with protoboard and underside soldering:
 This is just a quick and dirty implementation and needs refactoring, but it is working.
 Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door.
 
-![image](https://user-images.githubusercontent.com/14005124/215199499-a0e1a3f6-922b-42fe-b378-f8ced93ca606.png)![alt text](Images/HA.png)
+![image](https://user-images.githubusercontent.com/14005124/215218504-bddf65e2-6c88-4d0a-83bd-de3cacb63c88.png)
+![alt text](Images/HA.png)
