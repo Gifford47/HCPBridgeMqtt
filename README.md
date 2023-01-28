@@ -19,7 +19,7 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * Web Interface
 * Web Service (GET)
 * OTA Update (with username and password)
-* Added AsyncWifiManger (hotspot when disconnected)
+* AsyncWifiManger (hotspot when disconnected)
 * DS18X20 temperature sensor (with threshold)
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
@@ -33,7 +33,7 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 
 ## Web Interface
 
-***http://[deviceip]
+***http://[deviceip]***
 
 ![alt text](Images/webinterface.PNG)
 
