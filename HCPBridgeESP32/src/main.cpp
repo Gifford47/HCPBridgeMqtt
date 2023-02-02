@@ -10,8 +10,8 @@
 #include "../../WebUI/index_html.h"
 #include <sstream>
 
-#include <ESPAsyncWiFiManager.h>
-DNSServer dns;
+//#include <ESPAsyncWiFiManager.h>
+//DNSServer dns;
 
 #include "configuration.h"
 
@@ -30,7 +30,6 @@ DNSServer dns;
 
 // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
 HCIEmulator emulator(&RS485);
-SHCIState doorstate = emulator.getState();
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -443,6 +442,15 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSensor("Tor Status", "doorstate");
   sendDiscoveryMessageForSensor("Tor Position", "doorposition");
   sendDiscoveryMessageForSensor("Tor Ziel", "doortarget");
+  #ifdef SENSORS
+    #if defined(USE_BME)
+      sendDiscoveryMessageForSensor("Temperatur", "temp");
+      sendDiscoveryMessageForSensor("Feuchtigkeit", "hum");
+      sendDiscoveryMessageForSensor("Umgebungsdruck", "pres");
+    #elif defined(USE_DS18X20)
+      sendDiscoveryMessageForSensor("Temperatur", "temp");
+    #endif
+  #endif
   //sendDiscoveryMessageForSensor("Last Response", "lastresponse");
   //sendDiscoveryMessageForSensor("Loop Time", "looptime");
   sendDiscoveryMessageForSensor("Tor", "door");
@@ -490,13 +498,14 @@ void mqttTaskFunc(void *parameter)
       }
       else
       {
-        const SHCIState &new_doorstate = emulator.getState();
+        const SHCIState &doorstate = emulator.getState();
+        onStatusChanged(doorstate);
         // onyl send updates when state changed
-        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
-          //const SHCIState &doorstate = emulator.getState();
-          doorstate = new_doorstate;  //copy new states
-          onStatusChanged(doorstate);
-        }
+        // if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
+        //   //const SHCIState &doorstate = emulator.getState();
+        //   doorstate = new_doorstate;  //copy new states
+        //   onStatusChanged(doorstate);
+        // }
         vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
@@ -523,6 +532,7 @@ void modBusPolling(void *parameter)
 TaskHandle_t modBusTask;
 
 void SensorCheck(void *parameter){
+  while(true){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
     bool changed = false;
@@ -537,30 +547,33 @@ void SensorCheck(void *parameter){
     #ifdef USE_BME
       if (!bme_status) {
         doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        //bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-      }
-      bme_temp = bme.readTemperature();   // round float
-      bme_hum = bme.readHumidity();
-      bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
-      if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
-        char buf[20];
-        dtostrf(bme_temp,2,2,buf);    // convert to string
-        doc["bme_temp"] = buf;
-        dtostrf(bme_hum,2,2,buf);    // convert to string
-        doc["bme_hum"] = buf;
-        dtostrf(bme_pres,2,1,buf);    // convert to string
-        doc["bme_pres"] = buf;
-        bme_last_temp = bme_temp;
-        bme_last_hum = bme_hum;
-        bme_last_pres = bme_pres;
         changed = true;
+        vTaskDelete(NULL);
+      } else {
+        bme_temp = bme.readTemperature();   // round float
+        bme_hum = bme.readHumidity();
+        bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
+        if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+          char buf[20];
+          dtostrf(bme_temp,2,2,buf);    // convert to string
+          doc["bme_temp"] = buf;
+          dtostrf(bme_hum,2,2,buf);    // convert to string
+          doc["bme_hum"] = buf;
+          dtostrf(bme_pres,2,1,buf);    // convert to string
+          doc["bme_pres"] = buf;
+          bme_last_temp = bme_temp;
+          bme_last_hum = bme_hum;
+          bme_last_pres = bme_pres;
+          changed = true;
+        }
       }
     #endif
     if (changed){
       serializeJson(doc, payload);
       mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     }
-  vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+    vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+  }
 }
 
 TaskHandle_t sensorTask;
@@ -588,8 +601,17 @@ void setup()
 
   // setup wifi
   WiFi.setHostname(HOSTNAME);
-  AsyncWiFiManager wifiManager(&server,&dns);
-  wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
+  //AsyncWiFiManager wifiManager(&server,&dns);
+  //wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASSWD);
+
+  WiFi.setAutoReconnect(true);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(100);
+  }
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
@@ -608,7 +630,7 @@ void setup()
       sensors.begin();
     #endif
     #ifdef USE_BME
-      I2CBME.begin(I2C_SDA, I2C_SCL, 400000);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+      I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
     #endif
       xTaskCreatePinnedToCore(
@@ -617,7 +639,7 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 3,
+      3,
       &sensorTask, /* Task handle. */
       1);        /* Core where the task should run */
 
