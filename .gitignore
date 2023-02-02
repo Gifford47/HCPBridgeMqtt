@@ -1,9 +1,6 @@
 HCPBridgeMqtt/.vscode
-Investigation/bussniffer/tools/opendooralert/opendooralert.py.bak
-tools/opendooralert/opendooralert.py.bak
 /.pio
 /.vscode
 .pio
-configuration.h
 *.bak
 *.bin
