@@ -405,6 +405,15 @@ void sendDiscoveryMessage()
 
   sendDiscoveryMessageForSensor("Garage Door Status", "doorstate");
   sendDiscoveryMessageForSensor("Garage Door Position", "doorposition");
+  #ifdef SENSORS
+    #if defined(USE_BME)
+      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
+      sendDiscoveryMessageForSensor("Garage Humidity", "hum");
+      sendDiscoveryMessageForSensor("Garage ambient pressure ", "pres");
+    #elif defined(USE_DS18X20)
+      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
+    #endif
+  #endif
 }
 
 void onMqttConnect(bool sessionPresent)
@@ -472,6 +481,7 @@ void modBusPolling(void *parameter)
 TaskHandle_t modBusTask;
 
 void SensorCheck(){
+  while(true){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
     bool changed = false;
@@ -486,23 +496,26 @@ void SensorCheck(){
     #ifdef USE_BME
       if (!bme_status) {
         doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        //bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-      }
-      bme_temp = bme.readTemperature();   // round float
-      bme_hum = bme.readHumidity();
-      bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
-      if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
-        char buf[20];
-        dtostrf(bme_temp,2,2,buf);    // convert to string
-        doc["bme_temp"] = buf;
-        dtostrf(bme_hum,2,2,buf);    // convert to string
-        doc["bme_hum"] = buf;
-        dtostrf(bme_pres,2,1,buf);    // convert to string
-        doc["bme_pres"] = buf;
-        bme_last_temp = bme_temp;
-        bme_last_hum = bme_hum;
-        bme_last_pres = bme_pres;
-        changed = true;
+        serializeJson(doc, payload);
+        mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        vTaskDelete(NULL);
+      } else {
+        bme_temp = bme.readTemperature();   // round float
+        bme_hum = bme.readHumidity();
+        bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
+        if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+          char buf[20];
+          dtostrf(bme_temp,2,2,buf);    // convert to string
+          doc["bme_temp"] = buf;
+          dtostrf(bme_hum,2,2,buf);    // convert to string
+          doc["bme_hum"] = buf;
+          dtostrf(bme_pres,2,1,buf);    // convert to string
+          doc["bme_pres"] = buf;
+          bme_last_temp = bme_temp;
+          bme_last_hum = bme_hum;
+          bme_last_pres = bme_pres;
+          changed = true;
+        }
       }
     #endif
     if (changed){
@@ -510,6 +523,7 @@ void SensorCheck(){
       mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     }
   vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+  }
 }
 
 TaskHandle_t sensorTask;
@@ -557,7 +571,7 @@ void setup()
       sensors.begin();
     #endif
     #ifdef USE_BME
-      I2CBME.begin(I2C_SDA, I2C_SCL, 400000);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+      I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
     #endif
       xTaskCreatePinnedToCore(
@@ -566,9 +580,9 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 3,
+      3,
       &sensorTask, /* Task handle. */
-      1);        /* Core where the task should run */
+      0);        /* Core where the task should run */
   #endif
 
 
