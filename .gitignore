@@ -1,6 +1,5 @@
-HCPBridgeMqtt/.vscode
+**/.vscode
 /.pio
-/.vscode
 .pio
 *.bak
 *.bin
