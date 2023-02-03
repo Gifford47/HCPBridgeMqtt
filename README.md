@@ -20,7 +20,7 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * Web Service (GET)
 * OTA Update (with username and password)
 * AsyncWifiManger (hotspot when disconnected)
-* DS18X20 temperature sensor (with threshold)
+* DS18X20 or BME280 sensor (with threshold)
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
 ## Known Bugs
