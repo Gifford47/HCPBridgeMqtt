@@ -6,14 +6,12 @@
 #include <AsyncMqttClient.h>
 #include <Ticker.h>
 #include "ArduinoJson.h"
-#include "hciemulator.h"
-#include "../../WebUI/index_html.h"
 #include <sstream>
-
-//#include <ESPAsyncWiFiManager.h>
-//DNSServer dns;
+#include <ESPAsyncWiFiManager.h>
 
 #include "configuration.h"
+#include "hciemulator.h"
+#include "../../WebUI/index_html.h"
 
 #ifdef USE_DS18X20
   #include <OneWire.h>
@@ -26,10 +24,11 @@
   #include <Adafruit_BME280.h>
 #endif
 
-#define RS485 Serial
+DNSServer dns;
 
 // Hörmann HCP2 based on modbus rtu @57.6kB 8E1
 HCIEmulator emulator(&RS485);
+SHCIState doorstate = emulator.getState();
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -58,15 +57,9 @@ volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
 
-char lastCommandTopic[64];
-char lastCommandPayload[64];
+//char lastCommandTopic[64];
+//char lastCommandPayload[64];
 
-bool Equals(const char *first, const char *second)
-{
-  strcpy(lastCommandTopic, first);
-  strcpy(lastCommandPayload, second);
-  return strcmp(first, second) == 0;
-}
 
 const char *ToHA(bool value)
 {
@@ -121,76 +114,61 @@ volatile unsigned long maxPeriod = 0;
 
 void onStatusChanged(const SHCIState &state)
 {
-  // see https://ucexperiment.wordpress.com/2016/12/18/yunshan-esp8266-250v-15a-acdc-network-wifi-relay-module/
-  // Setting GPIO4 high, causes the relay to close the NO contact with
-  if (state.valid)
-  {
-    digitalWrite(ESP8266_GPIO4, state.lampOn);
-    // digitalWrite(LED_PIN, false);
-  }
-  else
-  {
-    digitalWrite(ESP8266_GPIO4, false);
-    // digitalWrite(LED_PIN, true);
-  }
-
   if (mqttConnected == true)
   {
     DynamicJsonDocument doc(1024);
+    char payload[1024];
+
     doc["valid"] = ToHA(state.valid);
-    doc["doorstate"] = state.doorState;
-    doc["doorposition"] = state.doorCurrentPosition;
-    doc["doortarget"] = state.doorTargetPosition;
+    doc["doorposition"] = (int)state.doorCurrentPosition / 2;
     doc["lamp"] = ToHA(state.lampOn);
-    doc["debug"] = ToHA(state.reserved);
-    // doc["lastresponse"] = emulator.getMessageAge() / 1000;
-    // doc["looptime"] = maxPeriod;
-    // doc["lastCommandTopic"] = lastCommandTopic;
-    // doc["lastCommandPayload"] = lastCommandPayload;
+
     switch (state.doorState)
     {
     case DOOR_OPEN_POSITION:
-      doc["door"] = HA_OPENED;
+      doc["doorstate"] = HA_OPENED;
       break;
     case DOOR_CLOSE_POSITION:
-      doc["door"] = HA_CLOSED;
+      doc["doorstate"] = HA_CLOSED;
       break;
     case DOOR_HALF_POSITION:
-      doc["door"] = HA_HALF;
+      doc["doorstate"] = HA_HALF;
       break;
     case DOOR_MOVE_CLOSEPOSITION:
-      doc["door"] = HA_CLOSING;
+      doc["doorstate"] = HA_CLOSING;
       break;
     case DOOR_MOVE_OPENPOSITION:
-      doc["door"] = HA_OPENING;
+      doc["doorstate"] = HA_OPENING;
       break;
     default:
-      doc["door"] = "UNKNOWN";
+      doc["doorstate"] = "UNKNOWN";
     }
 
     lastCall = maxPeriod = 0;
-    char payload[1024];
-    serializeJson(doc, payload);
 
+    serializeJson(doc, payload);
     mqttClient.publish(STATE_TOPIC, 1, true, payload);
+
+    sprintf(payload, "%d", (int)doorstate.doorCurrentPosition/2 );
+    mqttClient.publish(POS_TOPIC, 1, true, payload);
   }
 }
 
+
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  // strcpy(lastCommandTopic,topic);
-  // strcpy(lastCommandPayload, payload);
 
-  auto payloadEqualsOn = Equals(HA_ON, payload);
-  auto payloadEqualsOff = Equals(HA_OFF, payload);
+  // Note that payload is NOT a string; it contains raw data.
+  // https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/5.-Troubleshooting.md
 
-  if (Equals(LAMP_TOPIC, topic))
+  if (strcmp(topic, LAMP_TOPIC) == 0)
   {
-    if (payloadEqualsOn)
+
+    if (strncmp(payload, HA_ON, len) == 0)
     {
       switchLamp(true);
     }
-    else if (payloadEqualsOff)
+    else if (strncmp(payload, HA_OFF, len) == 0)
     {
       switchLamp(false);
     }
@@ -199,39 +177,29 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       emulator.toggleLamp();
     }
   }
-  else if (Equals(DOOR_TOPIC, topic))
+
+  else if (strcmp(DOOR_TOPIC, topic) == 0)
   {
 
-    auto payloadEqualsOpen = Equals(HA_OPEN, payload);
-    auto payloadEqualsClose = Equals(HA_CLOSE, payload);
-    auto payloadEqualsStop = Equals(HA_STOP, payload);
-    auto payloadEqualsHalf = Equals(HA_HALF, payload);
-
-    if (payloadEqualsOpen)
+    if (strncmp(payload, HA_OPEN, len) == 0)
     {
       emulator.openDoor();
     }
-    else if (payloadEqualsClose)
+    else if (strncmp(payload, HA_CLOSE, len) == 0)
     {
       emulator.closeDoor();
     }
-    else if (payloadEqualsStop)
+    else if (strncmp(payload, HA_STOP, len) == 0)
     {
       emulator.stopDoor();
     }
-    else if (payloadEqualsHalf)
+    else if (strncmp(payload, HA_HALF, len) == 0)
     {
-      emulator.stopDoor();
+      emulator.openDoorHalf();
     }
-    else
-    {
-      strcpy(lastCommandTopic, "UNKNOWN DOOR COMMAND");
-      strcpy(lastCommandPayload, payload);
-    }
+
   }
 
-  const SHCIState &doorstate = emulator.getState();
-  onStatusChanged(doorstate);
 }
 
 void sendOnline()
@@ -269,11 +237,11 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   doc["payload_off"] = off;
 
   JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garagentor";
-  device["name"] = "Garagentor";
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
-  device["model"] = "Garagentor";
-  device["manufacturer"] = "Andreas Strauß";
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -285,16 +253,16 @@ void sendDiscoveryMessageForAVSensor()
 {
   DynamicJsonDocument doc(1024);
 
-  doc["name"] = "Available";
+  doc["name"] = "Garage Door Available";
   doc["state_topic"] = AVAILABILITY_TOPIC;
   doc["unique_id"] = "garagedoor_sensor_availability";
 
   JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garagentor";
-  device["name"] = "Garagentor";
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
-  device["model"] = "Garagentor";
-  device["manufacturer"] = "Andreas Strauß";
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -325,11 +293,11 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[])
   doc["value_template"] = vtemp;
 
   JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garagentor";
-  device["name"] = "Garagentor";
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
-  device["model"] = "Garagentor";
-  device["manufacturer"] = "Andreas Strauß";
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -367,11 +335,11 @@ void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const 
   doc["optimistic"] = optimistic;
 
   JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garagentor";
-  device["name"] = "Garagentor";
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
-  device["model"] = "Garagentor";
-  device["manufacturer"] = "Andreas Strauß";
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -391,19 +359,17 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   char uid[64];
   sprintf(uid, "garagedoor_cover_%s", topic);
 
-  char value_template[64];
-  sprintf(value_template, "{{ value_json.%s }}", topic);
-
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
   doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
+  doc["position_topic"] = POS_TOPIC;
 
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
-  doc["value_template"] = value_template;
+  doc["value_template"] = "{{ value_json.doorstate }}";
   doc["state_open"] = HA_OPEN;
   doc["state_opening"] = HA_OPENING;
   doc["state_closed"] = HA_CLOSED;
@@ -413,13 +379,14 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
+  doc["device_class"] = "garage";
 
   JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garagentor";
-  device["name"] = "Garagentor";
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
   device["sw_version"] = HA_VERSION;
-  device["model"] = "Garagentor";
-  device["manufacturer"] = "Andreas Strauß";
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -431,45 +398,27 @@ void sendDiscoveryMessage()
 {
   sendDiscoveryMessageForAVSensor();
 
-  sendDiscoveryMessageForSwitch("Garagentor Lampe", "lamp", HA_OFF, HA_ON);
-  sendDiscoveryMessageForBinarySensor("Lampe", "lamp", HA_OFF, HA_ON);
+  sendDiscoveryMessageForSwitch("Garage Door Light", "lamp", HA_OFF, HA_ON);
+  sendDiscoveryMessageForBinarySensor("Garage Door Light", "lamp", HA_OFF, HA_ON);
 
-  sendDiscoveryMessageForCover("Garagentor", "door");
+  sendDiscoveryMessageForCover("Garage Door", "door");
 
-  sendDiscoveryMessageForBinarySensor("Debug", "debug", HA_OFF, HA_ON);
-  sendDiscoveryMessageForBinarySensor("Zustand", "valid", HA_OFF, HA_ON);
-
-  sendDiscoveryMessageForSensor("Tor Status", "doorstate");
-  sendDiscoveryMessageForSensor("Tor Position", "doorposition");
-  sendDiscoveryMessageForSensor("Tor Ziel", "doortarget");
+  sendDiscoveryMessageForSensor("Garage Door Status", "doorstate");
+  sendDiscoveryMessageForSensor("Garage Door Position", "doorposition");
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor("Temperatur", "temp");
-      sendDiscoveryMessageForSensor("Feuchtigkeit", "hum");
-      sendDiscoveryMessageForSensor("Umgebungsdruck", "pres");
+      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
+      sendDiscoveryMessageForSensor("Garage Humidity", "hum");
+      sendDiscoveryMessageForSensor("Garage ambient pressure ", "pres");
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor("Temperatur", "temp");
+      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
     #endif
   #endif
-  //sendDiscoveryMessageForSensor("Last Response", "lastresponse");
-  //sendDiscoveryMessageForSensor("Loop Time", "looptime");
-  sendDiscoveryMessageForSensor("Tor", "door");
-  //sendDiscoveryMessageForSensor("Last Command Topic", "lastCommandTopic");
-  //sendDiscoveryMessageForSensor("Last Command Payload", "lastCommandPayload");
 }
 
 void onMqttConnect(bool sessionPresent)
 {
   mqttConnected = true;
-
-  if (sessionPresent)
-  {
-    //-//Serial.write("MQTT connected with sessionPresent=true");
-  }
-  else
-  {
-    //-//Serial.write("MQTT connected with sessionPresent=false");
-  }
 
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
@@ -493,19 +442,19 @@ void mqttTaskFunc(void *parameter)
         mqttClient.onMessage(onMqttMessage);
         mqttClient.onPublish(onMqttPublish);
         mqttClient.setServer(MQTTSERVER, MQTTPORT);
+        mqttClient.setCredentials(MQTTUSER, MQTTPASSWORD);
         setWill();
         connectToMqtt();
       }
       else
       {
-        const SHCIState &doorstate = emulator.getState();
-        onStatusChanged(doorstate);
+        const SHCIState &new_doorstate = emulator.getState();
         // onyl send updates when state changed
-        // if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
-        //   //const SHCIState &doorstate = emulator.getState();
-        //   doorstate = new_doorstate;  //copy new states
-        //   onStatusChanged(doorstate);
-        // }
+        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
+          //const SHCIState &doorstate = emulator.getState();
+          doorstate = new_doorstate;  //copy new states
+          onStatusChanged(doorstate);
+        }
         vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
@@ -531,7 +480,7 @@ void modBusPolling(void *parameter)
 
 TaskHandle_t modBusTask;
 
-void SensorCheck(void *parameter){
+void SensorCheck(){
   while(true){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
@@ -547,7 +496,8 @@ void SensorCheck(void *parameter){
     #ifdef USE_BME
       if (!bme_status) {
         doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        changed = true;
+        serializeJson(doc, payload);
+        mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
         vTaskDelete(NULL);
       } else {
         bme_temp = bme.readTemperature();   // round float
@@ -572,7 +522,7 @@ void SensorCheck(void *parameter){
       serializeJson(doc, payload);
       mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     }
-    vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+  vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
   }
 }
 
@@ -582,13 +532,13 @@ TaskHandle_t sensorTask;
 void setup()
 {
   // setup modbus
-  RS485.begin(57600, SERIAL_8E1);
+  RS485.begin(57600, SERIAL_8E1, PIN_RXD, PIN_TXD);
   #ifdef SWAPUART
     RS485.swap();
   #endif
 
-  strcpy(lastCommandTopic, "topic");
-  strcpy(lastCommandPayload, "payload");
+  //strcpy(lastCommandTopic, "topic");
+  //strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
       modBusPolling, /* Function to implement the task */
       "ModBusTask",  /* Name of the task */
@@ -601,17 +551,8 @@ void setup()
 
   // setup wifi
   WiFi.setHostname(HOSTNAME);
-  //AsyncWiFiManager wifiManager(&server,&dns);
-  //wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWD);
-
-  WiFi.setAutoReconnect(true);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(100);
-  }
+  AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
@@ -621,7 +562,7 @@ void setup()
       // 1,  /* Priority of the task */
       configMAX_PRIORITIES - 2,
       &mqttTask, /* Task handle. */
-      1);        /* Core where the task should run */
+      0);        /* Core where the task should run */
 
 
   #ifdef SENSORS
@@ -641,9 +582,7 @@ void setup()
       // 1,  /* Priority of the task */
       3,
       &sensorTask, /* Task handle. */
-      1);        /* Core where the task should run */
-
-      TaskHandle_t sensorTask;
+      0);        /* Core where the task should run */
   #endif
 
 
@@ -664,10 +603,11 @@ void setup()
               root["doorposition"] = doorstate.doorCurrentPosition;
               root["doortarget"] = doorstate.doorTargetPosition;
               root["lamp"] = doorstate.lampOn;
-              root["debug"] = doorstate.reserved;
+              //root["debug"] = doorstate.reserved;
               root["lastresponse"] = emulator.getMessageAge() / 1000;
               root["looptime"] = maxPeriod;
-
+              //root["lastCommandTopic"] = lastCommandTopic;
+              //root["lastCommandPayload"] = lastCommandPayload;
               lastCall = maxPeriod = 0;
 
               serializeJson(root, *response);
@@ -707,8 +647,9 @@ void setup()
                 }
               }
               request->send(200, "text/plain", "OK");
-              const SHCIState &doorstate = emulator.getState();
-              onStatusChanged(doorstate); });
+              //const SHCIState &doorstate = emulator.getState();
+              //onStatusChanged(doorstate);
+              });
 
   server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -727,16 +668,12 @@ void setup()
 
   server.begin();
 
-  // setup relay board
-  #ifdef USERELAY
-    pinMode(ESP8266_GPIO4, OUTPUT);       // Relay control pin.
-    pinMode(ESP8266_GPIO5, INPUT_PULLUP); // Input pin.
-    pinMode(LED_PIN, OUTPUT);             // ESP8266 module blue L
-    digitalWrite(ESP8266_GPIO4, 0);
-    digitalWrite(LED_PIN, 0);
-    emulator.onStatusChanged(onStatusChanged);
+  // read sensors initially
+  #ifdef SENSORS
+    #if defined(USE_DS18X20) || defined(USE_BME)
+      SensorCheck();
+    #endif
   #endif
-
 }
 
 // mainloop
