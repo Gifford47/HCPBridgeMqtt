@@ -108,7 +108,7 @@
 	}
 	
 	function doCommand(action) {
-      if(!isconnected){return;}
+      if(!isconnected && action != 6){return;}		// only early return when not connected AND action cmd !=6 (=restart ESP)
 	  var xhr = new XMLHttpRequest();
 	  xhr.open("GET", "/command?action="+action, true); 	  
 	  xhr.send();
