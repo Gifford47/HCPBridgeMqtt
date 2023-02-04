@@ -270,22 +270,22 @@ void sendDiscoveryMessageForAVSensor()
   mqttClient.publish(HA_DISCOVERY_AV_SENSOR, 1, true, payload);
 }
 
-void sendDiscoveryMessageForSensor(const char name[], const char topic[])
+void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[])
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_SENSOR, topic);
+  sprintf(full_topic, HA_DISCOVERY_SENSOR, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_sensor_%s", topic);
+  sprintf(uid, "garagedoor_sensor_%s", key);
 
   char vtemp[64];
-  sprintf(vtemp, "{{ value_json.%s }}", topic);
+  sprintf(vtemp, "{{ value_json.%s }}", key);
 
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = STATE_TOPIC;
+  doc["state_topic"] = topic;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
@@ -403,15 +403,15 @@ void sendDiscoveryMessage()
 
   sendDiscoveryMessageForCover("Garage Door", "door");
 
-  sendDiscoveryMessageForSensor("Garage Door Status", "doorstate");
-  sendDiscoveryMessageForSensor("Garage Door Position", "doorposition");
+  sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate");
+  sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition");
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
-      sendDiscoveryMessageForSensor("Garage Humidity", "hum");
-      sendDiscoveryMessageForSensor("Garage ambient pressure ", "pres");
+      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp");
+      sendDiscoveryMessageForSensor("Garage Humidity", SENSOR_TOPIC, "hum");
+      sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres");
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor("Garage Temperature", "temp");
+      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp");
     #endif
   #endif
 }
@@ -507,13 +507,13 @@ void SensorCheck(void *parameter){
           char buf[20];
           dtostrf(bme_temp,2,2,buf);    // convert to string
           Serial.println("Temp: "+ (String)buf);
-          doc["bme_temp"] = buf;
+          doc["temp"] = buf;
           dtostrf(bme_hum,2,2,buf);    // convert to string
           Serial.println("Hum: "+ (String)buf);
-          doc["bme_hum"] = buf;
+          doc["hum"] = buf;
           dtostrf(bme_pres,2,1,buf);    // convert to string
           Serial.println("Pres: "+ (String)buf);
-          doc["bme_pres"] = buf;
+          doc["pres"] = buf;
           bme_last_temp = bme_temp;
           bme_last_hum = bme_hum;
           bme_last_pres = bme_pres;
