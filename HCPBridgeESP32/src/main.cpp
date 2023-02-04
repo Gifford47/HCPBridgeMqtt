@@ -480,7 +480,7 @@ void modBusPolling(void *parameter)
 
 TaskHandle_t modBusTask;
 
-void SensorCheck(){
+void SensorCheck(void *parameter){
   while(true){
     DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
     char payload[1024];
@@ -506,10 +506,13 @@ void SensorCheck(){
         if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
           char buf[20];
           dtostrf(bme_temp,2,2,buf);    // convert to string
+          Serial.println("Temp: "+ (String)buf);
           doc["bme_temp"] = buf;
           dtostrf(bme_hum,2,2,buf);    // convert to string
+          Serial.println("Hum: "+ (String)buf);
           doc["bme_hum"] = buf;
           dtostrf(bme_pres,2,1,buf);    // convert to string
+          Serial.println("Pres: "+ (String)buf);
           doc["bme_pres"] = buf;
           bme_last_temp = bme_temp;
           bme_last_hum = bme_hum;
@@ -531,6 +534,9 @@ TaskHandle_t sensorTask;
 // setup mcu
 void setup()
 {
+  // Serial
+  Serial.begin(9600);
+
   // setup modbus
   RS485.begin(57600, SERIAL_8E1, PIN_RXD, PIN_TXD);
   #ifdef SWAPUART
@@ -639,6 +645,7 @@ void setup()
                   emulator.toggleLamp();
                   break;
                 case 6:
+                  Serial.println("Starte neu...");
                   setWill();
                   ESP.restart();
                   break;
@@ -667,13 +674,6 @@ void setup()
   AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
-
-  // read sensors initially
-  #ifdef SENSORS
-    #if defined(USE_DS18X20) || defined(USE_BME)
-      SensorCheck();
-    #endif
-  #endif
 }
 
 // mainloop
