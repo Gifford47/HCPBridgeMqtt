@@ -19,7 +19,7 @@ const char* OTA_PASSWD = "admin";
 //#define SWAPUART
 
 // MODBUS
-const int READ_DELAY = 6000;           // intervall (ms) to update status on mqtt
+const int READ_DELAY = 1000;           // intervall (ms) to update status on mqtt
 
 //#define SENSORS              //Uncomment to globally enable sensors
 #define SENSE_PERIOD (5*60*1000L)  //read interval of all defined sensors
