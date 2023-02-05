@@ -115,6 +115,13 @@ It is possible to implement it with protoboard and underside soldering:
 
 ![alt text](Images/esp32_protoboard2.jpg)
 
+## 3D Case
+
+![Body](Images/body.jpg)
+Body with optional BME280 Sensor
+
+![Lid](Images/lid.jpg)
+Lid
 
 ## Installation
 
