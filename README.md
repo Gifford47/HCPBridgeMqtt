@@ -15,7 +15,10 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 ## Functions
 
 * Get current status (door open/close/position, light on/off)
-* Trigger the actions (light on/off, gate open, close, stop, half and ventilation position)
+* Trigger the actions
+  * light on/off
+  * gate open, close, stop
+  * gate position: half, ventilation, custom (MQTT set_position compatible)
 * Web Interface
 * Web Service (GET)
 * OTA Update (with username and password)
@@ -128,7 +131,7 @@ It is possible to implement it with protoboard and underside soldering:
 # HCPBridge MQTT (HomeAssistant topics)
 
 This is just a quick and dirty implementation and needs refactoring, but it is working.
-Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door.
+Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door, and slide it to custom position (through set_position MQTT command).
 
 ![image](https://user-images.githubusercontent.com/14005124/215218504-bddf65e2-6c88-4d0a-83bd-de3cacb63c88.png)
 ![alt text](Images/HA.png)
