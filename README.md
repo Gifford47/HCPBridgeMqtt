@@ -46,15 +46,18 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 
 ***http://[deviceip]/command?action=[id]***
 
-| id | Function |
-|--------|--------------|
-| 0 | Close |
-| 1 | Open |
-| 2 | Stop |
-| 3 | Ventilation |
-| 4 | Half Open |
-| 5 | Light toggle |
-| 6 | Restart |
+| id | Function | Other Parameters
+|--------|--------------|--------------|
+| 0 | Close | |
+| 1 | Open | |
+| 2 | Stop | |
+| 3 | Ventilation | |
+| 4 | Half Open | |
+| 5 | Light toggle | |
+| 6 | Restart | |
+| 7 | Set Position | position=[0-100] |
+
+
 
 ### Status report
 
