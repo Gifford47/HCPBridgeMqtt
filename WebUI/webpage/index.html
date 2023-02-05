@@ -1,6 +1,6 @@
 <!DOCTYPE HTML><html>
 <head>
-  <title>Garagentor Steuerung</title>
+  <title>Garage Door Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <link rel="icon" href="data:,">
@@ -35,18 +35,23 @@
 	.buttonred {border-color: #ED5961;}
 	.buttonyellow {border-color: #fcca00;}
 	.buttongreen {border-color: #48bd81;}  
+	.buttonblack {border-color: #000000;}  
   </style>
 </head>
 <body>
-  <h2>Garagentor</h2>  
+  <h2>Garage Door</h2>  
 	<canvas width="250px" height="250px" id="dc"></canvas>
-	<h3 id="status">warte auf Verbindung.</h3>	
+	<h3 id="status">Waiting connection.</h3>	
 	
 	<hr/>
-	<button class="button buttonred" onclick="doCommand(1)">Auf</button> <button class="button buttonyellow" onclick="doCommand(2)">Stop</button> <button class="button buttongreen" onclick="doCommand(0)">Zu</button>
+	<button class="button buttonred" onclick="doCommand(1)">Up</button>
+	<button class="button buttonyellow" onclick="doCommand(2)">Half</button>
+	<button class="button buttonblack" onclick="doCommand(2)">Stop</button>
+	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
 	<hr/>
-	<h4>Licht</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
 	<hr/>
+	<button class="button buttonred" onclick="doCommand(6)">Restart</button>
 					
 	<script>
 	
@@ -103,7 +108,7 @@
 	}
 	
 	function doCommand(action) {
-      if(!isconnected){return;}
+      if(!isconnected && action != 6){return;}		// only early return when not connected AND action cmd !=6 (=restart ESP)
 	  var xhr = new XMLHttpRequest();
 	  xhr.open("GET", "/command?action="+action, true); 	  
 	  xhr.send();
@@ -119,17 +124,17 @@
 	}
 	
 	function getStatusText(id){
-		result = "Das Tor "
+		result = "Door "
 		switch(id)
 		{
-			case 0x20: setDoorState(1); return result+"ist geöffnet.";
-			case 0x40: setDoorState(0); return result+"ist geschlossen.";
-			case 0x80: setDoorState(2); return result+"ist teilgeöffnet.";
-			case 0x00: setDoorState(2); return result+"ist teilgeöffnet.";
-			case 0x02: setDoorState(3); return result+"schließt.";
-			case 0x01: setDoorState(3); return result+"öffnet.";
-			case -1: setDoorState(0); return "keine Verbindung zum Tor.";
-			default: return "unbekanter Status: " + id;
+			case 0x20: setDoorState(1); return result+"open";
+			case 0x40: setDoorState(0); return result+"closed";
+			case 0x80: setDoorState(2); return result+"partially open";
+			case 0x00: setDoorState(2); return result+"partially open";
+			case 0x02: setDoorState(3); return result+"closing";
+			case 0x01: setDoorState(3); return result+"opening";
+			case -1: setDoorState(0); return "not connected";
+			default: return "unknown status: " + id;
 		}    
 	}
 	
