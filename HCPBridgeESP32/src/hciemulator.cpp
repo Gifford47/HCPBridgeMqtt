@@ -449,15 +449,17 @@ void HCIEmulator::closeDoor(){
 void HCIEmulator::setPosition(uint8_t position){
     if(m_statemachine == WAITING)
     {
-        m_state.gotoPosition = position * 2; // HA is 0-100%, Horman/Modbus range is 0-200
-        m_lastStateTime = millis();
+        if ((position >= 0) && (position <= 100)) {
+            m_state.gotoPosition = position * 2; // HA is 0-100%, Horman/Modbus range is 0-200
+            m_lastStateTime = millis();
 
-        if (m_state.gotoPosition > m_state.doorCurrentPosition)
-            m_statemachine = SET_POSITION_OPEN;
-        else if (m_state.gotoPosition < m_state.doorCurrentPosition)
-            m_statemachine = SET_POSITION_CLOSE;
-        else // already there
-            return;
+            if (m_state.gotoPosition > m_state.doorCurrentPosition)
+                m_statemachine = SET_POSITION_OPEN;
+            else if (m_state.gotoPosition < m_state.doorCurrentPosition)
+                m_statemachine = SET_POSITION_CLOSE;
+            else // already there
+                return;
+        }
     }
 }
 
