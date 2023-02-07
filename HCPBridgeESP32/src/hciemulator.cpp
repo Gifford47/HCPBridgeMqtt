@@ -407,7 +407,8 @@ void HCIEmulator::processDeviceBusScanFrame(){
 void HCIEmulator::processBroadcastStatusFrame(){
     //001B: 00 10 9D 31 00 09 12 64 00 00 00 40 60 00 00 00 00 00 00 00 00 00 01 00 00 CA 22
     bool hasChanged = false;
-    CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x14,hasChanged);      
+    CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x10,hasChanged);      // Light starting
+    if(!m_state.lampOn){CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x14,hasChanged);}     // Light on
     CHECKCHANGEDSET(m_state.doorCurrentPosition,m_rxbuffer[10],hasChanged);
     CHECKCHANGEDSET(m_state.doorTargetPosition, m_rxbuffer[9],hasChanged);
     CHECKCHANGEDSET(m_state.doorState, m_rxbuffer[11],hasChanged);
