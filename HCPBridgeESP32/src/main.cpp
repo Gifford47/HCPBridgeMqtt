@@ -57,8 +57,8 @@ volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
 
-//char lastCommandTopic[64];
-//char lastCommandPayload[64];
+char lastCommandTopic[64];
+char lastCommandPayload[64];
 
 
 const char *ToHA(bool value)
@@ -161,9 +161,12 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   // Note that payload is NOT a string; it contains raw data.
   // https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/5.-Troubleshooting.md
 
+  strcpy(lastCommandTopic, topic);
+  strncpy(lastCommandPayload, payload, len);
+  lastCommandPayload[len] = '\0';
+
   if (strcmp(topic, LAMP_TOPIC) == 0)
   {
-
     if (strncmp(payload, HA_ON, len) == 0)
     {
       switchLamp(true);
@@ -180,7 +183,6 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
   else if (strcmp(DOOR_TOPIC, topic) == 0)
   {
-
     if (strncmp(payload, HA_OPEN, len) == 0)
     {
       emulator.openDoor();
@@ -197,7 +199,11 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     {
       emulator.openDoorHalf();
     }
+  }
 
+  else if (strcmp(SETPOS_TOPIC, topic) == 0)
+  {
+    emulator.setPosition(atoi(lastCommandPayload));
   }
 
 }
@@ -365,6 +371,9 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
   doc["position_topic"] = POS_TOPIC;
+  doc["set_position_topic"] = SETPOS_TOPIC;
+  doc["position_open"] = 100;
+  doc["position_closed"] = 0;
 
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
@@ -543,8 +552,8 @@ void setup()
     RS485.swap();
   #endif
 
-  //strcpy(lastCommandTopic, "topic");
-  //strcpy(lastCommandPayload, "payload");
+  strcpy(lastCommandTopic, "topic");
+  strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
       modBusPolling, /* Function to implement the task */
       "ModBusTask",  /* Name of the task */
@@ -612,8 +621,8 @@ void setup()
               //root["debug"] = doorstate.reserved;
               root["lastresponse"] = emulator.getMessageAge() / 1000;
               root["looptime"] = maxPeriod;
-              //root["lastCommandTopic"] = lastCommandTopic;
-              //root["lastCommandPayload"] = lastCommandPayload;
+              root["lastCommandTopic"] = lastCommandTopic;
+              root["lastCommandPayload"] = lastCommandPayload;
               lastCall = maxPeriod = 0;
 
               serializeJson(root, *response);
@@ -648,6 +657,10 @@ void setup()
                   Serial.println("Starte neu...");
                   setWill();
                   ESP.restart();
+                  break;
+                case 7:
+                  if (request->hasParam("position"))
+                    emulator.setPosition(request->getParam("position")->value().toInt());
                   break;
                 default:
                   break;

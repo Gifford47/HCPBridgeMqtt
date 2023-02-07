@@ -19,7 +19,7 @@ const char* OTA_PASSWD = "admin";
 //#define SWAPUART
 
 // MODBUS
-const int READ_DELAY = 6000;           // intervall (ms) to update status on mqtt
+const int READ_DELAY = 1000;           // intervall (ms) to update status on mqtt
 
 //#define SENSORS              //Uncomment to globally enable sensors
 #define SENSE_PERIOD (5*60*1000L)  //read interval of all defined sensors
@@ -44,6 +44,7 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define STATE_TOPIC FTOPIC "/state"
 #define CMD_TOPIC FTOPIC "/command"
 #define POS_TOPIC FTOPIC "/position"
+#define SETPOS_TOPIC CMD_TOPIC "/set_position"
 #define LAMP_TOPIC FTOPIC "/command/lamp"
 #define DOOR_TOPIC FTOPIC "/command/door"
 #define SENSOR_TOPIC FTOPIC "/sensor"
@@ -67,4 +68,4 @@ const char *HA_OPENED = "open";
 const char *HA_ONLINE = "online";
 const char *HA_OFFLINE = "offline";
 
-const char *HA_VERSION = "0.0.4.0";
+const char *HA_VERSION = "0.0.5.0";
