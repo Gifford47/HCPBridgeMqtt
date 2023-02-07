@@ -107,10 +107,17 @@
 		}
 	}
 	
-	function doCommand(action) {
-      if(!isconnected && action != 6){return;}		// only early return when not connected AND action cmd !=6 (=restart ESP)
+	function doCommand(action, position) {
+      if(!isconnected && action != 6)
+	  	return;		// only early return when not connected AND action cmd !=6 (=restart ESP)
+	  
 	  var xhr = new XMLHttpRequest();
-	  xhr.open("GET", "/command?action="+action, true); 	  
+
+	  if(action == 7)
+	  	xhr.open("GET", "/command?action="+action+"&position="+position, true); 	  
+	  else
+	  	xhr.open("GET", "/command?action="+action, true); 	  
+
 	  xhr.send();
 	}  
 	
