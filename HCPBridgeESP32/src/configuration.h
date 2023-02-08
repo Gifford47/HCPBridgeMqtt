@@ -68,4 +68,4 @@ const char *HA_OPENED = "open";
 const char *HA_ONLINE = "online";
 const char *HA_OFFLINE = "offline";
 
-const char *HA_VERSION = "0.0.5.0";
+const char *HA_VERSION = "0.0.5.1";
