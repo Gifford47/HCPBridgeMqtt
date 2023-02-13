@@ -258,11 +258,21 @@ void HCIEmulator::processDeviceStatusFrame(){
                     break;   
 
                 // Stop Door
+                // Not really a "stop", but a "stop/invert" command, as it moves the door in the opposite direction of previous movement if it is currently not moving.
                 case STOP_DOOR:
-                    m_txbuffer[7]= 0x02;
-                    m_txbuffer[8]= 0x40;
-                    m_statemachine = STOP_DOOR_RELEASE;
-                    m_lastStateTime = millis();
+                    
+                    // Avoid to send a "stop" command if door is already open or closed. It would actually move the door... unsafe!
+                    if ( (m_state.doorCurrentPosition == 0) || ((m_state.doorCurrentPosition == 100)) )
+                    {
+                        m_statemachine = WAITING;
+                    }
+                    else {
+                        
+                        m_txbuffer[7]= 0x02;
+                        m_txbuffer[8]= 0x40;
+                        m_statemachine = STOP_DOOR_RELEASE;
+                        m_lastStateTime = millis();
+                    }
                     break;
                 case STOP_DOOR_RELEASE:
                     if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
@@ -450,7 +460,11 @@ void HCIEmulator::closeDoor(){
 void HCIEmulator::setPosition(uint8_t position){
     if(m_statemachine == WAITING)
     {
-        if ((position >= 0) && (position <= 100)) {
+        // First and last movement segments seem a bit inconsistent on Promatic4, so it's better to leave it to fully open or close.
+        if (position <= 5) closeDoor();
+        else if (position >= 95) openDoor();  
+            
+        else if ((position > 5) && (position < 95)) {
             m_state.gotoPosition = position * 2; // HA is 0-100%, Horman/Modbus range is 0-200
             m_lastStateTime = millis();
 
