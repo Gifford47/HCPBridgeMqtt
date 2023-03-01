@@ -111,6 +111,7 @@ public:
     void setLogLevel(int level);
 
     void onStatusChanged(callback_function_t handler);
+    StateMachine getStatemachine();
 
 protected:
     void processFrame();
@@ -123,6 +124,7 @@ private:
     Stream *m_port;
     SHCIState m_state;
     StateMachine m_statemachine;
+    StateMachine m_statemachine_backlog;
 
     unsigned long m_recvTime;
     unsigned long m_lastStateTime;

@@ -517,3 +517,7 @@ void HCIEmulator::ventilationPosition(){
 void HCIEmulator::onStatusChanged(callback_function_t handler) {
     m_statusCallback = handler;
 }
+
+StateMachine HCIEmulator::getStatemachine(){
+    return m_statemachine;
+}
