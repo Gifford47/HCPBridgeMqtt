@@ -630,7 +630,7 @@ void setup()
 
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              const SHCIState &doorstate = emulator.getState();
+              //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
               root["valid"] = doorstate.valid;
@@ -638,6 +638,13 @@ void setup()
               root["doorposition"] = doorstate.doorCurrentPosition;
               root["doortarget"] = doorstate.doorTargetPosition;
               root["lamp"] = doorstate.lampOn;
+              #ifdef SENSORS
+                #ifdef USE_DS18X20
+                  root["temp"] = ds18x20_temp;
+                #elif defined(USE_BME)
+                  root["temp"] = bme_temp;
+                #endif
+              #endif
               //root["debug"] = doorstate.reserved;
               root["lastresponse"] = emulator.getMessageAge() / 1000;
               root["looptime"] = maxPeriod;
