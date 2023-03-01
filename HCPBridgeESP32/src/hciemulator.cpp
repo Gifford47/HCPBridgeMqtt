@@ -222,6 +222,11 @@ void HCIEmulator::processDeviceStatusFrame(){
             m_txbuffer[5] = cmd;
             m_txlen = sizeof(ResponseTemplate_Fcn17_Cmd03_L08);   
 
+            // if no action on statemachine, process last backlog
+            if (m_statemachine == WAITING && m_statemachine_backlog != WAITING){
+                m_statemachine == m_statemachine_backlog;   // process backlog ...
+                m_statemachine_backlog == WAITING;          // reset backlog
+            }
             
             switch(m_statemachine)
             {
@@ -435,6 +440,7 @@ void HCIEmulator::processBroadcastStatusFrame(){
 
 void HCIEmulator::openDoor(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = OPEN_DOOR;
         return;
     }
     m_lastStateTime = millis();
@@ -443,6 +449,7 @@ void HCIEmulator::openDoor(){
 
 void HCIEmulator::openDoorHalf(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = OPEN_DOOR_HALF;
         return;
     }
     m_lastStateTime = millis();
@@ -451,6 +458,7 @@ void HCIEmulator::openDoorHalf(){
 
 void HCIEmulator::closeDoor(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = CLOSE_DOOR;
         return;
     }
     m_lastStateTime = millis();    
@@ -483,11 +491,14 @@ void HCIEmulator::stopDoor(){
     { 
         m_lastStateTime = millis();    
         m_statemachine = STOP_DOOR;
+    }else{
+        m_statemachine_backlog = STOP_DOOR;
     }
 }
 
 void HCIEmulator::toggleLamp(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = TOGGLE_LAMP;
         return;
     }
     m_lastStateTime = millis();
@@ -496,6 +507,7 @@ void HCIEmulator::toggleLamp(){
 
 void HCIEmulator::ventilationPosition(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = VENTPOSITION;
         return;
     }
     m_lastStateTime = millis();
