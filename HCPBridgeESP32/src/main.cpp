@@ -60,6 +60,10 @@ Ticker mqttReconnectTimer;
 char lastCommandTopic[64];
 char lastCommandPayload[64];
 
+#ifdef DEBUG_REBOOT
+  bool boot_Flag = true;
+#endif
+
 
 const char *ToHA(bool value)
 {
@@ -216,6 +220,15 @@ void sendOnline()
 void setWill()
 {
   mqttClient.setWill(AVAILABILITY_TOPIC, 0, true, HA_OFFLINE);
+}
+
+void sendDebug()
+{
+  DynamicJsonDocument doc(1024);
+  char payload[1024];
+  doc["reset-reason"] = esp_reset_reason();
+  serializeJson(doc, payload);
+  mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
 
 void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char off[], const char on[])
@@ -434,6 +447,12 @@ void onMqttConnect(bool sessionPresent)
   const SHCIState &doorstate = emulator.getState();
   onStatusChanged(doorstate);
   sendDiscoveryMessage();
+  #ifdef DEBUG_REBOOT
+    if (boot_Flag){
+      sendDebug();
+      boot_Flag = false;
+    }
+  #endif
 }
 
 void mqttTaskFunc(void *parameter)
@@ -567,6 +586,7 @@ void setup()
   // setup wifi
   WiFi.setHostname(HOSTNAME);
   AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.setDebugOutput(false);    // disable serial debug output
   wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
 
   xTaskCreatePinnedToCore(
