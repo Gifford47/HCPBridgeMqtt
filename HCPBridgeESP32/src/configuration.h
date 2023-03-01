@@ -55,6 +55,11 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define HA_DISCOVERY_SWITCH "homeassistant/switch/garage_door/%s/config"
 #define HA_DISCOVERY_COVER "homeassistant/cover/garage_door/%s/config"
 
+// DEBUG
+#define DEBUG_REBOOT
+#define DEBUGTOPIC FTOPIC "/DEBUG"
+
+
 const char *HA_ON = "true";
 const char *HA_OFF = "false";
 const char *HA_OPEN = "open";
