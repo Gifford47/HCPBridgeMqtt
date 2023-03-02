@@ -706,6 +706,7 @@ void setup()
               root["hostname"] = WiFi.getHostname();
               root["ip"] = WiFi.localIP().toString();
               root["wifistatus"] = WiFi.status();
+              root["mqttstatus"] = mqttClient.connected();
               root["resetreason"] = esp_reset_reason();
               serializeJson(root, *response);
 
