@@ -18,22 +18,24 @@ const char* OTA_PASSWD = "admin";
 #define PIN_RXD 16 // UART 2 RXD - G16
 //#define SWAPUART
 
-// MODBUS
+// MQTT
 const int READ_DELAY = 1000;           // intervall (ms) to update status on mqtt
 
 //#define SENSORS              //Uncomment to globally enable sensors
-#define SENSE_PERIOD (5*60*1000L)  //read interval of all defined sensors
+#define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
 
-#define temp_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
-#define hum_threshold 2    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
-#define pres_threshold 2    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
+#define temp_threshold 0.5    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
+#define hum_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
+#define pres_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
 
 //DS18X20
 //#define USE_DS18X20         //Uncomment to use a DS18X20 Sensor (only use one sensor!)
 const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 
+// NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
 //BME280                      //Uncomment to use a I2C BME280 Sensor
 //#define USE_BME             //Uncomment to use a DS18X20 Sensor (only use one sensor!)
+#define I2C_ON_OFF  4       // switches I2C On and Off: connect VDD to this GPIO! (due to interferences on i2c bus while door actions (UP/DOWN ...))
 #define I2C_SDA 21
 #define I2C_SCL 22
 
