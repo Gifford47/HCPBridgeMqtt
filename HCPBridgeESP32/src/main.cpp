@@ -37,12 +37,14 @@ AsyncWebServer server(80);
   // Setup a oneWire instance to communicate with any OneWire devices
   OneWire oneWire(oneWireBus);
   DallasTemperature sensors(&oneWire);
+  bool new_sensor_data = false;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
 #endif
 #ifdef USE_BME
   TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
+  bool new_sensor_data = false;
   unsigned bme_status;
   float bme_temp = -99.99;
   float bme_last_temp = -99.99;
@@ -483,6 +485,38 @@ void mqttTaskFunc(void *parameter)
           doorstate = new_doorstate;  //copy new states
           onStatusChanged(doorstate);
         }
+        #ifdef SENSORS
+          if (new_sensor_data) {
+            #ifdef USE_DS18X20
+              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+              char payload[1024];
+              char buf[20];
+              dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+              //Serial.println("Temp: "+ (String)buf);
+              doc["temp"] = buf;
+              serializeJson(doc, payload);
+              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+              new_sensor_data = false;
+            #endif
+            #ifdef USE_BME
+              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+              char payload[1024];
+              char buf[20];
+              dtostrf(bme_temp,2,2,buf);    // convert to string
+              //Serial.println("Temp: "+ (String)buf);
+              doc["temp"] = buf;
+              dtostrf(bme_hum,2,2,buf);    // convert to string
+              //Serial.println("Hum: "+ (String)buf);
+              doc["hum"] = buf;
+              dtostrf(bme_pres,2,1,buf);    // convert to string
+              //Serial.println("Pres: "+ (String)buf);
+              doc["pres"] = buf;
+            serializeJson(doc, payload);
+            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+            new_sensor_data = false;
+          #endif
+          }
+        #endif
         vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
@@ -510,50 +544,45 @@ TaskHandle_t modBusTask;
 
 void SensorCheck(void *parameter){
   while(true){
-    DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-    char payload[1024];
-    bool changed = false;
     #ifdef USE_DS18X20
       ds18x20_temp = sensors.getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
-        doc["ds18x20"] = ds18x20_temp;
-        ds18x20_last_temp = ds18x20_temp; 
-        changed = true;
+        ds18x20_last_temp = ds18x20_temp;
+        new_sensor_data = true;
       }
     #endif
     #ifdef USE_BME
+      if (digitalRead(I2C_ON_OFF) == LOW) {
+        digitalWrite(I2C_ON_OFF, HIGH);   // activate sensor
+        sleep(10);
+        I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+        bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+        //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
+      }
       if (!bme_status) {
-        doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        serializeJson(doc, payload);
-        mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-        vTaskDelete(NULL);
+        DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+        // char payload[1024];
+        // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
+        // serializeJson(doc, payload);
+        // mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
       } else {
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
-        if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
-          char buf[20];
-          dtostrf(bme_temp,2,2,buf);    // convert to string
-          Serial.println("Temp: "+ (String)buf);
-          doc["temp"] = buf;
-          dtostrf(bme_hum,2,2,buf);    // convert to string
-          Serial.println("Hum: "+ (String)buf);
-          doc["hum"] = buf;
-          dtostrf(bme_pres,2,1,buf);    // convert to string
-          Serial.println("Pres: "+ (String)buf);
-          doc["pres"] = buf;
-          bme_last_temp = bme_temp;
-          bme_last_hum = bme_hum;
-          bme_last_pres = bme_pres;
-          changed = true;
+        if (bme_hum < 99.9){                   // I2C hung up ...
+          if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+            bme_last_temp = bme_temp;
+            bme_last_hum = bme_hum;
+            bme_last_pres = bme_pres;
+            new_sensor_data = true;
+          }
+        } else {
+          digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
         }
       }
     #endif
-    if (changed){
-      serializeJson(doc, payload);
-      mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-    }
-  vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+    vTaskDelay(SENSE_PERIOD);     // delay task xxx ms if statemachine had nothing to do
   }
 }
 
@@ -595,7 +624,7 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 2,
+      configMAX_PRIORITIES - 3,
       &mqttTask, /* Task handle. */
       0);        /* Core where the task should run */
 
@@ -606,8 +635,10 @@ void setup()
       sensors.begin();
     #endif
     #ifdef USE_BME
+      pinMode(I2C_ON_OFF, OUTPUT);
       I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+      //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
@@ -615,7 +646,7 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      3,
+      configMAX_PRIORITIES,
       &sensorTask, /* Task handle. */
       0);        /* Core where the task should run */
   #endif
