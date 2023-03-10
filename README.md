@@ -27,7 +27,7 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
 ## Known Bugs
-* Open command requires two clicks. A feature? :)
+* The first command after reboot/boot needs at least two clicks.
 * On Promatic4 (at least) the status led of the motor blinks red.
 
 ## Notes by original author
