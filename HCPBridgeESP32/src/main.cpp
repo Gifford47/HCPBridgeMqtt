@@ -393,7 +393,11 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
-  doc["value_template"] = "{{ value_json.doorstate }}";
+  #ifdef AlignToOpenHab
+    doc["value_template"] = "{{ value_json.doorposition }}";
+  #else
+    doc["value_template"] = "{{ value_json.doorstate }}";
+  #endif
   doc["state_open"] = HA_OPEN;
   doc["state_opening"] = HA_OPENING;
   doc["state_closed"] = HA_CLOSED;

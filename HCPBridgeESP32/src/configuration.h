@@ -1,4 +1,4 @@
-// WIFI
+// WIFI Accesspoint
 const char* AP_PASSWD = "password";
 const char HOSTNAME[] = "HCPBRIDGE";
 
@@ -7,6 +7,9 @@ const char *MQTTSERVER = "192.168.1.100";
 const int MQTTPORT = 1883;
 const char MQTTUSER[] = "mqtt";
 const char MQTTPASSWORD[] = "password";
+
+//OpenHab as SmartHome
+#define AlignToOpenHab true
 
 //OTA Update
 const char* OTA_USERNAME = "admin";
@@ -19,7 +22,7 @@ const char* OTA_PASSWD = "admin";
 //#define SWAPUART
 
 // MQTT
-const int READ_DELAY = 1000;           // intervall (ms) to update status on mqtt
+const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 
 //#define SENSORS              //Uncomment to globally enable sensors
 #define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
@@ -58,7 +61,7 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define HA_DISCOVERY_COVER "homeassistant/cover/garage_door/%s/config"
 
 // DEBUG
-#define DEBUG_REBOOT
+//#define DEBUG_REBOOT
 #define DEBUGTOPIC FTOPIC "/DEBUG"
 
 
