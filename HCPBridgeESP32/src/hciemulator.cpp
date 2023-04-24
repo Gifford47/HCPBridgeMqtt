@@ -426,6 +426,10 @@ void HCIEmulator::processBroadcastStatusFrame(){
     if(!m_state.lampOn){CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x14,hasChanged);}     // Light on
     CHECKCHANGEDSET(m_state.doorCurrentPosition,m_rxbuffer[10],hasChanged);
     CHECKCHANGEDSET(m_state.doorTargetPosition, m_rxbuffer[9],hasChanged);
+    //hack to get vent Status as my Supramatic did report state 0x00 instead of 0x0A when is in venting state.
+    if(m_rxbuffer[11] == 0x00 && m_state.doorTargetPosition == VENT_POS && m_state.doorTargetPosition == m_state.doorCurrentPosition){
+        m_rxbuffer[11] = DOOR_VENT_POSITION;
+    }
     CHECKCHANGEDSET(m_state.doorState, m_rxbuffer[11],hasChanged);
     CHECKCHANGEDSET(m_state.reserved, m_rxbuffer[17],hasChanged);
     CHECKCHANGEDSET(m_state.valid, true,hasChanged);   

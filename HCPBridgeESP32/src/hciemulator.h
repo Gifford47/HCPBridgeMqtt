@@ -29,6 +29,9 @@
 #define T1_5 750
 #define T3_5  4800 //1750  
 
+//workaround as my Supramatic did not Report the Status 0x0A when it's en vent Position
+//When the door is at position 0x08 and not moving Status get changed to Ventig.
+#define VENT_POS 0x08
 
 enum DoorState : uint8_t {    
     DOOR_OPEN_POSITION =  0x20,    
@@ -36,7 +39,10 @@ enum DoorState : uint8_t {
     DOOR_HALF_POSITION =  0x80,
     DOOR_MOVE_CLOSEPOSITION = 0x02,
     DOOR_MOVE_OPENPOSITION = 0x01,
-    
+    DOOR_MOVE_VENTPOSITION = 0x09,
+    DOOR_MOVE_HALFPOSITION = 0x05,
+    DOOR_VENT_POSITION = 0x0A,
+    DOOR_STOPPED = 0x00
 };
 
 struct SHCIState{

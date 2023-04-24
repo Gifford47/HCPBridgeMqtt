@@ -19,7 +19,7 @@ const char* OTA_PASSWD = "admin";
 //#define SWAPUART
 
 // MQTT
-const int READ_DELAY = 1000;           // intervall (ms) to update status on mqtt
+const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 
 //#define SENSORS              //Uncomment to globally enable sensors
 #define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
@@ -49,6 +49,7 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define SETPOS_TOPIC CMD_TOPIC "/set_position"
 #define LAMP_TOPIC FTOPIC "/command/lamp"
 #define DOOR_TOPIC FTOPIC "/command/door"
+#define VENT_TOPIC FTOPIC "/command/vent"
 #define SENSOR_TOPIC FTOPIC "/sensor"
 
 #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/garage_door/%s/config"
@@ -56,9 +57,10 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define HA_DISCOVERY_SENSOR "homeassistant/sensor/garage_door/%s/config"
 #define HA_DISCOVERY_SWITCH "homeassistant/switch/garage_door/%s/config"
 #define HA_DISCOVERY_COVER "homeassistant/cover/garage_door/%s/config"
+#define HA_DISCOVERY_LIGHT "homeassistant/light/garage_door/%s/config"
 
 // DEBUG
-#define DEBUG_REBOOT
+//#define DEBUG_REBOOT
 #define DEBUGTOPIC FTOPIC "/DEBUG"
 
 
@@ -67,6 +69,7 @@ const char *HA_OFF = "false";
 const char *HA_OPEN = "open";
 const char *HA_CLOSE = "close";
 const char *HA_HALF = "half";
+const char *HA_VENT = "vent";
 const char *HA_STOP = "stop";
 const char *HA_OPENING = "opening";
 const char *HA_CLOSING = "closing";
