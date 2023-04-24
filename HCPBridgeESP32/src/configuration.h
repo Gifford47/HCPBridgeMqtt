@@ -1,4 +1,4 @@
-// WIFI
+// WIFI Accesspoint
 const char* AP_PASSWD = "password";
 const char HOSTNAME[] = "HCPBRIDGE";
 
@@ -7,6 +7,9 @@ const char *MQTTSERVER = "192.168.1.100";
 const int MQTTPORT = 1883;
 const char MQTTUSER[] = "mqtt";
 const char MQTTPASSWORD[] = "password";
+
+//OpenHab as SmartHome
+#define AlignToOpenHab true
 
 //OTA Update
 const char* OTA_USERNAME = "admin";
