@@ -124,7 +124,7 @@ void onStatusChanged(const SHCIState &state)
   {
     DynamicJsonDocument doc(1024);
     char payload[1024];
-
+    const char *venting = HA_CLOSE;
     doc["valid"] = ToHA(state.valid);
     doc["doorposition"] = (int)state.doorCurrentPosition / 2;
     doc["lamp"] = ToHA(state.lampOn);
@@ -146,9 +146,20 @@ void onStatusChanged(const SHCIState &state)
     case DOOR_MOVE_OPENPOSITION:
       doc["doorstate"] = HA_OPENING;
       break;
+    case DOOR_MOVE_VENTPOSITION:
+      doc["doorstate"] = HA_OPENING;
+      break;
+    case DOOR_MOVE_HALFPOSITION:
+      doc["doorstate"] = HA_OPENING;
+      break;
+    case DOOR_VENT_POSITION:
+      doc["doorstate"] = HA_VENT;
+      venting = HA_VENT;
+      break;
     default:
       doc["doorstate"] = "UNKNOWN";
     }
+    doc["vent"] = venting;
 
     lastCall = maxPeriod = 0;
 
@@ -187,7 +198,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     }
   }
 
-  else if (strcmp(DOOR_TOPIC, topic) == 0)
+  else if (strcmp(DOOR_TOPIC, topic) == 0 || strcmp(VENT_TOPIC, topic) == 0)
   {
     if (strncmp(payload, HA_OPEN, len) == 0)
     {
@@ -204,6 +215,10 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     else if (strncmp(payload, HA_HALF, len) == 0)
     {
       emulator.openDoorHalf();
+    }
+    else if (strncmp(payload, HA_VENT, len) == 0)
+    {
+      emulator.ventilationPosition();
     }
   }
 
@@ -233,7 +248,7 @@ void sendDebug()
   mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
 
-void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char off[], const char on[])
+void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char off[], const char on[], const JsonDocument& device)
 {
 
   char full_topic[64];
@@ -256,13 +271,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   doc["value_template"] = vtemp;
   doc["payload_on"] = on;
   doc["payload_off"] = off;
-
-  JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
-  device["sw_version"] = HA_VERSION;
-  device["model"] = "Garage Door";
-  device["manufacturer"] = "Hörmann";
+  doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -270,20 +279,14 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void sendDiscoveryMessageForAVSensor()
+void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 {
   DynamicJsonDocument doc(1024);
 
   doc["name"] = "Garage Door Available";
   doc["state_topic"] = AVAILABILITY_TOPIC;
   doc["unique_id"] = "garagedoor_sensor_availability";
-
-  JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
-  device["sw_version"] = HA_VERSION;
-  device["model"] = "Garage Door";
-  device["manufacturer"] = "Hörmann";
+  doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -291,7 +294,7 @@ void sendDiscoveryMessageForAVSensor()
   mqttClient.publish(HA_DISCOVERY_AV_SENSOR, 1, true, payload);
 }
 
-void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[])
+void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device)
 {
 
   char full_topic[64];
@@ -312,13 +315,7 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
   doc["value_template"] = vtemp;
-
-  JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
-  device["sw_version"] = HA_VERSION;
-  device["model"] = "Garage Door";
-  device["manufacturer"] = "Hörmann";
+  doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -326,19 +323,24 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const char off[], const char on[], bool optimistic = false)
+void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false)
 {
   char command_topic[64];
   sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_SWITCH, topic);
+  sprintf(full_topic, discovery, topic);
 
   char value_template[64];
   sprintf(value_template, "{{ value_json.%s }}", topic);
 
   char uid[64];
-  sprintf(uid, "garagedoor_switch_%s", topic);
+  if (discovery == HA_DISCOVERY_LIGHT){
+    sprintf(uid, "garagedoor_light_%s", topic);
+  }
+  else{
+    sprintf(uid, "garagedoor_switch_%s", topic);
+  }
 
   DynamicJsonDocument doc(1024);
 
@@ -347,20 +349,14 @@ void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const 
   doc["command_topic"] = command_topic;
   doc["payload_on"] = on;
   doc["payload_off"] = off;
-  doc["icon"] = "mdi:lightbulb";
+  doc["icon"] = icon;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
   doc["value_template"] = value_template;
   doc["optimistic"] = optimistic;
-
-  JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
-  device["sw_version"] = HA_VERSION;
-  device["model"] = "Garage Door";
-  device["manufacturer"] = "Hörmann";
+  doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -368,7 +364,7 @@ void sendDiscoveryMessageForSwitch(const char name[], const char topic[], const 
   mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void sendDiscoveryMessageForCover(const char name[], const char topic[])
+void sendDiscoveryMessageForCover(const char name[], const char topic[], const JsonDocument& device)
 {
 
   char command_topic[64];
@@ -393,7 +389,11 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
-  doc["value_template"] = "{{ value_json.doorstate }}";
+  #ifdef AlignToOpenHab
+    doc["value_template"] = "{{ value_json.doorposition }}";
+  #else
+    doc["value_template"] = "{{ value_json.doorstate }}";
+  #endif
   doc["state_open"] = HA_OPEN;
   doc["state_opening"] = HA_OPENING;
   doc["state_closed"] = HA_CLOSED;
@@ -404,13 +404,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
   doc["device_class"] = "garage";
-
-  JsonObject device = doc.createNestedObject("device");
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
-  device["sw_version"] = HA_VERSION;
-  device["model"] = "Garage Door";
-  device["manufacturer"] = "Hörmann";
+  doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -420,22 +414,31 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
 
 void sendDiscoveryMessage()
 {
-  sendDiscoveryMessageForAVSensor();
+  //declare json object here for device instead of creating in each methode. 150 bytes should be enough
+  const int capacity = JSON_OBJECT_SIZE(5);
+  StaticJsonDocument<capacity> device;
+  device["identifiers"] = "Garage Door";
+  device["name"] = "Garage Door";
+  device["sw_version"] = HA_VERSION;
+  device["model"] = "Garage Door";
+  device["manufacturer"] = "Hörmann";
+  
+  sendDiscoveryMessageForAVSensor(device);
+  //not able to get it working sending the discovery message for light.
+  sendDiscoveryMessageForSwitch("Garage Door Light", HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
+  sendDiscoveryMessageForBinarySensor("Garage Door Light", "lamp", HA_OFF, HA_ON, device);
+  sendDiscoveryMessageForSwitch("Garage Door Vent", HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+  sendDiscoveryMessageForCover("Garage Door", "door", device);
 
-  sendDiscoveryMessageForSwitch("Garage Door Light", "lamp", HA_OFF, HA_ON);
-  sendDiscoveryMessageForBinarySensor("Garage Door Light", "lamp", HA_OFF, HA_ON);
-
-  sendDiscoveryMessageForCover("Garage Door", "door");
-
-  sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate");
-  sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition");
+  sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate", device);
+  sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp");
-      sendDiscoveryMessageForSensor("Garage Humidity", SENSOR_TOPIC, "hum");
-      sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres");
+      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor("Garage Humidity", SENSOR_TOPIC, "hum", device);
+      sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres", device);
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp");
+      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
     #endif
   #endif
 }
