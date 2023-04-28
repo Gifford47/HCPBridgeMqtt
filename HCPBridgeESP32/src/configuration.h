@@ -30,6 +30,7 @@ const int READ_DELAY = 2000;           // intervall (ms) to update status on mqt
 #define temp_threshold 0.5    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
 #define hum_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
 #define pres_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
+#define prox_treshold 10    //only send mqtt msg when distance change this treshold. Set 0 to send every status
 
 //DS18X20
 //#define USE_DS18X20         //Uncomment to use a DS18X20 Sensor (only use one sensor!)
@@ -42,6 +43,12 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define I2C_SDA 21
 #define I2C_SCL 22
 
+//HC-SR04                   //Uncommment to use a HC-SR04 proximity sensor
+//#define USE_HCSR04
+#define SR04_TRIGPIN 5
+#define SR04_ECHOPIN 18
+//define sound speed in cm/uS
+#define SOUND_SPEED 0.034
 
 // MQTT strings
 #define FTOPIC "hormann/garage_door" 
@@ -81,4 +88,4 @@ const char *HA_OPENED = "open";
 const char *HA_ONLINE = "online";
 const char *HA_OFFLINE = "offline";
 
-const char *HA_VERSION = "0.0.5.1";
+const char *HA_VERSION = "0.0.5.2";

@@ -54,6 +54,15 @@ AsyncWebServer server(80);
   float bme_last_pres = -99.99;
 #endif
 
+#ifdef USE_HCSR04
+  long hcsr04_duration = -99.99;
+  int hcsr04_distanceCm = 0;
+  int hcsr04_lastdistanceCm = 0;
+  int hcsr04_maxdistanceCm = 150;
+  bool hcsr04_park_available = false;
+  bool hcsr04_lastpark_available = false;
+#endif
+
 // mqtt
 volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
@@ -248,22 +257,22 @@ void sendDebug()
   mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
 
-void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char off[], const char on[], const JsonDocument& device)
+void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char key[], const char off[], const char on[], const JsonDocument& device)
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, topic);
+  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_binary_sensor_%s", topic);
+  sprintf(uid, "garagedoor_binary_sensor_%s", key);
 
   char vtemp[64];
-  sprintf(vtemp, "{{ value_json.%s }}", topic);
+  sprintf(vtemp, "{{ value_json.%s }}", key);
 
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = STATE_TOPIC;
+  doc["state_topic"] = topic;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
@@ -426,7 +435,7 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForAVSensor(device);
   //not able to get it working sending the discovery message for light.
   sendDiscoveryMessageForSwitch("Garage Door Light", HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
-  sendDiscoveryMessageForBinarySensor("Garage Door Light", "lamp", HA_OFF, HA_ON, device);
+  sendDiscoveryMessageForBinarySensor("Garage Door Light", STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
   sendDiscoveryMessageForSwitch("Garage Door Vent", HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
   sendDiscoveryMessageForCover("Garage Door", "door", device);
 
@@ -439,6 +448,10 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres", device);
     #elif defined(USE_DS18X20)
       sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
+    #endif
+    #if defined(USE_HCSR04)
+      sendDiscoveryMessageForSensor("Garage Free distance", SENSOR_TOPIC, "dist", device);
+      sendDiscoveryMessageForBinarySensor("Garage park available", SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
   #endif
 }
@@ -497,6 +510,14 @@ void mqttTaskFunc(void *parameter)
               dtostrf(ds18x20_temp,2,2,buf);    // convert to string
               //Serial.println("Temp: "+ (String)buf);
               doc["temp"] = buf;
+              #ifdef USE_HCSR04
+                sprintf(buf, "%d", hcsr04_distanceCm);
+                doc["dist"] = buf;
+                doc["free"] = ToHA(hcsr04_park_available);
+                serializeJson(doc, payload);
+                mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+                new_sensor_data = false;
+              #endif
               serializeJson(doc, payload);
               mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
               new_sensor_data = false;
@@ -514,10 +535,19 @@ void mqttTaskFunc(void *parameter)
               dtostrf(bme_pres,2,1,buf);    // convert to string
               //Serial.println("Pres: "+ (String)buf);
               doc["pres"] = buf;
-            serializeJson(doc, payload);
-            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-            new_sensor_data = false;
-          #endif
+                #ifdef USE_HCSR04
+                  sprintf(buf, "%d", hcsr04_distanceCm);
+                  doc["dist"] = buf;
+                  doc["free"] = ToHA(hcsr04_park_available);
+                  serializeJson(doc, payload);
+                  mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+                  new_sensor_data = false;
+                #endif
+              serializeJson(doc, payload);
+              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+              new_sensor_data = false;
+            #endif
+
           }
         #endif
         vTaskDelay(READ_DELAY);     // delay task xxx ms
@@ -585,6 +615,33 @@ void SensorCheck(void *parameter){
         }
       }
     #endif
+    #ifdef USE_HCSR04
+        // Clears the trigPin
+        digitalWrite(SR04_TRIGPIN, LOW);
+        delayMicroseconds(2);
+        // Sets the trigPin on HIGH state for 10 micro seconds
+        digitalWrite(SR04_TRIGPIN, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(SR04_TRIGPIN, LOW);
+        // Reads the echoPin, returns the sound wave travel time in microseconds
+        hcsr04_duration = pulseIn(SR04_ECHOPIN, HIGH);
+        // Calculate the distance
+        hcsr04_distanceCm = hcsr04_duration * SOUND_SPEED/2;
+        if (hcsr04_distanceCm > hcsr04_maxdistanceCm) {
+          // set new Max
+          hcsr04_maxdistanceCm = hcsr04_distanceCm;
+        }
+        if ((hcsr04_distanceCm + prox_treshold) > hcsr04_maxdistanceCm ){
+          hcsr04_park_available = true;
+        } else {
+          hcsr04_park_available = false;
+        }
+        if (abs(hcsr04_distanceCm-hcsr04_lastdistanceCm) >= prox_treshold || hcsr04_park_available != hcsr04_lastpark_available ){
+          hcsr04_lastdistanceCm = hcsr04_distanceCm;
+          hcsr04_lastpark_available = hcsr04_park_available;
+          new_sensor_data = true;
+        }
+    #endif
     vTaskDelay(SENSE_PERIOD);     // delay task xxx ms if statemachine had nothing to do
   }
 }
@@ -642,6 +699,10 @@ void setup()
       I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
       //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
+    #endif
+    #ifdef USE_HCSR04
+      pinMode(SR04_TRIGPIN, OUTPUT); // Sets the trigPin as an Output
+      pinMode(SR04_ECHOPIN, INPUT); // Sets the echoPin as an Input
     #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
