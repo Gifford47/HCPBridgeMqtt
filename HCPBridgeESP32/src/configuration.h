@@ -9,7 +9,7 @@ const char MQTTUSER[] = "mqtt";
 const char MQTTPASSWORD[] = "password";
 
 //OpenHab as SmartHome
-#define AlignToOpenHab true
+//#define AlignToOpenHab true
 
 //OTA Update
 const char* OTA_USERNAME = "admin";
