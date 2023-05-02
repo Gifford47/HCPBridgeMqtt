@@ -1,4 +1,4 @@
-NOTE: this is a fork of the work of various people who did 99% of the work. I just did some cleanups, translated to english and fixed various bugs.
+NOTE: this is a fork of the work of various people who did 99.5% of the work. I just did some cleanups, fixed small bugs added a Proximity sensor and a venting Switch.
 
 # HCPBridge with MQTT + HomeAssistant Support
 ![image](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
@@ -24,6 +24,7 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * OTA Update (with username and password)
 * AsyncWifiManger (hotspot when disconnected)
 * DS18X20 or BME280 sensor (with threshold)
+* HCSR04 Proximity sensor (to know if a car is below)
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
 ## Known Bugs
@@ -67,13 +68,16 @@ Response (JSON)
 
 ```
 {
- "valid" : true,
- "doorstate" : 1,
- "doorposition" : 0,
- "doortarget" : 0,
- "lamp" : true,
- "debug" : 0,
- "lastresponse" : 0
+"valid": true,
+"doorstate": 64,
+"doorposition": 0,
+"doortarget": 0,
+"lamp": false,
+"temp": 19.94000053,
+"lastresponse": 0,
+"looptime": 1037,
+"lastCommandTopic": "hormann/garage_door/command/door",
+"lastCommandPayload": "close"
 }
 ```
 
@@ -107,6 +111,14 @@ Pins A+ (Red) and B- (Green) need a 120 Ohm resistor for BUS termination. Some R
 
 ![DS18X20](Images/ds18x20.jpg) <br/>
 DS18X20 connected to GPIO4.
+
+## HC-SR04 Ultra sonic proximity sensor
+
+To use uncommment the line below in configuration.h. There are also the information about the pine used for the sensor.
+```
+//#define USE_HCSR04
+```
+It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is initialised with 150cm in main.cpp, This setting work for me to get the right status if I restart the esp32 with the car below.
 
 ## Circuit
 
@@ -142,6 +154,8 @@ Lid
 
 This is just a quick and dirty implementation and needs refactoring, but it is working.
 Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door, and slide it to custom position (through set_position MQTT command).
+
+The switch to put garage in venting position wors with a small hack. Based on the analyses of dupas.me the motor should gave a status 0A in venting position. As this was not the case the variable VENT_POS in hciemulator.h was default with value '0x08' which correspond to the position when my garage door is in venting position (position available under ***http://[deviceip]/status***). When the door is stopped in this position the doorstate is set as venting.
 
 ![image](https://user-images.githubusercontent.com/14005124/215218504-bddf65e2-6c88-4d0a-83bd-de3cacb63c88.png)
 ![alt text](Images/HA.png)
