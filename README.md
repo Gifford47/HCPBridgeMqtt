@@ -1,3 +1,5 @@
+EXPERIMENTAL: this branch is an Experimental build using the https://github.com/kfroeschl/HCPBridgeHomeAssistant/tree/rewrite repository who implemented the emelianov/modbus-esp8266.
+
 NOTE: this is a fork of the work of various people who did 99.5% of the work. I just did some cleanups, fixed small bugs added a Proximity sensor and a venting Switch.
 
 # HCPBridge with MQTT + HomeAssistant Support

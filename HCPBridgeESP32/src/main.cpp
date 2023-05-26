@@ -6,11 +6,10 @@
 #include <AsyncMqttClient.h>
 #include <Ticker.h>
 #include "ArduinoJson.h"
-#include <sstream>
 #include <ESPAsyncWiFiManager.h>
 
 #include "configuration.h"
-#include "hciemulator.h"
+#include "hoermann.h"
 #include "../../WebUI/index_html.h"
 
 #ifdef USE_DS18X20
@@ -25,10 +24,6 @@
 #endif
 
 DNSServer dns;
-
-// Hörmann HCP2 based on modbus rtu @57.6kB 8E1
-HCIEmulator emulator(&RS485);
-SHCIState doorstate = emulator.getState();
 
 // webserver on port 80
 AsyncWebServer server(80);
@@ -89,13 +84,8 @@ const char *ToHA(bool value)
   return "UNKNOWN";
 }
 
-void switchLamp(bool on)
-{
-  bool toggle = (on && !emulator.getState().lampOn) || (!on && emulator.getState().lampOn);
-  if (toggle)
-  {
-    emulator.toggleLamp();
-  }
+void switchLamp(bool on){
+  hoermannEngine->turnLight(on);
 }
 
 void connectToMqtt()
@@ -115,67 +105,32 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
   }
 }
 
-void onMqttPublish(uint16_t packetId)
-{
+void onMqttPublish(uint16_t packetId){
 }
 
-void DelayHandler(void)
+void updateDoorStatus()
 {
-  emulator.poll();
-}
-
-volatile unsigned long lastCall = 0;
-volatile unsigned long maxPeriod = 0;
-
-void onStatusChanged(const SHCIState &state)
-{
-  if (mqttConnected == true)
-  {
+  // onyl send updates when state changed
+  if (mqttConnected == true && hoermannEngine->state->changed ){
+    hoermannEngine->state->clearChanged();
     DynamicJsonDocument doc(1024);
     char payload[1024];
     const char *venting = HA_CLOSE;
-    doc["valid"] = ToHA(state.valid);
-    doc["doorposition"] = (int)state.doorCurrentPosition / 2;
-    doc["lamp"] = ToHA(state.lampOn);
 
-    switch (state.doorState)
-    {
-    case DOOR_OPEN_POSITION:
-      doc["doorstate"] = HA_OPENED;
-      break;
-    case DOOR_CLOSE_POSITION:
-      doc["doorstate"] = HA_CLOSED;
-      break;
-    case DOOR_HALF_POSITION:
-      doc["doorstate"] = HA_HALF;
-      break;
-    case DOOR_MOVE_CLOSEPOSITION:
-      doc["doorstate"] = HA_CLOSING;
-      break;
-    case DOOR_MOVE_OPENPOSITION:
-      doc["doorstate"] = HA_OPENING;
-      break;
-    case DOOR_MOVE_VENTPOSITION:
-      doc["doorstate"] = HA_OPENING;
-      break;
-    case DOOR_MOVE_HALFPOSITION:
-      doc["doorstate"] = HA_OPENING;
-      break;
-    case DOOR_VENT_POSITION:
-      doc["doorstate"] = HA_VENT;
+    doc["valid"] = hoermannEngine->state->valid;
+    doc["doorposition"] = (int)(hoermannEngine->state->currentPosition * 100);
+    doc["lamp"] = ToHA(hoermannEngine->state->lightOn);
+    doc["doorstate"] = hoermannEngine->state->coverState;
+    doc["detailedState"] = hoermannEngine->state->translatedState;
+    if (hoermannEngine->state->translatedState == HA_VENT){
       venting = HA_VENT;
-      break;
-    default:
-      doc["doorstate"] = "UNKNOWN";
     }
     doc["vent"] = venting;
-
-    lastCall = maxPeriod = 0;
 
     serializeJson(doc, payload);
     mqttClient.publish(STATE_TOPIC, 1, true, payload);
 
-    sprintf(payload, "%d", (int)doorstate.doorCurrentPosition/2 );
+    sprintf(payload, "%d", (int)(hoermannEngine->state->currentPosition * 100));
     mqttClient.publish(POS_TOPIC, 1, true, payload);
   }
 }
@@ -203,7 +158,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     }
     else
     {
-      emulator.toggleLamp();
+      hoermannEngine->toogleLight();
     }
   }
 
@@ -211,29 +166,29 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   {
     if (strncmp(payload, HA_OPEN, len) == 0)
     {
-      emulator.openDoor();
+      hoermannEngine->openDoor();
     }
     else if (strncmp(payload, HA_CLOSE, len) == 0)
     {
-      emulator.closeDoor();
+      hoermannEngine->closeDoor();
     }
     else if (strncmp(payload, HA_STOP, len) == 0)
     {
-      emulator.stopDoor();
+      hoermannEngine->stopDoor();
     }
     else if (strncmp(payload, HA_HALF, len) == 0)
     {
-      emulator.openDoorHalf();
+      hoermannEngine->halfPositionDoor();
     }
     else if (strncmp(payload, HA_VENT, len) == 0)
     {
-      emulator.ventilationPosition();
+      hoermannEngine->ventilationPositionDoor();
     }
   }
 
   else if (strcmp(SETPOS_TOPIC, topic) == 0)
   {
-    emulator.setPosition(atoi(lastCommandPayload));
+    hoermannEngine->setPosition(atoi(lastCommandPayload));
   }
 
 }
@@ -386,7 +341,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   sprintf(uid, "garagedoor_cover_%s", topic);
 
   DynamicJsonDocument doc(1024);
-
+ //if it didn't work try without state topic.
   doc["name"] = name;
   doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
@@ -440,6 +395,7 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForCover("Garage Door", "door", device);
 
   sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate", device);
+  sendDiscoveryMessageForSensor("Garage Door detailed Status", STATE_TOPIC, "detailedState", device);
   sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
@@ -462,8 +418,7 @@ void onMqttConnect(bool sessionPresent)
 
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
-  const SHCIState &doorstate = emulator.getState();
-  onStatusChanged(doorstate);
+  updateDoorStatus();
   sendDiscoveryMessage();
   #ifdef DEBUG_REBOOT
     if (boot_Flag){
@@ -492,15 +447,8 @@ void mqttTaskFunc(void *parameter)
         setWill();
         connectToMqtt();
       }
-      else
-      {
-        const SHCIState &new_doorstate = emulator.getState();
-        // onyl send updates when state changed
-        if(new_doorstate.doorState != doorstate.doorState || new_doorstate.lampOn != doorstate.lampOn || new_doorstate.doorCurrentPosition != doorstate.doorCurrentPosition || new_doorstate.doorTargetPosition != doorstate.doorTargetPosition){
-          //const SHCIState &doorstate = emulator.getState();
-          doorstate = new_doorstate;  //copy new states
-          onStatusChanged(doorstate);
-        }
+      else{
+        updateDoorStatus();
         #ifdef SENSORS
           if (new_sensor_data) {
             #ifdef USE_DS18X20
@@ -557,23 +505,6 @@ void mqttTaskFunc(void *parameter)
 }
 
 TaskHandle_t mqttTask;
-
-void modBusPolling(void *parameter)
-{
-  while (true)
-  {
-    if (lastCall > 0)
-    {
-      maxPeriod = _max(micros() - lastCall, maxPeriod);
-    }
-    lastCall = micros();
-    emulator.poll();
-    vTaskDelay(1);
-  }
-  vTaskDelete(NULL);
-}
-
-TaskHandle_t modBusTask;
 
 void SensorCheck(void *parameter){
   while(true){
@@ -655,22 +586,7 @@ void setup()
   Serial.begin(9600);
 
   // setup modbus
-  RS485.begin(57600, SERIAL_8E1, PIN_RXD, PIN_TXD);
-  #ifdef SWAPUART
-    RS485.swap();
-  #endif
-
-  strcpy(lastCommandTopic, "topic");
-  strcpy(lastCommandPayload, "payload");
-  xTaskCreatePinnedToCore(
-      modBusPolling, /* Function to implement the task */
-      "ModBusTask",  /* Name of the task */
-      10000,         /* Stack size in words */
-      NULL,          /* Task input parameter */
-      // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 1,
-      &modBusTask, /* Task handle. */
-      1);          /* Core where the task should run */
+  hoermannEngine->setup();
 
   // setup wifi
   WiFi.setHostname(HOSTNAME);
@@ -723,16 +639,19 @@ void setup()
               response->addHeader("Content-Encoding", "deflate");
               request->send(response); });
 
-  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
               //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
-              root["valid"] = doorstate.valid;
-              root["doorstate"] = doorstate.doorState;
-              root["doorposition"] = doorstate.doorCurrentPosition;
-              root["doortarget"] = doorstate.doorTargetPosition;
-              root["lamp"] = doorstate.lampOn;
+              //response->print(hoermannEngine->state->toStatusJson());
+              root["doorstate"] = hoermannEngine->state->translatedState;
+              root["valid"] = hoermannEngine->state->valid;
+              root["targetPosition"] = (int)(hoermannEngine->state->targetPosition * 100);
+              root["currentPosition"] = (int)(hoermannEngine->state->currentPosition * 100);
+              root["light"] = hoermannEngine->state->lightOn;
+              root["state"] = hoermannEngine->state->state;
+              root["busResponseAge"] = hoermannEngine->state->responseAge();
+              root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
                 #ifdef USE_DS18X20
                   root["temp"] = ds18x20_temp;
@@ -741,13 +660,14 @@ void setup()
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
-              root["lastresponse"] = emulator.getMessageAge() / 1000;
-              root["looptime"] = maxPeriod;
               root["lastCommandTopic"] = lastCommandTopic;
               root["lastCommandPayload"] = lastCommandPayload;
-              lastCall = maxPeriod = 0;
-
               serializeJson(root, *response);
+              request->send(response); });
+
+  server.on("/statush", HTTP_GET, [](AsyncWebServerRequest *request){
+              AsyncResponseStream *response = request->beginResponseStream("application/json");
+              response->print(hoermannEngine->state->toStatusJson());
               request->send(response); });
 
   server.on("/command", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -758,22 +678,22 @@ void setup()
                 switch (actionid)
                 {
                 case 0:
-                  emulator.closeDoor();
+                  hoermannEngine->closeDoor();
                   break;
                 case 1:
-                  emulator.openDoor();
+                  hoermannEngine->openDoor();
                   break;
                 case 2:
-                  emulator.stopDoor();
+                  hoermannEngine->stopDoor();
                   break;
                 case 3:
-                  emulator.ventilationPosition();
+                  hoermannEngine->ventilationPositionDoor();
                   break;
                 case 4:
-                  emulator.openDoorHalf();
+                  hoermannEngine->halfPositionDoor();
                   break;
                 case 5:
-                  emulator.toggleLamp();
+                  hoermannEngine->toogleLight();
                   break;
                 case 6:
                   Serial.println("Starte neu...");
@@ -782,7 +702,7 @@ void setup()
                   break;
                 case 7:
                   if (request->hasParam("position"))
-                    emulator.setPosition(request->getParam("position")->value().toInt());
+                    hoermannEngine->setPosition(request->getParam("position")->value().toInt());
                   break;
                 default:
                   break;
@@ -815,4 +735,5 @@ void setup()
 // mainloop
 void loop()
 {
+    delay(1000);
 }
