@@ -81,8 +81,10 @@ class HoermannState {
     State state = CLOSED;
     String translatedState = "closed";
     String coverState = "closed";
+    String debugMessage = "initial";
     unsigned long lastModbusRespone = 0;
     bool changed = false;
+    bool debMessage = false;
     float gotoPosition = 0.0f;
     bool valid = false;
 
@@ -107,6 +109,10 @@ class HoermannState {
     }
     void clearChanged() {
         this->changed = false;
+    }
+    void clearDebug() {
+        this->debMessage = false;
+        this->debugMessage = "Initial";
     }
     long responseAge() {
         if (this->lastModbusRespone == 0) {
@@ -290,7 +296,9 @@ class HoermannGarageEngine {
         } else if (fc == Modbus::FC_WRITE_REGS && data.reg.address == 0x9D31) {
             // ESP_LOGD("ON_REQ", "on Status Update (cnt: %d)",data.regCount);
         } else {
-            ESP_LOGI(TAG_HCI, "unknown function code fc=%x", fc);
+            this->state->debugMessage = "unknown function code fc=" + fc;
+            this->state->debMessage = true;
+            ESP_LOGW(TAG_HCI, "unknown function code fc=%x", fc);
         }
         this->state->setValid(true);
         return Modbus::EX_SUCCESS;
