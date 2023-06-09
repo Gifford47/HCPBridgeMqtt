@@ -62,7 +62,7 @@ Ticker mqttReconnectTimer;
 char lastCommandTopic[64];
 char lastCommandPayload[64];
 
-#ifdef DEBUG_REBOOT
+#ifdef DEBUG
   bool boot_Flag = true;
 #endif
 
@@ -224,11 +224,11 @@ void setWill()
   mqttClient.setWill(AVAILABILITY_TOPIC, 0, true, HA_OFFLINE);
 }
 
-void sendDebug()
+void sendDebug(char *key, String value)
 {
   DynamicJsonDocument doc(1024);
   char payload[1024];
-  doc["reset-reason"] = esp_reset_reason();
+  doc[key] = value;
   serializeJson(doc, payload);
   mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
@@ -453,9 +453,12 @@ void onMqttConnect(bool sessionPresent)
   const SHCIState &doorstate = emulator.getState();
   onStatusChanged(doorstate);
   sendDiscoveryMessage();
-  #ifdef DEBUG_REBOOT
+  #ifdef DEBUG
     if (boot_Flag){
-      sendDebug();
+      int i = esp_reset_reason();
+      char val[3];
+      sprintf(val, "%i", i);
+      sendDebug("ResetReason", val);
       boot_Flag = false;
     }
   #endif
