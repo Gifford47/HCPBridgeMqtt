@@ -1,8 +1,10 @@
 #include "hciemulator.h"
+#include "configuration.h"
+
 #define CHECKCHANGEDSET(Target,Value,Flag) if((Target)!=(Value)){Target=Value;Flag=true;}
 int hciloglevel = DEFAULTLOGLEVEL;
 
-#ifdef SOFTSERIAL
+#ifdef DEBUG
 #define Log(Level,Message) LogCore(Level,Message)
 #define Log3(Level,Message,Buffer, Len) LogCore(Level,Message,Buffer,Len)
 //LOGLEVEL
@@ -17,9 +19,11 @@ void LogCore(int Level, const char* msg, const unsigned char * data=NULL, size_t
             snprintf(str,sizeof(str),"%02x ", data[i]);
             newmsg+=str;
         }
-        Serial.println(newmsg);        
+        Serial.println(newmsg);
+        sendDebug("hcilog", newmsg);
     }else{
         Serial.println(msg);
+        sendDebug("hcilog", msg);
     }
 }
 #else 
