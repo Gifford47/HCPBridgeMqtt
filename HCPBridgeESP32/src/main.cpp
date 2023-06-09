@@ -102,6 +102,7 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
     {
       mqttReconnectTimer.once(10, connectToMqtt);
     }
+    vTaskDelay(5000);
   }
 }
 
@@ -208,6 +209,7 @@ void sendDebug()
   DynamicJsonDocument doc(1024);
   char payload[1024];
   doc["reset-reason"] = esp_reset_reason();
+  doc["debug"] = hoermannEngine->state->debugMessage;
   serializeJson(doc, payload);
   mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
@@ -274,6 +276,39 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
 
   doc["name"] = name;
   doc["state_topic"] = topic;
+  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["payload_available"] = HA_ONLINE;
+  doc["payload_not_available"] = HA_OFFLINE;
+  doc["unique_id"] = uid;
+  doc["value_template"] = vtemp;
+  doc["device"] = device;
+
+  char payload[1024];
+  serializeJson(doc, payload);
+  //-//Serial.write(payload);
+  mqttClient.publish(full_topic, 1, true, payload);
+}
+
+void sendDiscoveryMessageForDebug(const char name[], const char key[], const JsonDocument& device)
+{
+
+  char command_topic[64];
+  sprintf(command_topic, CMD_TOPIC "/%s", DEBUGTOPIC);
+
+  char full_topic[64];
+  sprintf(full_topic, "homeassistant/text/garage_door/%s/config", key);
+
+  char uid[64];
+  sprintf(uid, "garagedoor_text_%s", key);
+
+  char vtemp[64];
+  sprintf(vtemp, "{{ value_json.%s }}", key);
+
+  DynamicJsonDocument doc(1024);
+
+  doc["name"] = name;
+  doc["state_topic"] = DEBUGTOPIC;
+  doc["command_topic"] = command_topic;
   doc["availability_topic"] = AVAILABILITY_TOPIC;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
@@ -410,6 +445,10 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForBinarySensor("Garage park available", SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
   #endif
+  #ifdef DEBUG_REBOOT
+    sendDiscoveryMessageForDebug("garage Door Debug", "debug", device);
+    sendDiscoveryMessageForDebug("garage Restart Reason", "reset-reason", device);
+  #endif
 }
 
 void onMqttConnect(bool sessionPresent)
@@ -449,6 +488,12 @@ void mqttTaskFunc(void *parameter)
       }
       else{
         updateDoorStatus();
+        #ifdef DEBUG_REBOOT
+        if (hoermannEngine->state->debMessage){
+          hoermannEngine->state->clearDebug();
+          sendDebug();
+        }
+        #endif
         #ifdef SENSORS
           if (new_sensor_data) {
             #ifdef USE_DS18X20
@@ -498,9 +543,9 @@ void mqttTaskFunc(void *parameter)
 
           }
         #endif
-        vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
+    vTaskDelay(READ_DELAY);     // delay task xxx ms
   }
 }
 
@@ -589,6 +634,7 @@ void setup()
   hoermannEngine->setup();
 
   // setup wifi
+  
   WiFi.setHostname(HOSTNAME);
   AsyncWiFiManager wifiManager(&server,&dns);
   wifiManager.setDebugOutput(false);    // disable serial debug output
@@ -696,7 +742,7 @@ void setup()
                   hoermannEngine->toogleLight();
                   break;
                 case 6:
-                  Serial.println("Starte neu...");
+                  Serial.println("restart...");
                   setWill();
                   ESP.restart();
                   break;
@@ -733,7 +779,5 @@ void setup()
 }
 
 // mainloop
-void loop()
-{
-    delay(1000);
+void loop(){
 }
