@@ -1,6 +1,13 @@
+// WIFI Hostname
+const char HOSTNAME[]   = "HCPBRIDGE";
+
+// Station
+const char* STA_SSID   = "my-wlan-ssid";
+const char* STA_PASSWD = "my-wlan-passwd";
+
 // WIFI Accesspoint
-const char* AP_PASSWD = "password";
-const char HOSTNAME[] = "HCPBRIDGE";
+const char AP_SSID[]    = "HCPBRIDGE";
+const char* AP_PASSWD   = "password";
 
 // MQTT
 const char *MQTTSERVER = "192.168.1.100";
@@ -70,7 +77,7 @@ const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 #define HA_DISCOVERY_LIGHT "homeassistant/light/garage_door/%s/config"
 
 // DEBUG
-//#define DEBUG_REBOOT
+//#define DEBUG
 #define DEBUGTOPIC FTOPIC "/DEBUG"
 
 
