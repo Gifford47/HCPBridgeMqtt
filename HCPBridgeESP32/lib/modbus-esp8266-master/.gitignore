@@ -1,5 +1,0 @@
-.vscode/arduino.json
-.vscode/c_cpp_properties.json
-.vscode/*
-src/ModbusSerial.cpp
-src/ModbusSerial.h
