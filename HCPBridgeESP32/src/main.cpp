@@ -4,7 +4,10 @@
 #include <ESPAsyncWebServer.h>
 #include "AsyncJson.h"
 #include <AsyncMqttClient.h>
-#include <Ticker.h>
+extern "C" {
+	#include "freertos/FreeRTOS.h"
+	#include "freertos/timers.h"
+}
 #include "ArduinoJson.h"
 
 #include "configuration.h"
@@ -58,7 +61,8 @@ AsyncWebServer server(80);
 // mqtt
 volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
-Ticker mqttReconnectTimer;
+TimerHandle_t mqttReconnectTimer;
+TimerHandle_t wifiReconnectTimer;
 
 char lastCommandTopic[64];
 char lastCommandPayload[64];
@@ -85,21 +89,23 @@ void switchLamp(bool on){
   hoermannEngine->turnLight(on);
 }
 
+void connectToWifi() {
+  Serial.println("Connecting to Wi-Fi...");
+  WiFi.begin(STA_SSID, STA_PASSWD);
+}
 void connectToMqtt()
 {
+  Serial.println("Connecting to MQTT...");
   mqttClient.connect();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
   mqttConnected = false;
-  while (mqttConnected == false)
-  {
-    if (WiFi.isConnected())
-    {
-      mqttReconnectTimer.once(10, connectToMqtt);
-    }
-    vTaskDelay(5000);
+  Serial.println("Disconnected from MQTT.");
+
+  if (WiFi.isConnected()) {
+    xTimerStart(mqttReconnectTimer, 0);
   }
 }
 
@@ -468,38 +474,48 @@ void mqttTaskFunc(void *parameter)
 {
   while (true)
   {
-    if (WiFi.isConnected())
-    {
-      if (!mqttConnected)
-      {
-        vTaskDelay(5000);
-
-        mqttClient.onConnect(onMqttConnect);
-        mqttClient.onDisconnect(onMqttDisconnect);
-        mqttClient.onMessage(onMqttMessage);
-        mqttClient.onPublish(onMqttPublish);
-        mqttClient.setServer(MQTTSERVER, MQTTPORT);
-        mqttClient.setCredentials(MQTTUSER, MQTTPASSWORD);
-        setWill();
-        connectToMqtt();
+    if (mqttConnected){
+      updateDoorStatus();
+      #ifdef DEBUG
+      if (hoermannEngine->state->debMessage){
+        hoermannEngine->state->clearDebug();
+        sendDebug();
       }
-      else{
-        updateDoorStatus();
-        #ifdef DEBUG
-        if (hoermannEngine->state->debMessage){
-          hoermannEngine->state->clearDebug();
-          sendDebug();
-        }
-        #endif
-        #ifdef SENSORS
-          if (new_sensor_data) {
-            #ifdef USE_DS18X20
-              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-              char payload[1024];
-              char buf[20];
-              dtostrf(ds18x20_temp,2,2,buf);    // convert to string
-              //Serial.println("Temp: "+ (String)buf);
-              doc["temp"] = buf;
+      #endif
+      #ifdef SENSORS
+        if (new_sensor_data) {
+          #ifdef USE_DS18X20
+            DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+            char payload[1024];
+            char buf[20];
+            dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+            //Serial.println("Temp: "+ (String)buf);
+            doc["temp"] = buf;
+            #ifdef USE_HCSR04
+              sprintf(buf, "%d", hcsr04_distanceCm);
+              doc["dist"] = buf;
+              doc["free"] = ToHA(hcsr04_park_available);
+              serializeJson(doc, payload);
+              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+              new_sensor_data = false;
+            #endif
+            serializeJson(doc, payload);
+            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+            new_sensor_data = false;
+          #endif
+          #ifdef USE_BME
+            DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+            char payload[1024];
+            char buf[20];
+            dtostrf(bme_temp,2,2,buf);    // convert to string
+            //Serial.println("Temp: "+ (String)buf);
+            doc["temp"] = buf;
+            dtostrf(bme_hum,2,2,buf);    // convert to string
+            //Serial.println("Hum: "+ (String)buf);
+            doc["hum"] = buf;
+            dtostrf(bme_pres,2,1,buf);    // convert to string
+            //Serial.println("Pres: "+ (String)buf);
+            doc["pres"] = buf;
               #ifdef USE_HCSR04
                 sprintf(buf, "%d", hcsr04_distanceCm);
                 doc["dist"] = buf;
@@ -508,39 +524,14 @@ void mqttTaskFunc(void *parameter)
                 mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
                 new_sensor_data = false;
               #endif
-              serializeJson(doc, payload);
-              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-              new_sensor_data = false;
-            #endif
-            #ifdef USE_BME
-              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-              char payload[1024];
-              char buf[20];
-              dtostrf(bme_temp,2,2,buf);    // convert to string
-              //Serial.println("Temp: "+ (String)buf);
-              doc["temp"] = buf;
-              dtostrf(bme_hum,2,2,buf);    // convert to string
-              //Serial.println("Hum: "+ (String)buf);
-              doc["hum"] = buf;
-              dtostrf(bme_pres,2,1,buf);    // convert to string
-              //Serial.println("Pres: "+ (String)buf);
-              doc["pres"] = buf;
-                #ifdef USE_HCSR04
-                  sprintf(buf, "%d", hcsr04_distanceCm);
-                  doc["dist"] = buf;
-                  doc["free"] = ToHA(hcsr04_park_available);
-                  serializeJson(doc, payload);
-                  mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-                  new_sensor_data = false;
-                #endif
-              serializeJson(doc, payload);
-              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-              new_sensor_data = false;
-            #endif
+            serializeJson(doc, payload);
+            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+            new_sensor_data = false;
+          #endif
 
-          }
-        #endif
-      }
+        }
+      #endif
+      
     }
     vTaskDelay(READ_DELAY);     // delay task xxx ms
   }
@@ -620,22 +611,22 @@ void SensorCheck(void *parameter){
 }
 
 TaskHandle_t sensorTask;
-void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Connected to AP successfully!");
-}
 
-void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
-void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Disconnected from WiFi access point");
-  Serial.print("WiFi lost connection. Reason: ");
-  Serial.println(info.wifi_sta_disconnected.reason);
-  Serial.println("Trying to Reconnect");
-  WiFi.begin(STA_SSID, STA_PASSWD);
+void WiFiEvent(WiFiEvent_t event) {
+    Serial.printf("[WiFi-event] event: %d\n", event);
+    switch(event) {
+    case SYSTEM_EVENT_STA_GOT_IP:
+        Serial.println("WiFi connected");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+        connectToMqtt();
+        break;
+    case SYSTEM_EVENT_STA_DISCONNECTED:
+        Serial.println("WiFi lost connection");
+        xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
+        xTimerStart(wifiReconnectTimer, 0);
+        break;
+    }
 }
 // setup mcu
 void setup()
@@ -647,18 +638,21 @@ void setup()
   hoermannEngine->setup();
 
   // setup wifi
-  
+  mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
+  wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   WiFi.setHostname(HOSTNAME);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(STA_SSID, STA_PASSWD);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(1000);
-  }
-  WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
-  WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
-  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.onEvent(WiFiEvent);
+
+  mqttClient.onConnect(onMqttConnect);
+  mqttClient.onDisconnect(onMqttDisconnect);
+  mqttClient.onMessage(onMqttMessage);
+  mqttClient.onPublish(onMqttPublish);
+  mqttClient.setServer(MQTTSERVER, MQTTPORT);
+  mqttClient.setCredentials(MQTTUSER, MQTTPASSWORD);
+  setWill();
+  
+  connectToWifi();
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
