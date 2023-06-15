@@ -112,10 +112,10 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 void onMqttPublish(uint16_t packetId){
 }
 
-void updateDoorStatus()
+void updateDoorStatus(bool forceUpate = false)
 {
   // onyl send updates when state changed
-  if (mqttConnected == true && hoermannEngine->state->changed ){
+  if (hoermannEngine->state->changed || forceUpate){
     hoermannEngine->state->clearChanged();
     DynamicJsonDocument doc(1024);
     char payload[1024];
@@ -138,60 +138,77 @@ void updateDoorStatus()
     mqttClient.publish(POS_TOPIC, 1, true, payload);
   }
 }
-
+void updateSensors(bool forceUpate = false){
+  #ifdef SENSORS
+    if (new_sensor_data || forceUpate) {
+      new_sensor_data = false;
+      DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+      char payload[1024];
+      char buf[20];
+      #ifdef USE_DS18X20
+        dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+        //Serial.println("Temp: "+ (String)buf);
+        doc["temp"] = buf;
+      #endif
+      #ifdef USE_BME
+        dtostrf(bme_temp,2,2,buf);    // convert to string
+        //Serial.println("Temp: "+ (String)buf);
+        doc["temp"] = buf;
+        dtostrf(bme_hum,2,2,buf);    // convert to string
+        //Serial.println("Hum: "+ (String)buf);
+        doc["hum"] = buf;
+        dtostrf(bme_pres,2,1,buf);    // convert to string
+        //Serial.println("Pres: "+ (String)buf);
+        doc["pres"] = buf;
+      #endif
+      #ifdef USE_HCSR04
+        sprintf(buf, "%d", hcsr04_distanceCm);
+        doc["dist"] = buf;
+        doc["free"] = ToHA(hcsr04_park_available);
+      #endif
+      serializeJson(doc, payload);
+      mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+    }
+  #endif
+}
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-
   // Note that payload is NOT a string; it contains raw data.
   // https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/5.-Troubleshooting.md
-
   strcpy(lastCommandTopic, topic);
   strncpy(lastCommandPayload, payload, len);
   lastCommandPayload[len] = '\0';
 
-  if (strcmp(topic, LAMP_TOPIC) == 0)
-  {
-    if (strncmp(payload, HA_ON, len) == 0)
-    {
+  if (strcmp(topic, LAMP_TOPIC) == 0){
+    if (strncmp(payload, HA_ON, len) == 0){
       switchLamp(true);
     }
-    else if (strncmp(payload, HA_OFF, len) == 0)
-    {
+    else if (strncmp(payload, HA_OFF, len) == 0){
       switchLamp(false);
     }
-    else
-    {
+    else{
       hoermannEngine->toogleLight();
     }
   }
-
-  else if (strcmp(DOOR_TOPIC, topic) == 0 || strcmp(VENT_TOPIC, topic) == 0)
-  {
-    if (strncmp(payload, HA_OPEN, len) == 0)
-    {
+  else if (strcmp(DOOR_TOPIC, topic) == 0 || strcmp(VENT_TOPIC, topic) == 0){
+    if (strncmp(payload, HA_OPEN, len) == 0){
       hoermannEngine->openDoor();
     }
-    else if (strncmp(payload, HA_CLOSE, len) == 0)
-    {
+    else if (strncmp(payload, HA_CLOSE, len) == 0){
       hoermannEngine->closeDoor();
     }
-    else if (strncmp(payload, HA_STOP, len) == 0)
-    {
+    else if (strncmp(payload, HA_STOP, len) == 0){
       hoermannEngine->stopDoor();
     }
-    else if (strncmp(payload, HA_HALF, len) == 0)
-    {
+    else if (strncmp(payload, HA_HALF, len) == 0){
       hoermannEngine->halfPositionDoor();
     }
-    else if (strncmp(payload, HA_VENT, len) == 0)
-    {
+    else if (strncmp(payload, HA_VENT, len) == 0){
       hoermannEngine->ventilationPositionDoor();
     }
   }
-
-  else if (strcmp(SETPOS_TOPIC, topic) == 0)
-  {
+  else if (strcmp(SETPOS_TOPIC, topic) == 0){
     hoermannEngine->setPosition(atoi(lastCommandPayload));
   }
 
@@ -460,7 +477,8 @@ void onMqttConnect(bool sessionPresent)
 
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
-  updateDoorStatus();
+  updateDoorStatus(true);
+  updateSensors(true);
   sendDiscoveryMessage();
   #ifdef DEBUG
     if (boot_Flag){
@@ -476,62 +494,13 @@ void mqttTaskFunc(void *parameter)
   {
     if (mqttConnected){
       updateDoorStatus();
+      updateSensors();
       #ifdef DEBUG
       if (hoermannEngine->state->debMessage){
         hoermannEngine->state->clearDebug();
         sendDebug();
       }
-      #endif
-      #ifdef SENSORS
-        if (new_sensor_data) {
-          #ifdef USE_DS18X20
-            DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-            char payload[1024];
-            char buf[20];
-            dtostrf(ds18x20_temp,2,2,buf);    // convert to string
-            //Serial.println("Temp: "+ (String)buf);
-            doc["temp"] = buf;
-            #ifdef USE_HCSR04
-              sprintf(buf, "%d", hcsr04_distanceCm);
-              doc["dist"] = buf;
-              doc["free"] = ToHA(hcsr04_park_available);
-              serializeJson(doc, payload);
-              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-              new_sensor_data = false;
-            #endif
-            serializeJson(doc, payload);
-            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-            new_sensor_data = false;
-          #endif
-          #ifdef USE_BME
-            DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-            char payload[1024];
-            char buf[20];
-            dtostrf(bme_temp,2,2,buf);    // convert to string
-            //Serial.println("Temp: "+ (String)buf);
-            doc["temp"] = buf;
-            dtostrf(bme_hum,2,2,buf);    // convert to string
-            //Serial.println("Hum: "+ (String)buf);
-            doc["hum"] = buf;
-            dtostrf(bme_pres,2,1,buf);    // convert to string
-            //Serial.println("Pres: "+ (String)buf);
-            doc["pres"] = buf;
-              #ifdef USE_HCSR04
-                sprintf(buf, "%d", hcsr04_distanceCm);
-                doc["dist"] = buf;
-                doc["free"] = ToHA(hcsr04_park_available);
-                serializeJson(doc, payload);
-                mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-                new_sensor_data = false;
-              #endif
-            serializeJson(doc, payload);
-            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-            new_sensor_data = false;
-          #endif
-
-        }
-      #endif
-      
+      #endif      
     }
     vTaskDelay(READ_DELAY);     // delay task xxx ms
   }
