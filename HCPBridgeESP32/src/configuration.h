@@ -64,7 +64,7 @@
     #define HA_DISCOVERY_COVER "homeassistant/cover/garage_door/%s/config"
 
     // DEBUG
-    #define DEBUG
+    //#define DEBUG
     #define DEBUGTOPIC FTOPIC "/DEBUG"
     void sendDebug(char *key, String value);
     
