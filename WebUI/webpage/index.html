@@ -45,7 +45,7 @@
 	
 	<hr/>
 	<button class="button buttonred" onclick="doCommand(1)">Up</button>
-	<button class="button buttonyellow" onclick="doCommand(2)">Half</button>
+	<button class="button buttonyellow" onclick="doCommand(4)">Half</button>
 	<button class="button buttonblack" onclick="doCommand(2)">Stop</button>
 	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
 	<hr/>
@@ -107,10 +107,17 @@
 		}
 	}
 	
-	function doCommand(action) {
-      if(!isconnected && action != 6){return;}		// only early return when not connected AND action cmd !=6 (=restart ESP)
+	function doCommand(action, position) {
+      if(!isconnected && action != 6)
+	  	return;		// only early return when not connected AND action cmd !=6 (=restart ESP)
+	  
 	  var xhr = new XMLHttpRequest();
-	  xhr.open("GET", "/command?action="+action, true); 	  
+
+	  if(action == 7)
+	  	xhr.open("GET", "/command?action="+action+"&position="+position, true); 	  
+	  else
+	  	xhr.open("GET", "/command?action="+action, true); 	  
+
 	  xhr.send();
 	}  
 	

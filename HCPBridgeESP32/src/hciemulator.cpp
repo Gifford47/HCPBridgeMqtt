@@ -1,8 +1,10 @@
 #include "hciemulator.h"
+#include "configuration.h"
+
 #define CHECKCHANGEDSET(Target,Value,Flag) if((Target)!=(Value)){Target=Value;Flag=true;}
 int hciloglevel = DEFAULTLOGLEVEL;
 
-#ifdef SOFTSERIAL
+#ifdef DEBUG
 #define Log(Level,Message) LogCore(Level,Message)
 #define Log3(Level,Message,Buffer, Len) LogCore(Level,Message,Buffer,Len)
 //LOGLEVEL
@@ -17,9 +19,11 @@ void LogCore(int Level, const char* msg, const unsigned char * data=NULL, size_t
             snprintf(str,sizeof(str),"%02x ", data[i]);
             newmsg+=str;
         }
-        Serial.println(newmsg);        
+        Serial.println(newmsg);
+        sendDebug("hcilog", newmsg);
     }else{
         Serial.println(msg);
+        sendDebug("hcilog", msg);
     }
 }
 #else 
@@ -118,7 +122,7 @@ void HCIEmulator::poll(){
     if(m_rxlen>0 && (micros()-m_recvTime > T3_5)) 
     {
         // check last action timeout -> reset > then 2sec
-        if(m_statemachine!= WAITING && m_lastStateTime+2000<millis()){
+        if( ((m_statemachine != WAITING) && (m_statemachine != SET_POSITION_OPEN_PROGRESS) && (m_statemachine != SET_POSITION_CLOSE_PROGRESS)) && m_lastStateTime+2000<millis()){
             m_statemachine = WAITING;
         }
 
@@ -222,63 +226,126 @@ void HCIEmulator::processDeviceStatusFrame(){
             m_txbuffer[5] = cmd;
             m_txlen = sizeof(ResponseTemplate_Fcn17_Cmd03_L08);   
 
+            // if no action on statemachine, process last backlog
+            if (m_statemachine == WAITING && m_statemachine_backlog != WAITING){
+                m_statemachine == m_statemachine_backlog;   // process backlog ...
+                m_statemachine_backlog == WAITING;          // reset backlog
+            }
             
             switch(m_statemachine)
             {
-                // open Door
-                case STARTOPENDOOR:
+                // Open Door
+                case OPEN_DOOR:
                     m_txbuffer[7]= 0x02;
                     m_txbuffer[8]= 0x10;
-                    m_statemachine = STARTOPENDOOR_RELEASE;
+                    m_statemachine = OPEN_DOOR_RELEASE;
                     m_lastStateTime = millis();
                     break;
-                case STARTOPENDOOR_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case OPEN_DOOR_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x01;
                         m_txbuffer[8]= 0x10;
                         m_statemachine = WAITING; 
                     }
                     break;
 
-                // close Door
-                case STARTCLOSEDOOR:
+                // Close Door
+                case CLOSE_DOOR:
                     m_txbuffer[7]= 0x02;
                     m_txbuffer[8]= 0x20;
-                    m_statemachine = STARTCLOSEDOOR_RELEASE;
+                    m_statemachine = CLOSE_DOOR_RELEASE;
                     m_lastStateTime = millis();
                     break;
-                case STARTCLOSEDOOR_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case CLOSE_DOOR_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x01;
                         m_txbuffer[8]= 0x20;
                         m_statemachine = WAITING; 
                     }
                     break;   
 
-                // stop Door
-                case STARTSTOPDOOR:
-                    m_txbuffer[7]= 0x02;
-                    m_txbuffer[8]= 0x40;
-                    m_statemachine = STARTSTOPDOOR_RELEASE;
-                    m_lastStateTime = millis();
+                // Stop Door
+                // Not really a "stop", but a "stop/invert" command, as it moves the door in the opposite direction of previous movement if it is currently not moving.
+                case STOP_DOOR:
+                    
+                    // Avoid to send a "stop" command if door is already open or closed. It would actually move the door... unsafe!
+                    if ( (m_state.doorCurrentPosition == 0) || ((m_state.doorCurrentPosition == 100)) )
+                    {
+                        m_statemachine = WAITING;
+                    }
+                    else {
+                        
+                        m_txbuffer[7]= 0x02;
+                        m_txbuffer[8]= 0x40;
+                        m_statemachine = STOP_DOOR_RELEASE;
+                        m_lastStateTime = millis();
+                    }
                     break;
-                case STARTSTOPDOOR_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case STOP_DOOR_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x01;
                         m_txbuffer[8]= 0x40;
                         m_statemachine = WAITING; 
                     }
                     break;
 
-                // Ventilation
-                case STARTVENTPOSITION:
+                // Set Position
+                case SET_POSITION_OPEN:
                     m_txbuffer[7]= 0x02;
-                    m_txbuffer[9]= 0x40;
-                    m_statemachine = STARTVENTPOSITION_RELEASE;
+                    m_txbuffer[8]= 0x10;
+                    m_statemachine = SET_POSITION_OPEN_RELEASE;
                     m_lastStateTime = millis();
                     break;
-                case STARTVENTPOSITION_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case SET_POSITION_OPEN_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
+                        m_txbuffer[7]= 0x01;
+                        m_txbuffer[8]= 0x10;
+                        m_statemachine = SET_POSITION_OPEN_PROGRESS; 
+                    }
+                    break;
+                case SET_POSITION_OPEN_PROGRESS:
+                    if(m_state.doorCurrentPosition >= m_state.gotoPosition)
+                    {
+                        m_lastStateTime = millis();
+                        m_statemachine = STOP_DOOR; 
+                    }
+                    break;
+                case SET_POSITION_CLOSE:
+                    m_txbuffer[7]= 0x02;
+                    m_txbuffer[8]= 0x20;
+                    m_statemachine = SET_POSITION_CLOSE_RELEASE;
+                    m_lastStateTime = millis();
+                    break;
+                case SET_POSITION_CLOSE_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
+                        m_txbuffer[7]= 0x01;
+                        m_txbuffer[8]= 0x20;
+                        m_statemachine = SET_POSITION_CLOSE_PROGRESS; 
+                    }
+                    break; 
+                case SET_POSITION_CLOSE_PROGRESS:
+                    if(m_state.doorCurrentPosition <= m_state.gotoPosition)
+                    {
+                        m_lastStateTime = millis();
+                        m_statemachine = STOP_DOOR; 
+                    }
+                    break;
+
+                // Ventilation
+                case VENTPOSITION:
+                    m_txbuffer[7]= 0x02;
+                    m_txbuffer[9]= 0x40;
+                    m_statemachine = VENTPOSITION_RELEASE;
+                    m_lastStateTime = millis();
+                    break;
+                case VENTPOSITION_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x01;
                         m_txbuffer[9]= 0x40;
                         m_statemachine = WAITING; 
@@ -287,15 +354,16 @@ void HCIEmulator::processDeviceStatusFrame(){
 
 
                 // Half Position
-                case STARTOPENDOORHALF:
+                case OPEN_DOOR_HALF:
                     m_txbuffer[7]= 0x02;
                     m_txbuffer[9]= 0x04;
-                    m_statemachine = STARTOPENDOORHALF_RELEASE;
+                    m_statemachine = OPEN_DOOR_HALF_RELEASE;
                     m_lastStateTime = millis();
                     break;
 
-                case STARTOPENDOORHALF_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case OPEN_DOOR_HALF_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x01;
                         m_txbuffer[9]= 0x04;
                         m_statemachine = WAITING; 
@@ -303,14 +371,15 @@ void HCIEmulator::processDeviceStatusFrame(){
                     break;                                          
 
                 // Toggle Lamp
-                case STARTTOGGLELAMP:
+                case TOGGLE_LAMP:
                     m_txbuffer[7]= 0x10;
                     m_txbuffer[9]= 0x02;
-                    m_statemachine = STARTTOGGLELAMP_RELEASE;
+                    m_statemachine = TOGGLE_LAMP_RELEASE;
                     m_lastStateTime = millis();
                     break;
-                case STARTTOGGLELAMP_RELEASE:
-                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis()){
+                case TOGGLE_LAMP_RELEASE:
+                    if(m_lastStateTime+SIMULATEKEYPRESSDELAYMS<millis())
+                    {
                         m_txbuffer[7]= 0x08;
                         m_txbuffer[9]= 0x02;
                         m_statemachine = WAITING; 
@@ -357,7 +426,8 @@ void HCIEmulator::processDeviceBusScanFrame(){
 void HCIEmulator::processBroadcastStatusFrame(){
     //001B: 00 10 9D 31 00 09 12 64 00 00 00 40 60 00 00 00 00 00 00 00 00 00 01 00 00 CA 22
     bool hasChanged = false;
-    CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x14,hasChanged);      
+    CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x10,hasChanged);      // Light starting
+    if(!m_state.lampOn){CHECKCHANGEDSET(m_state.lampOn,m_rxbuffer[20] == 0x14,hasChanged);}     // Light on
     CHECKCHANGEDSET(m_state.doorCurrentPosition,m_rxbuffer[10],hasChanged);
     CHECKCHANGEDSET(m_state.doorTargetPosition, m_rxbuffer[9],hasChanged);
     CHECKCHANGEDSET(m_state.doorState, m_rxbuffer[11],hasChanged);
@@ -374,52 +444,84 @@ void HCIEmulator::processBroadcastStatusFrame(){
 
 void HCIEmulator::openDoor(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = OPEN_DOOR;
         return;
     }
     m_lastStateTime = millis();
-    m_statemachine = STARTOPENDOOR;
+    m_statemachine = OPEN_DOOR;
 }
 
 void HCIEmulator::openDoorHalf(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = OPEN_DOOR_HALF;
         return;
     }
     m_lastStateTime = millis();
-    m_statemachine = STARTOPENDOORHALF;
+    m_statemachine = OPEN_DOOR_HALF;
 }
 
 void HCIEmulator::closeDoor(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = CLOSE_DOOR;
         return;
     }
     m_lastStateTime = millis();    
-    m_statemachine = STARTCLOSEDOOR;
+    m_statemachine = CLOSE_DOOR;
+}
+
+void HCIEmulator::setPosition(uint8_t position){
+    if(m_statemachine == WAITING)
+    {
+        // First and last movement segments seem a bit inconsistent on Promatic4, so it's better to leave it to fully open or close.
+        if (position <= 5) closeDoor();
+        else if (position >= 95) openDoor();  
+            
+        else if ((position > 5) && (position < 95)) {
+            m_state.gotoPosition = position * 2; // HA is 0-100%, Horman/Modbus range is 0-200
+            m_lastStateTime = millis();
+
+            if (m_state.gotoPosition > m_state.doorCurrentPosition)
+                m_statemachine = SET_POSITION_OPEN;
+            else if (m_state.gotoPosition < m_state.doorCurrentPosition)
+                m_statemachine = SET_POSITION_CLOSE;
+            else // already there
+                return;
+        }
+    }
 }
 
 void HCIEmulator::stopDoor(){
-    if(m_statemachine != WAITING){
-        return;
+    if((m_statemachine == WAITING) || (m_statemachine == SET_POSITION_OPEN_PROGRESS) || (m_statemachine == SET_POSITION_CLOSE_PROGRESS))
+    { 
+        m_lastStateTime = millis();    
+        m_statemachine = STOP_DOOR;
+    }else{
+        m_statemachine_backlog = STOP_DOOR;
     }
-    m_lastStateTime = millis();    
-    m_statemachine = STARTSTOPDOOR;
 }
 
 void HCIEmulator::toggleLamp(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = TOGGLE_LAMP;
         return;
     }
     m_lastStateTime = millis();
-    m_statemachine = STARTTOGGLELAMP;
+    m_statemachine = TOGGLE_LAMP;
 }
 
 void HCIEmulator::ventilationPosition(){
     if(m_statemachine != WAITING){
+        m_statemachine_backlog = VENTPOSITION;
         return;
     }
     m_lastStateTime = millis();
-    m_statemachine = STARTVENTPOSITION;
+    m_statemachine = VENTPOSITION;
 }
 
 void HCIEmulator::onStatusChanged(callback_function_t handler) {
     m_statusCallback = handler;
+}
+
+StateMachine HCIEmulator::getStatemachine(){
+    return m_statemachine;
 }

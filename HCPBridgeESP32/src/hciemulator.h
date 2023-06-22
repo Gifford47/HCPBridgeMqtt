@@ -46,28 +46,37 @@ struct SHCIState{
     uint8_t doorCurrentPosition;
     uint8_t doorTargetPosition;
     uint8_t reserved;
+    uint8_t gotoPosition;
 };
 
 enum StateMachine: uint8_t{
     WAITING,
 
-    STARTOPENDOOR,
-    STARTOPENDOOR_RELEASE,
+    OPEN_DOOR,
+    OPEN_DOOR_RELEASE,
 
-    STARTOPENDOORHALF,
-    STARTOPENDOORHALF_RELEASE,
+    OPEN_DOOR_HALF,
+    OPEN_DOOR_HALF_RELEASE,
 
-    STARTCLOSEDOOR,
-    STARTCLOSEDOOR_RELEASE,
+    CLOSE_DOOR,
+    CLOSE_DOOR_RELEASE,
 
-    STARTSTOPDOOR,
-    STARTSTOPDOOR_RELEASE,
+    STOP_DOOR,
+    STOP_DOOR_RELEASE,
 
-    STARTTOGGLELAMP,
-    STARTTOGGLELAMP_RELEASE,
+    TOGGLE_LAMP,
+    TOGGLE_LAMP_RELEASE,
 
-    STARTVENTPOSITION,
-    STARTVENTPOSITION_RELEASE
+    VENTPOSITION,
+    VENTPOSITION_RELEASE,
+
+    SET_POSITION_OPEN,
+    SET_POSITION_OPEN_RELEASE,
+    SET_POSITION_OPEN_PROGRESS,
+
+    SET_POSITION_CLOSE,
+    SET_POSITION_CLOSE_RELEASE,
+    SET_POSITION_CLOSE_PROGRESS
 };
 
 class HCIEmulator {
@@ -82,6 +91,7 @@ public:
     void openDoorHalf();
     void closeDoor();
     void stopDoor();
+    void setPosition(uint8_t);
     void toggleLamp();
     void ventilationPosition();
 
@@ -101,6 +111,7 @@ public:
     void setLogLevel(int level);
 
     void onStatusChanged(callback_function_t handler);
+    StateMachine getStatemachine();
 
 protected:
     void processFrame();
@@ -113,6 +124,7 @@ private:
     Stream *m_port;
     SHCIState m_state;
     StateMachine m_statemachine;
+    StateMachine m_statemachine_backlog;
 
     unsigned long m_recvTime;
     unsigned long m_lastStateTime;
