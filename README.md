@@ -15,7 +15,10 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 ## Functions
 
 * Get current status (door open/close/position, light on/off)
-* Trigger the actions (light on/off, gate open, close, stop, half and ventilation position)
+* Trigger the actions
+  * light on/off
+  * gate open, close, stop
+  * gate position: half, ventilation, custom (MQTT set_position compatible)
 * Web Interface
 * Web Service (GET)
 * OTA Update (with username and password)
@@ -24,7 +27,7 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
 ## Known Bugs
-* Open command requires two clicks. A feature? :)
+* The first command after reboot/boot needs at least two clicks.
 * On Promatic4 (at least) the status led of the motor blinks red.
 
 ## Notes by original author
@@ -43,15 +46,18 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 
 ***http://[deviceip]/command?action=[id]***
 
-| id | Function |
-|--------|--------------|
-| 0 | Close |
-| 1 | Open |
-| 2 | Stop |
-| 3 | Ventilation |
-| 4 | Half Open |
-| 5 | Light toggle |
-| 6 | Restart |
+| id | Function | Other Parameters
+|--------|--------------|--------------|
+| 0 | Close | |
+| 1 | Open | |
+| 2 | Stop | |
+| 3 | Ventilation | |
+| 4 | Half Open | |
+| 5 | Light toggle | |
+| 6 | Restart | |
+| 7 | Set Position | position=[0-100] |
+
+
 
 ### Status report
 
@@ -135,7 +141,7 @@ Lid
 # HCPBridge MQTT (HomeAssistant topics)
 
 This is just a quick and dirty implementation and needs refactoring, but it is working.
-Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door.
+Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door, and slide it to custom position (through set_position MQTT command).
 
 ![image](https://user-images.githubusercontent.com/14005124/215218504-bddf65e2-6c88-4d0a-83bd-de3cacb63c88.png)
 ![alt text](Images/HA.png)

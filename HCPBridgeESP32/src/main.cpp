@@ -37,12 +37,14 @@ AsyncWebServer server(80);
   // Setup a oneWire instance to communicate with any OneWire devices
   OneWire oneWire(oneWireBus);
   DallasTemperature sensors(&oneWire);
+  bool new_sensor_data = false;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
 #endif
 #ifdef USE_BME
   TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
+  bool new_sensor_data = false;
   unsigned bme_status;
   float bme_temp = -99.99;
   float bme_last_temp = -99.99;
@@ -57,8 +59,12 @@ volatile bool mqttConnected;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
 
-//char lastCommandTopic[64];
-//char lastCommandPayload[64];
+char lastCommandTopic[64];
+char lastCommandPayload[64];
+
+#ifdef DEBUG
+  bool boot_Flag = true;
+#endif
 
 
 const char *ToHA(bool value)
@@ -161,9 +167,12 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   // Note that payload is NOT a string; it contains raw data.
   // https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/5.-Troubleshooting.md
 
+  strcpy(lastCommandTopic, topic);
+  strncpy(lastCommandPayload, payload, len);
+  lastCommandPayload[len] = '\0';
+
   if (strcmp(topic, LAMP_TOPIC) == 0)
   {
-
     if (strncmp(payload, HA_ON, len) == 0)
     {
       switchLamp(true);
@@ -180,7 +189,6 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
   else if (strcmp(DOOR_TOPIC, topic) == 0)
   {
-
     if (strncmp(payload, HA_OPEN, len) == 0)
     {
       emulator.openDoor();
@@ -197,7 +205,11 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     {
       emulator.openDoorHalf();
     }
+  }
 
+  else if (strcmp(SETPOS_TOPIC, topic) == 0)
+  {
+    emulator.setPosition(atoi(lastCommandPayload));
   }
 
 }
@@ -210,6 +222,15 @@ void sendOnline()
 void setWill()
 {
   mqttClient.setWill(AVAILABILITY_TOPIC, 0, true, HA_OFFLINE);
+}
+
+void sendDebug(char *key, String value)
+{
+  DynamicJsonDocument doc(1024);
+  char payload[1024];
+  doc[key] = value;
+  serializeJson(doc, payload);
+  mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
 
 void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char off[], const char on[])
@@ -365,11 +386,18 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[])
   doc["state_topic"] = STATE_TOPIC;
   doc["command_topic"] = command_topic;
   doc["position_topic"] = POS_TOPIC;
+  doc["set_position_topic"] = SETPOS_TOPIC;
+  doc["position_open"] = 100;
+  doc["position_closed"] = 0;
 
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
-  doc["value_template"] = "{{ value_json.doorstate }}";
+  #ifdef AlignToOpenHab
+    doc["value_template"] = "{{ value_json.doorposition }}";
+  #else
+    doc["value_template"] = "{{ value_json.doorstate }}";
+  #endif
   doc["state_open"] = HA_OPEN;
   doc["state_opening"] = HA_OPENING;
   doc["state_closed"] = HA_CLOSED;
@@ -425,6 +453,15 @@ void onMqttConnect(bool sessionPresent)
   const SHCIState &doorstate = emulator.getState();
   onStatusChanged(doorstate);
   sendDiscoveryMessage();
+  #ifdef DEBUG
+    if (boot_Flag){
+      int i = esp_reset_reason();
+      char val[3];
+      sprintf(val, "%i", i);
+      sendDebug("ResetReason", val);
+      boot_Flag = false;
+    }
+  #endif
 }
 
 void mqttTaskFunc(void *parameter)
@@ -455,6 +492,38 @@ void mqttTaskFunc(void *parameter)
           doorstate = new_doorstate;  //copy new states
           onStatusChanged(doorstate);
         }
+        #ifdef SENSORS
+          if (new_sensor_data) {
+            #ifdef USE_DS18X20
+              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+              char payload[1024];
+              char buf[20];
+              dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+              //Serial.println("Temp: "+ (String)buf);
+              doc["temp"] = buf;
+              serializeJson(doc, payload);
+              mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+              new_sensor_data = false;
+            #endif
+            #ifdef USE_BME
+              DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+              char payload[1024];
+              char buf[20];
+              dtostrf(bme_temp,2,2,buf);    // convert to string
+              //Serial.println("Temp: "+ (String)buf);
+              doc["temp"] = buf;
+              dtostrf(bme_hum,2,2,buf);    // convert to string
+              //Serial.println("Hum: "+ (String)buf);
+              doc["hum"] = buf;
+              dtostrf(bme_pres,2,1,buf);    // convert to string
+              //Serial.println("Pres: "+ (String)buf);
+              doc["pres"] = buf;
+            serializeJson(doc, payload);
+            mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+            new_sensor_data = false;
+          #endif
+          }
+        #endif
         vTaskDelay(READ_DELAY);     // delay task xxx ms
       }
     }
@@ -482,50 +551,45 @@ TaskHandle_t modBusTask;
 
 void SensorCheck(void *parameter){
   while(true){
-    DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
-    char payload[1024];
-    bool changed = false;
     #ifdef USE_DS18X20
       ds18x20_temp = sensors.getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
-        doc["ds18x20"] = ds18x20_temp;
-        ds18x20_last_temp = ds18x20_temp; 
-        changed = true;
+        ds18x20_last_temp = ds18x20_temp;
+        new_sensor_data = true;
       }
     #endif
     #ifdef USE_BME
+      if (digitalRead(I2C_ON_OFF) == LOW) {
+        digitalWrite(I2C_ON_OFF, HIGH);   // activate sensor
+        sleep(10);
+        I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+        bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+        //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
+      }
       if (!bme_status) {
-        doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        serializeJson(doc, payload);
-        mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-        vTaskDelete(NULL);
+        DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+        // char payload[1024];
+        // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
+        // serializeJson(doc, payload);
+        // mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
       } else {
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
-        if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
-          char buf[20];
-          dtostrf(bme_temp,2,2,buf);    // convert to string
-          Serial.println("Temp: "+ (String)buf);
-          doc["temp"] = buf;
-          dtostrf(bme_hum,2,2,buf);    // convert to string
-          Serial.println("Hum: "+ (String)buf);
-          doc["hum"] = buf;
-          dtostrf(bme_pres,2,1,buf);    // convert to string
-          Serial.println("Pres: "+ (String)buf);
-          doc["pres"] = buf;
-          bme_last_temp = bme_temp;
-          bme_last_hum = bme_hum;
-          bme_last_pres = bme_pres;
-          changed = true;
+        if (bme_hum < 99.9){                   // I2C hung up ...
+          if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+            bme_last_temp = bme_temp;
+            bme_last_hum = bme_hum;
+            bme_last_pres = bme_pres;
+            new_sensor_data = true;
+          }
+        } else {
+          digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
         }
       }
     #endif
-    if (changed){
-      serializeJson(doc, payload);
-      mqttClient.publish(SENSOR_TOPIC, 1, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-    }
-  vTaskDelay(SENSE_PERIOD);     // delay task xxx ms
+    vTaskDelay(SENSE_PERIOD);     // delay task xxx ms if statemachine had nothing to do
   }
 }
 
@@ -543,8 +607,8 @@ void setup()
     RS485.swap();
   #endif
 
-  //strcpy(lastCommandTopic, "topic");
-  //strcpy(lastCommandPayload, "payload");
+  strcpy(lastCommandTopic, "topic");
+  strcpy(lastCommandPayload, "payload");
   xTaskCreatePinnedToCore(
       modBusPolling, /* Function to implement the task */
       "ModBusTask",  /* Name of the task */
@@ -558,6 +622,7 @@ void setup()
   // setup wifi
   WiFi.setHostname(HOSTNAME);
   AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.setDebugOutput(false);    // disable serial debug output
   wifiManager.autoConnect("HCPBridge",AP_PASSWD); // password protected ap
 
   xTaskCreatePinnedToCore(
@@ -566,7 +631,7 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      configMAX_PRIORITIES - 2,
+      configMAX_PRIORITIES - 3,
       &mqttTask, /* Task handle. */
       0);        /* Core where the task should run */
 
@@ -577,8 +642,10 @@ void setup()
       sensors.begin();
     #endif
     #ifdef USE_BME
+      pinMode(I2C_ON_OFF, OUTPUT);
       I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+      //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
@@ -586,7 +653,7 @@ void setup()
       10000,        /* Stack size in words */
       NULL,         /* Task input parameter */
       // 1,  /* Priority of the task */
-      3,
+      configMAX_PRIORITIES,
       &sensorTask, /* Task handle. */
       0);        /* Core where the task should run */
   #endif
@@ -601,7 +668,7 @@ void setup()
 
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              const SHCIState &doorstate = emulator.getState();
+              //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
               root["valid"] = doorstate.valid;
@@ -609,11 +676,18 @@ void setup()
               root["doorposition"] = doorstate.doorCurrentPosition;
               root["doortarget"] = doorstate.doorTargetPosition;
               root["lamp"] = doorstate.lampOn;
+              #ifdef SENSORS
+                #ifdef USE_DS18X20
+                  root["temp"] = ds18x20_temp;
+                #elif defined(USE_BME)
+                  root["temp"] = bme_temp;
+                #endif
+              #endif
               //root["debug"] = doorstate.reserved;
               root["lastresponse"] = emulator.getMessageAge() / 1000;
               root["looptime"] = maxPeriod;
-              //root["lastCommandTopic"] = lastCommandTopic;
-              //root["lastCommandPayload"] = lastCommandPayload;
+              root["lastCommandTopic"] = lastCommandTopic;
+              root["lastCommandPayload"] = lastCommandPayload;
               lastCall = maxPeriod = 0;
 
               serializeJson(root, *response);
@@ -649,6 +723,10 @@ void setup()
                   setWill();
                   ESP.restart();
                   break;
+                case 7:
+                  if (request->hasParam("position"))
+                    emulator.setPosition(request->getParam("position")->value().toInt());
+                  break;
                 default:
                   break;
                 }
@@ -666,6 +744,7 @@ void setup()
               root["hostname"] = WiFi.getHostname();
               root["ip"] = WiFi.localIP().toString();
               root["wifistatus"] = WiFi.status();
+              root["mqttstatus"] = mqttClient.connected();
               root["resetreason"] = esp_reset_reason();
               serializeJson(root, *response);
 
