@@ -34,6 +34,7 @@
 	}
 	.buttonred {border-color: #ED5961;}
 	.buttonyellow {border-color: #fcca00;}
+	.buttonorange {border-color: #ffa500;}
 	.buttongreen {border-color: #48bd81;}  
 	.buttonblack {border-color: #000000;}  
   </style>
@@ -46,12 +47,13 @@
 	<hr/>
 	<button class="button buttonred" onclick="doCommand(1)">Up</button>
 	<button class="button buttonyellow" onclick="doCommand(4)">Half</button>
+	<button class="button buttonorange" onclick="doCommand(3)">Vent</button>
 	<button class="button buttonblack" onclick="doCommand(2)">Stop</button>
 	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
 	<hr/>
 	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
 	<hr/>
-	<button class="button buttonred" onclick="doCommand(6)">Restart</button>
+<!-- <button class="button buttonred" onclick="doCommand(6)">Restart</button> -->
 					
 	<script>
 	
@@ -134,13 +136,16 @@
 		result = "Door "
 		switch(id)
 		{
-			case 0x20: setDoorState(1); return result+"open";
-			case 0x40: setDoorState(0); return result+"closed";
-			case 0x80: setDoorState(2); return result+"partially open";
-			case 0x00: setDoorState(2); return result+"partially open";
-			case 0x02: setDoorState(3); return result+"closing";
-			case 0x01: setDoorState(3); return result+"opening";
-			case -1: setDoorState(0); return "not connected";
+			case "open": setDoorState(1); return result+"open";
+			case "closed": setDoorState(0); return result+"closed";
+			case "open h": setDoorState(2); return result+"partially open";
+			case "stopped": setDoorState(2); return result+"partially open";
+			case "closing": setDoorState(3); return result+"closing";
+			case "opening": setDoorState(3); return result+"opening";
+			case "opening h": setDoorState(3); return result+"opening";
+			case "opening v": setDoorState(3); return result+"opening";
+			case "venting": setDoorState(2); return result+id;
+			case "NA": setDoorState(0); return "not connected";
 			default: return "unknown status: " + id;
 		}    
 	}
@@ -151,8 +156,8 @@
 			  if (this.readyState == 4 && this.status == 200) {
 				var status = JSON.parse(this.responseText);	
                 isconnected = status.valid;
-				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:-1);
-				document.getElementById("light").checked = status.lamp & status.valid;
+				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
+				document.getElementById("light").checked = status.light & status.valid;
 				return;
 			  }
 			  isconnected= false;
