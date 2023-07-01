@@ -117,4 +117,3 @@
     const char *HA_VERSION = "0.0.5.3";
 
 #endif
-#endif

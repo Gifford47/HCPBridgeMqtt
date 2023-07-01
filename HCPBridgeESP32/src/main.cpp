@@ -463,7 +463,6 @@ void onMqttConnect(bool sessionPresent)
   updateDoorStatus();
   sendDiscoveryMessage();
   #ifdef DEBUG
-  #ifdef DEBUG
     if (boot_Flag){
       int i = esp_reset_reason();
       char val[3];
