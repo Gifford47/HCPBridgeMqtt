@@ -3,3 +3,4 @@
 .pio
 *.bak
 *.bin
+testAsyncReconnect.cpp
