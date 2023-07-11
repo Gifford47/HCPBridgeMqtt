@@ -91,7 +91,7 @@
         const char *HA_OPEN = "open";
         const char *HA_CLOSE = "close";
         const char *HA_HALF = "half";
-        const char *HA_VENT = "vent";
+        const char *HA_VENT = "venting";
         const char *HA_STOP = "stop";
         const char *HA_OPENING = "opening";
         const char *HA_CLOSING = "closing";
@@ -105,7 +105,7 @@
         const char *HA_OPEN = "open";
         const char *HA_CLOSE = "close";
         const char *HA_HALF = "half";
-        const char *HA_VENT = "vent";
+        const char *HA_VENT = "venting";
         const char *HA_STOP = "STOP";
         const char *HA_OPENING = "UP";
         const char *HA_CLOSING = "DOWN";
