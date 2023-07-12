@@ -7,10 +7,6 @@
     const char* STA_SSID   = "my-wlan-ssid";
     const char* STA_PASSWD = "my-wlan-passwd";
 
-    // WIFI Accesspoint (CURRENTLY DISABLED!)
-    //const char AP_SSID[]    = "HCPBRIDGE";
-    //const char* AP_PASSWD   = "password";
-
     // MQTT
     const char *MQTTSERVER = "192.168.1.100";
     const int MQTTPORT = 1883;
