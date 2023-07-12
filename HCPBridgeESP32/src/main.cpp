@@ -32,14 +32,12 @@ AsyncWebServer server(80);
   // Setup a oneWire instance to communicate with any OneWire devices
   OneWire oneWire(oneWireBus);
   DallasTemperature sensors(&oneWire);
-  bool new_sensor_data = false;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
 #endif
 #ifdef USE_BME
   TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
-  bool new_sensor_data = false;
   unsigned bme_status;
   float bme_temp = -99.99;
   float bme_last_temp = -99.99;
@@ -57,6 +55,9 @@ AsyncWebServer server(80);
   bool hcsr04_park_available = false;
   bool hcsr04_lastpark_available = false;
 #endif
+
+// sensors
+bool new_sensor_data = false;
 
 // mqtt
 volatile bool mqttConnected;
