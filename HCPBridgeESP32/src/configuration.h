@@ -40,22 +40,18 @@
     #define prox_treshold 10    //only send mqtt msg when distance change this treshold. Set 0 to send every status
 
     //DS18X20
-    //#define USE_DS18X20         //Uncomment to use a DS18X20 Sensor (only use one sensor!)
     const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
     //BME280                      //Uncomment to use a I2C BME280 Sensor
-    #define USE_BME             //Uncomment to use a DS18X20 Sensor (only use one sensor!)
     #define I2C_ON_OFF  4       // switches I2C On and Off: connect VDD to this GPIO! (due to interferences on i2c bus while door actions (UP/DOWN ...))
     #define I2C_SDA 21
     #define I2C_SCL 22
 
     //HC-SR04                   //Uncommment to use a HC-SR04 proximity sensor
-    //#define USE_HCSR04
     #define SR04_TRIGPIN 5
     #define SR04_ECHOPIN 18
-    //define sound speed in cm/uS
-    #define SOUND_SPEED 0.034
+    #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // MQTT strings
     #define FTOPIC "hormann/garage_door" 
