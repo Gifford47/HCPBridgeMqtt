@@ -29,9 +29,6 @@
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 
-    //#define SENSORS              //Uncomment to globally enable sensors
-    #define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
-    //#define SENSORS              //Uncomment to globally enable sensors
     #define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
 
     #define temp_threshold 0.5    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
