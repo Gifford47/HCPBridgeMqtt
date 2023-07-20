@@ -26,6 +26,11 @@
     #define PIN_RXD 16 // UART 2 RXD - G16
     //#define SWAPUART
 
+    // Device info
+    const char DEVICE_IDENTIFIER[] = "Garage Door";  //change this to another value if you're using multiple devices
+    const char DEVICE_NAME[] = "Garage Door"; //change this to another value if you're using multiple devices
+    //also change FTOPIC below to a new value (i.e. hormann/garage_door2) if you're using multiple devices
+
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 
