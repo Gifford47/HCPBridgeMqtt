@@ -12,6 +12,7 @@
     const int MQTTPORT = 1883;
     const char MQTTUSER[] = "mqtt";
     const char MQTTPASSWORD[] = "password";
+    const char DEVICENAME[] = "Garage Door";
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab

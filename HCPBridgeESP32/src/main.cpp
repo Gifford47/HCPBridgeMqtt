@@ -437,8 +437,8 @@ void sendDiscoveryMessage()
   //declare json object here for device instead of creating in each methode. 150 bytes should be enough
   const int capacity = JSON_OBJECT_SIZE(5);
   StaticJsonDocument<capacity> device;
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
+  device["identifiers"] = DEVICENAME;
+  device["name"] = DEVICENAME;
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
   device["manufacturer"] = "Hörmann";
