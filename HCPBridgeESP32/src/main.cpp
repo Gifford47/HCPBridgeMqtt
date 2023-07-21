@@ -10,7 +10,7 @@ extern "C" {
 }
 #include "ArduinoJson.h"
 
-#include "configuration.h"
+#include "config.h"
 #include "hoermann.h"
 #include "../../WebUI/index_html.h"
 
@@ -270,11 +270,14 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 {
   char full_topic[64];
   sprintf(full_topic, HA_DISCOVERY_AV_SENSOR, DEVICE_ID);
+
+  char uid[64];
+  sprintf(uid, "%s_sensor_availability", DEVICE_ID);
   DynamicJsonDocument doc(1024);
 
   doc["name"] = "Garage Door Available";
   doc["state_topic"] = AVAILABILITY_TOPIC;
-  doc["unique_id"] = "garagedoor_sensor_availability";
+  doc["unique_id"] = uid;
   doc["device"] = device;
 
   char payload[1024];
