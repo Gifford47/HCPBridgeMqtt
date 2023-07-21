@@ -10,7 +10,7 @@ extern "C" {
 }
 #include "ArduinoJson.h"
 
-#include "config.h"
+#include "configuration.h"
 #include "hoermann.h"
 #include "../../WebUI/index_html.h"
 
