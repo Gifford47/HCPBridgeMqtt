@@ -36,11 +36,30 @@
 	.buttonyellow {border-color: #fcca00;}
 	.buttonorange {border-color: #ffa500;}
 	.buttongreen {border-color: #48bd81;}  
-	.buttonblack {border-color: #000000;}  
+	.buttonblack {border-color: #000000;}
+	
+	.link-gray {
+		font-size: 1rem;
+		color: #4e5664;
+		padding: 4px;
+		transition: all 250ms cubic-bezier(0.165, 0.84, 0.44, 1);
+		&:hover {
+			color: #FFF;
+			text-decoration: none;
+			background: #4e5664;
+		}
+	}
+	
+	.collapsible {
+		padding: 0 18px;
+		display: none;
+		overflow: hidden;
+	}
+	
   </style>
 </head>
 <body>
-  <h2>Garage Door</h2>  
+  <h2 id="collapse">Garage Door</h2>  
 	<canvas width="250px" height="250px" id="dc"></canvas>
 	<h3 id="status">Waiting connection.</h3>	
 	
@@ -52,11 +71,27 @@
 	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
 	<hr/>
 	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
-	<hr/>
-<!-- <button class="button buttonred" onclick="doCommand(6)">Restart</button> -->
-					
+	<div class="collapsible">
+		<hr/>
+		<h4>System information</h4>
+			<a class="link-gray" href="update" target="_blank">OTA Update</a><br>
+			<a class="link-gray" href="sysinfo" target="_blank">System Info</a><br>
+			<a class="link-gray" href="status" target="_blank">Door status</a><br>	
+	</div>
+		
 	<script>
-	
+	document.getElementById("collapse").onclick = function() {collapse()};
+
+	function collapse() {
+		var content = document.getElementsByClassName("collapsible");
+		Array.from(content).forEach((x) => {
+			if (x.style.display === "none") {
+			x.style.display = "block";
+			} else {
+			x.style.display = "none";
+			}
+		})
+	}
 	
 	doorpos = 10;
 	dir = -1;
