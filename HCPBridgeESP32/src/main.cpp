@@ -239,10 +239,10 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, key);
+  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_binary_sensor_%s", key);
+  sprintf(uid, "%s_binary_sensor_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -268,6 +268,8 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 
 void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 {
+  char full_topic[64];
+  sprintf(full_topic, HA_DISCOVERY_AV_SENSOR, DEVICE_ID);
   DynamicJsonDocument doc(1024);
 
   doc["name"] = "Garage Door Available";
@@ -278,17 +280,17 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
   char payload[1024];
   serializeJson(doc, payload);
   //-//Serial.write(payload);
-  mqttClient.publish(HA_DISCOVERY_AV_SENSOR, 1, true, payload);
+  mqttClient.publish(full_topic, 1, true, payload);
 }
 
 void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device)
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_SENSOR, key);
+  sprintf(full_topic, HA_DISCOVERY_SENSOR, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_sensor_%s", key);
+  sprintf(uid, "%s_sensor_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -317,10 +319,10 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
   sprintf(command_topic, CMD_TOPIC "/%s", DEBUGTOPIC);
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/text/garage_door/%s/config", key);
+  sprintf(full_topic, HA_DISCOVERY_TEXT, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_text_%s", key);
+  sprintf(uid, "%s_text_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -349,17 +351,17 @@ void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], co
   sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, discovery, topic);
+  sprintf(full_topic, discovery, DEVICE_ID, topic);
 
   char value_template[64];
   sprintf(value_template, "{{ value_json.%s }}", topic);
 
   char uid[64];
   if (discovery == HA_DISCOVERY_LIGHT){
-    sprintf(uid, "garagedoor_light_%s", topic);
+    sprintf(uid, "%s_light_%s",DEVICE_ID, topic);
   }
   else{
-    sprintf(uid, "garagedoor_switch_%s", topic);
+    sprintf(uid, "%s_switch_%s",DEVICE_ID, topic);
   }
 
   DynamicJsonDocument doc(1024);
@@ -391,10 +393,10 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_COVER, topic);
+  sprintf(full_topic, HA_DISCOVERY_COVER, DEVICE_ID, topic);
 
   char uid[64];
-  sprintf(uid, "garagedoor_cover_%s", topic);
+  sprintf(uid, "%s_cover_%s", DEVICE_ID, topic);
 
   DynamicJsonDocument doc(1024);
  //if it didn't work try without state topic.
