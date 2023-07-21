@@ -12,6 +12,8 @@
     const int MQTTPORT = 1883;
     const char MQTTUSER[] = "mqtt";
     const char MQTTPASSWORD[] = "password";
+    const char DEVICENAME[] = "Garage Door";
+    #define DEVICE_ID  "garage_door"
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab
@@ -19,12 +21,6 @@
     //OTA Update
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
-
-    // Serial port
-    #define RS485 Serial2
-    #define PIN_TXD 17 // UART 2 TXT - G17
-    #define PIN_RXD 16 // UART 2 RXD - G16
-    //#define SWAPUART
 
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
@@ -51,7 +47,8 @@
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // MQTT strings
-    #define FTOPIC "hormann/garage_door" 
+    #define BASE_FTOPIC  "hormann/"
+    #define FTOPIC  BASE_FTOPIC DEVICE_ID "" 
     #define AVAILABILITY_TOPIC FTOPIC "/availability"
     #define STATE_TOPIC FTOPIC "/state"
     #define CMD_TOPIC FTOPIC "/command"
@@ -62,12 +59,13 @@
     #define VENT_TOPIC FTOPIC "/command/vent"
     #define SENSOR_TOPIC FTOPIC "/sensor"
 
-    #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/garage_door/%s/config"
-    #define HA_DISCOVERY_AV_SENSOR "homeassistant/sensor/garage_door/available/config"
-    #define HA_DISCOVERY_SENSOR "homeassistant/sensor/garage_door/%s/config"
-    #define HA_DISCOVERY_SWITCH "homeassistant/switch/garage_door/%s/config"
-    #define HA_DISCOVERY_COVER "homeassistant/cover/garage_door/%s/config"
-    #define HA_DISCOVERY_LIGHT "homeassistant/light/garage_door/%s/config"
+    #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/%s/%s/config"
+    #define HA_DISCOVERY_AV_SENSOR "homeassistant/sensor/%s/available/config"
+    #define HA_DISCOVERY_SENSOR "homeassistant/sensor/%s/%s/config"
+    #define HA_DISCOVERY_SWITCH "homeassistant/switch/%s/%s/config"
+    #define HA_DISCOVERY_COVER "homeassistant/cover/%s/%s/config"
+    #define HA_DISCOVERY_LIGHT "homeassistant/light/%s/%s/config"
+    #define HA_DISCOVERY_TEXT "homeassistant/text/%s/%s/config"
 
     // DEBUG
     //#define DEBUG
