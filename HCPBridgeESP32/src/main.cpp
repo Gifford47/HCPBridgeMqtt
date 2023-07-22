@@ -275,7 +275,7 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
   sprintf(uid, "%s_sensor_availability", DEVICE_ID);
   DynamicJsonDocument doc(1024);
 
-  doc["name"] = "Garage Door Available";
+  doc["name"] = GD_AVAIL;
   doc["state_topic"] = AVAILABILITY_TOPIC;
   doc["unique_id"] = uid;
   doc["device"] = device;
@@ -450,30 +450,30 @@ void sendDiscoveryMessage()
   
   sendDiscoveryMessageForAVSensor(device);
   //not able to get it working sending the discovery message for light.
-  sendDiscoveryMessageForSwitch("Garage Door Light", HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
-  sendDiscoveryMessageForBinarySensor("Garage Door Light", STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
-  sendDiscoveryMessageForSwitch("Garage Door Vent", HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
-  sendDiscoveryMessageForCover("Garage Door", "door", device);
+  sendDiscoveryMessageForSwitch(GD_LIGHT, HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
+  sendDiscoveryMessageForBinarySensor(GD_LIGHT, STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
+  sendDiscoveryMessageForSwitch(GD_VENT, HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+  sendDiscoveryMessageForCover(DEVICENAME, "door", device);
 
-  sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate", device);
-  sendDiscoveryMessageForSensor("Garage Door detailed Status", STATE_TOPIC, "detailedState", device);
-  sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition", device);
+  sendDiscoveryMessageForSensor(GD_STATUS, STATE_TOPIC, "doorstate", device);
+  sendDiscoveryMessageForSensor(GD_DET_STATUS, STATE_TOPIC, "detailedState", device);
+  sendDiscoveryMessageForSensor(GD_POSITIOM, STATE_TOPIC, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
-      sendDiscoveryMessageForSensor("Garage Humidity", SENSOR_TOPIC, "hum", device);
-      sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres", device);
+      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(GS_HUM, SENSOR_TOPIC, "hum", device);
+      sendDiscoveryMessageForSensor(GS_PRES, SENSOR_TOPIC, "pres", device);
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
     #endif
     #if defined(USE_HCSR04)
-      sendDiscoveryMessageForSensor("Garage Free distance", SENSOR_TOPIC, "dist", device);
-      sendDiscoveryMessageForBinarySensor("Garage park available", SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
+      sendDiscoveryMessageForSensor(GS_FREE_DIST, SENSOR_TOPIC, "dist", device);
+      sendDiscoveryMessageForBinarySensor(GS_PARK_AVAIL, SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
   #endif
   #ifdef DEBUG
-    sendDiscoveryMessageForDebug("garage Door Debug", "debug", device);
-    sendDiscoveryMessageForDebug("garage Restart Reason", "reset-reason", device);
+    sendDiscoveryMessageForDebug(GD_DEBUG, "debug", device);
+    sendDiscoveryMessageForDebug(GD_DEBUG_RESTART, "reset-reason", device);
   #endif
 }
 
