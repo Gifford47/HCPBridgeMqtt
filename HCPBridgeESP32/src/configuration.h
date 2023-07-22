@@ -19,12 +19,18 @@
     //OTA Update
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
-
-    // Serial port
+    
+    // Serial port  for RS485
     #define RS485 Serial2
-    #define PIN_TXD 17 // UART 2 TXT - G17
-    #define PIN_RXD 16 // UART 2 RXD - G16
     //#define SWAPUART
+    #ifdef USE_ESP32S3
+        #define PIN_TXD 17
+        #define PIN_RXD 18
+    #else
+        #define PIN_TXD 17 // UART 2 TXT - G17
+        #define PIN_RXD 16 // UART 2 RXD - G16
+    #endif
+   
 
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt

@@ -13,8 +13,13 @@
         #define DEADREPORTTIMEOUT 60000
 
         #define RS485 Serial2
-        #define PIN_TXD 17  // UART 2 TXT - G17
-        #define PIN_RXD 16  // UART 2 RXD - G16
+        #ifdef USE_ESP32S3
+            #define PIN_TXD 17
+            #define PIN_RXD 18
+        #else
+            #define PIN_TXD 17 // UART 2 TXT - G17
+            #define PIN_RXD 16 // UART 2 RXD - G16
+        #endif
 
         // workaround as my Supramatic did not Report the Status 0x0A when it's en vent Position
         // When the door is at position 0x08 and not moving Status get changed to Ventig.
