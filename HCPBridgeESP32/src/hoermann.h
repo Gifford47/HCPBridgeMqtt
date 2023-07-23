@@ -13,7 +13,7 @@
         #define DEADREPORTTIMEOUT 60000
 
         #define RS485 Serial2
-        #ifdef USE_ESP32S3
+        #ifdef CONFIG_IDF_TARGET_ESP32S3
             #define PIN_TXD 17
             #define PIN_RXD 18
         #else

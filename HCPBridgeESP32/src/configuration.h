@@ -8,12 +8,12 @@
     const char* STA_PASSWD = "my-wlan-passwd";
 
     // MQTT
+    #define DEVICE_ID "garage_door"
+    const char DEVICENAME[] = "Garage Door";
     const char *MQTTSERVER = "192.168.1.100";
     const int MQTTPORT = 1883;
     const char MQTTUSER[] = "mqtt";
     const char MQTTPASSWORD[] = "password";
-    #define DEVICE_ID  "garage_door"
-    const char DEVICENAME[] = "Garage Door";
     const char GD_AVAIL[]= "Garage Door Available";
     const char GD_LIGHT[] = "Garage Door Light";
     const char GD_VENT[] = "Garage Door Vent";
@@ -35,17 +35,8 @@
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
     
-    // Serial port  for RS485
-    #define RS485 Serial2
+    // swap serial port for RS485
     //#define SWAPUART
-    #ifdef USE_ESP32S3
-        #define PIN_TXD 17
-        #define PIN_RXD 18
-    #else
-        #define PIN_TXD 17 // UART 2 TXT - G17
-        #define PIN_RXD 16 // UART 2 RXD - G16
-    #endif
-  
 
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
