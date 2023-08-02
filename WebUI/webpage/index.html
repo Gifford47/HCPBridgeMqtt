@@ -105,7 +105,7 @@
 		<h4>Configuration</h4>
 		<button id="toggle_config" class="btn">show</button>
 	</div>
-	<div id="configuration" class="collapsible" style="display: none">
+	<form id="conf_form" class="collapsible" style="display: none">
 		<div class="flex">
 			<label for="conf_ssid">WIFI SSID</label>
 			<input type="text" id="conf_ssid" name="conf_ssid">
@@ -126,8 +126,8 @@
 			<label for="conf_mqtt_pass">MQTT Password</label>
 			<input type="text" id="conf_mqtt_pass" name="conf_mqtt_pass">
 		</div>
-		<button class="btn" onclick="">Save & Restart</button>
-	</div>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
 	
 	<div id="collapsible" class="collapsible" style="display: none">
 		<hr/>
@@ -139,7 +139,7 @@
 		
 	<script>
 	document.getElementById("collapse").onclick = function() {collapse('collapsible')};
-	document.getElementById("toggle_config").onclick = function() {collapse('configuration')};
+	document.getElementById("toggle_config").onclick = function() {collapse('conf_form')};
 
 	function collapse(elementId) {
 		var x = document.getElementById(elementId);
@@ -214,7 +214,44 @@
 	  	xhr.open("GET", "/command?action="+action, true); 	  
 
 	  xhr.send();
+	}
+
+	function getConfig() {
+	  	//get current config
+	  	var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+			var config = JSON.parse(this.responseText);	
+			console.log(config)
+			document.getElementById("conf_ssid").value = config.ssid
+			document.getElementById("conf_mqtt_server").value = config.mqtt_server
+			document.getElementById("conf_mqtt_user").value = config.mqtt_user
+			return;
+			}
+		};			
+		xmlhttp.open("GET", "/config", true);
+		xmlhttp.send();
 	}  
+
+	function handleSubmitConf(event) {
+		event.preventDefault();
+		console.log('form submitted');
+
+		const data = new FormData(event.target);
+		const json = Object.fromEntries(data.entries());
+
+		console.log(json);
+
+		//send data over post request
+		var xhr = new XMLHttpRequest();
+
+		xhr.open('POST', '/config')
+		xhr.setRequestHeader('Content-Type', 'application/json')
+		xhr.send(JSON.stringify(json))
+	}
+
+	const form = document.getElementById('conf_form');
+	form.addEventListener('submit', handleSubmitConf);
 	
 	function setDoorState(state){
 		stopDoorAnimation();		
@@ -258,7 +295,8 @@
 			xmlhttp.open("GET", "/status", true);
 			xmlhttp.send();
 	}
-		
+
+	getConfig();	
 	Draw();
 	updateData();	
 	setInterval(updateData, 3000);

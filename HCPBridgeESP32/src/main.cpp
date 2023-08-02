@@ -753,6 +753,7 @@ void setup()
 
   server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
             {
+              Serial.println("GER SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
               root["freemem"] = ESP.getFreeHeap();
@@ -764,6 +765,44 @@ void setup()
               serializeJson(root, *response);
 
               request->send(response); });
+  
+  server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              Serial.println("GET CONFIG");
+              //TODO: load CONFIG and change the data that is send to the client
+
+              AsyncResponseStream *response = request->beginResponseStream("application/json");
+              DynamicJsonDocument root(1024);
+              root["ssid"] = "MySSID";
+              root["mqtt_server"] = "192.168.0.100";
+              root["mqtt_user"] = "MyMqttUser";
+              serializeJson(root, *response);
+
+              request->send(response); });
+
+  // load requestbody for json Post requests
+  server.onRequestBody([](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
+          {
+          // Handle setting config request
+          if (request->url() == "/config")
+          {
+            StaticJsonDocument<256> doc;
+            deserializeJson(doc, data);
+            String ssid = doc["conf_ssid"].as<String>();
+            String pass = doc["conf_pass"].as<String>();
+            String mqtt_server = doc["conf_mqtt_server"].as<String>();
+            String mqtt_user = doc["conf_mqtt_user"].as<String>();
+            String mqtt_pass = doc["conf_mqtt_pass"].as<String>();
+            Serial.println(ssid);
+            Serial.println(pass);
+            Serial.println(mqtt_server);
+            Serial.println(mqtt_user);
+            Serial.println(mqtt_pass);
+
+            //TODO: Save config and restart ESP or similar to make them effective, only save pass if not empty.
+
+            request->send(200, "text/plain", "OK");
+          } });
 
   AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
 
