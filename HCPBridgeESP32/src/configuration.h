@@ -3,9 +3,9 @@
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
 
-    // Station
-    const char* STA_SSID   = "my-wlan-ssid";
-    const char* STA_PASSWD = "my-wlan-passwd";
+    // Station -> leave empty to use AP for config
+    const char* STA_SSID   = "";
+    const char* STA_PASSWD = "";
 
     // MQTT
     #define DEVICE_ID "garage_door"
