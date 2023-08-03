@@ -239,10 +239,10 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, key);
+  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_binary_sensor_%s", key);
+  sprintf(uid, "%s_binary_sensor_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -268,27 +268,32 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 
 void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 {
+  char full_topic[64];
+  sprintf(full_topic, HA_DISCOVERY_AV_SENSOR, DEVICE_ID);
+
+  char uid[64];
+  sprintf(uid, "%s_sensor_availability", DEVICE_ID);
   DynamicJsonDocument doc(1024);
 
-  doc["name"] = "Garage Door Available";
+  doc["name"] = GD_AVAIL;
   doc["state_topic"] = AVAILABILITY_TOPIC;
-  doc["unique_id"] = "garagedoor_sensor_availability";
+  doc["unique_id"] = uid;
   doc["device"] = device;
 
   char payload[1024];
   serializeJson(doc, payload);
   //-//Serial.write(payload);
-  mqttClient.publish(HA_DISCOVERY_AV_SENSOR, 1, true, payload);
+  mqttClient.publish(full_topic, 1, true, payload);
 }
 
 void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device)
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_SENSOR, key);
+  sprintf(full_topic, HA_DISCOVERY_SENSOR, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_sensor_%s", key);
+  sprintf(uid, "%s_sensor_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -317,10 +322,10 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
   sprintf(command_topic, CMD_TOPIC "/%s", DEBUGTOPIC);
 
   char full_topic[64];
-  sprintf(full_topic, "homeassistant/text/garage_door/%s/config", key);
+  sprintf(full_topic, HA_DISCOVERY_TEXT, DEVICE_ID, key);
 
   char uid[64];
-  sprintf(uid, "garagedoor_text_%s", key);
+  sprintf(uid, "%s_text_%s", DEVICE_ID, key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -349,17 +354,17 @@ void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], co
   sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, discovery, topic);
+  sprintf(full_topic, discovery, DEVICE_ID, topic);
 
   char value_template[64];
   sprintf(value_template, "{{ value_json.%s }}", topic);
 
   char uid[64];
   if (discovery == HA_DISCOVERY_LIGHT){
-    sprintf(uid, "garagedoor_light_%s", topic);
+    sprintf(uid, "%s_light_%s",DEVICE_ID, topic);
   }
   else{
-    sprintf(uid, "garagedoor_switch_%s", topic);
+    sprintf(uid, "%s_switch_%s",DEVICE_ID, topic);
   }
 
   DynamicJsonDocument doc(1024);
@@ -391,10 +396,10 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   sprintf(command_topic, CMD_TOPIC "/%s", topic);
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_COVER, topic);
+  sprintf(full_topic, HA_DISCOVERY_COVER, DEVICE_ID, topic);
 
   char uid[64];
-  sprintf(uid, "garagedoor_cover_%s", topic);
+  sprintf(uid, "%s_cover_%s", DEVICE_ID, topic);
 
   DynamicJsonDocument doc(1024);
  //if it didn't work try without state topic.
@@ -437,45 +442,45 @@ void sendDiscoveryMessage()
   //declare json object here for device instead of creating in each methode. 150 bytes should be enough
   const int capacity = JSON_OBJECT_SIZE(5);
   StaticJsonDocument<capacity> device;
-  device["identifiers"] = "Garage Door";
-  device["name"] = "Garage Door";
+  device["identifiers"] = DEVICENAME;
+  device["name"] = DEVICENAME;
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
   device["manufacturer"] = "Hörmann";
   
   sendDiscoveryMessageForAVSensor(device);
   //not able to get it working sending the discovery message for light.
-  sendDiscoveryMessageForSwitch("Garage Door Light", HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
-  sendDiscoveryMessageForBinarySensor("Garage Door Light", STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
-  sendDiscoveryMessageForSwitch("Garage Door Vent", HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
-  sendDiscoveryMessageForCover("Garage Door", "door", device);
+  sendDiscoveryMessageForSwitch(GD_LIGHT, HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
+  sendDiscoveryMessageForBinarySensor(GD_LIGHT, STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
+  sendDiscoveryMessageForSwitch(GD_VENT, HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+  sendDiscoveryMessageForCover(DEVICENAME, "door", device);
 
-  sendDiscoveryMessageForSensor("Garage Door Status", STATE_TOPIC, "doorstate", device);
-  sendDiscoveryMessageForSensor("Garage Door detailed Status", STATE_TOPIC, "detailedState", device);
-  sendDiscoveryMessageForSensor("Garage Door Position", STATE_TOPIC, "doorposition", device);
+  sendDiscoveryMessageForSensor(GD_STATUS, STATE_TOPIC, "doorstate", device);
+  sendDiscoveryMessageForSensor(GD_DET_STATUS, STATE_TOPIC, "detailedState", device);
+  sendDiscoveryMessageForSensor(GD_POSITIOM, STATE_TOPIC, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
-      sendDiscoveryMessageForSensor("Garage Humidity", SENSOR_TOPIC, "hum", device);
-      sendDiscoveryMessageForSensor("Garage ambient pressure", SENSOR_TOPIC, "pres", device);
+      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(GS_HUM, SENSOR_TOPIC, "hum", device);
+      sendDiscoveryMessageForSensor(GS_PRES, SENSOR_TOPIC, "pres", device);
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor("Garage Temperature", SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
     #endif
     #if defined(USE_HCSR04)
-      sendDiscoveryMessageForSensor("Garage Free distance", SENSOR_TOPIC, "dist", device);
-      sendDiscoveryMessageForBinarySensor("Garage park available", SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
+      sendDiscoveryMessageForSensor(GS_FREE_DIST, SENSOR_TOPIC, "dist", device);
+      sendDiscoveryMessageForBinarySensor(GS_PARK_AVAIL, SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
   #endif
   #ifdef DEBUG
-    sendDiscoveryMessageForDebug("garage Door Debug", "debug", device);
-    sendDiscoveryMessageForDebug("garage Restart Reason", "reset-reason", device);
+    sendDiscoveryMessageForDebug(GD_DEBUG, "debug", device);
+    sendDiscoveryMessageForDebug(GD_DEBUG_RESTART, "reset-reason", device);
   #endif
 }
 
 void onMqttConnect(bool sessionPresent)
 {
   mqttConnected = true;
-
+  xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
   updateDoorStatus(true);
@@ -592,6 +597,7 @@ void WiFiEvent(WiFiEvent_t event) {
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
+        xTimerStop(wifiReconnectTimer, 0); // stop timmer as we are connected again
         connectToMqtt();
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
