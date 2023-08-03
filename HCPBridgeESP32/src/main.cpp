@@ -475,7 +475,7 @@ void sendDiscoveryMessage()
 void onMqttConnect(bool sessionPresent)
 {
   mqttConnected = true;
-
+  xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
   updateDoorStatus(true);
@@ -592,6 +592,7 @@ void WiFiEvent(WiFiEvent_t event) {
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
+        xTimerStop(wifiReconnectTimer, 0); // stop timmer as we are connected again
         connectToMqtt();
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
