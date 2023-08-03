@@ -506,7 +506,7 @@ void sendDiscoveryMessage()
 void onMqttConnect(bool sessionPresent)
 {
   mqttConnected = true;
-
+  xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
   sendOnline();
   mqttClient.subscribe(CMD_TOPIC "/#", 1);
   updateDoorStatus(true);

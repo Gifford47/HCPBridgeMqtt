@@ -8,7 +8,7 @@
     const char* STA_PASSWD = "";
 
     // MQTT
-    #define DEVICE_ID "garage_door"
+    #define DEVICE_ID "hcpbridge"
     const char DEVICENAME[] = "Garage Door";
     const char *MQTTSERVER = "192.168.1.100";
     const int MQTTPORT = 1883;
