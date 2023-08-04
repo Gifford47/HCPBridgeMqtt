@@ -16,27 +16,37 @@
     input:checked+.slider {background-color: #b30000}
     input:checked+.slider:before {-webkit-transform: translateX(32px); -ms-transform: translateX(32px); transform: translateX(32px)}
 	
-	.button {
-		border: 4px;
-		border-style: solid;
+	.btn {
+		background-color: whitesmoke;
+		border: 0px;
 		color: black;
-		width: 100px;
-		height: 100px;
 		text-align: center;
 		display: inline;
 		text-decoration: none;
 		display: inline-block;
-		font-weight: bold;
 		font-size: 20px;
 		margin: 4px 2px;
 		cursor: pointer;
+		border-radius: 8px;
+		padding: 8px 16px;
+		&:hover {
+			background-color: lightgray;
+		}
+	}
+
+	.btn-round {
+		border: 4px;
+		border-style: solid;
+		height: 100px;
+		width: 100px;
 		border-radius: 50px;
 	}
-	.buttonred {border-color: #ED5961;}
-	.buttonyellow {border-color: #fcca00;}
-	.buttonorange {border-color: #ffa500;}
-	.buttongreen {border-color: #48bd81;}  
-	.buttonblack {border-color: #000000;}
+
+	.btn-red {border-color: #ED5961;}
+	.btn-yellow {border-color: #fcca00;}
+	.btn-orange {border-color: #ffa500;}
+	.btn-green {border-color: #48bd81;}  
+	.btn-black {border-color: #000000;}
 	
 	.link-gray {
 		font-size: 1rem;
@@ -49,11 +59,30 @@
 			background: #4e5664;
 		}
 	}
-	
-	.collapsible {
-		padding: 0 18px;
-		display: none;
-		overflow: hidden;
+
+	input[type=text] {
+		width: 100%;
+		padding: 8px 8px;
+		margin: 8px 0;
+		box-sizing: border-box;
+		border: 2px solid grey;
+  		border-radius: 4px;
+		font-size: 1.2rem;
+	}
+
+	.flex label {
+		min-width: 12rem;
+		text-align: left;
+	}
+
+	.flex {
+		display: flex;
+		align-items:center;
+		padding: 0rem 1rem;
+	}
+
+	.flex.justify-between {
+		justify-content: space-between;
 	}
 	
   </style>
@@ -64,33 +93,66 @@
 	<h3 id="status">Waiting connection.</h3>	
 	
 	<hr/>
-	<button class="button buttonred" onclick="doCommand(1)">Up</button>
-	<button class="button buttonyellow" onclick="doCommand(4)">Half</button>
-	<button class="button buttonorange" onclick="doCommand(3)">Vent</button>
-	<button class="button buttonblack" onclick="doCommand(2)">Stop</button>
-	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
+	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
+	<button class="btn btn-round btn-yellow" onclick="doCommand(4)">Half</button>
+	<button class="btn btn-round btn-orange" onclick="doCommand(3)">Vent</button>
+	<button class="btn btn-round btn-black" onclick="doCommand(2)">Stop</button>
+	<button class="btn btn-round btn-green" onclick="doCommand(0)">Down</button>
 	<hr/>
 	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
-	<div class="collapsible">
-		<hr/>
+	<hr>
+	<br>
+	<div class="flex justify-between">
+		<h4>Configuration</h4>
+		<button id="toggle_config" class="btn">show</button>
+	</div>
+	<form id="conf_form" class="collapsible" style="display: none">
+		<div class="flex">
+			<label for="conf_ssid">WIFI SSID</label>
+			<input type="text" id="conf_ssid" name="conf_ssid">
+		</div>	
+		<div class="flex">
+			<label for="conf_pass">WIFI Password</label>
+			<input type="text" id="conf_pass" name="conf_pass">
+		</div>
+		<div class="flex">
+			<label for="conf_mqtt_server">MQTT Server</label>
+			<input type="text" id="conf_mqtt_server" name="conf_mqtt_server">
+		</div>
+		<div class="flex">
+			<label for="conf_mqtt_user">MQTT User</label>
+			<input type="text" id="conf_mqtt_user" name="conf_mqtt_user">
+		</div>
+		<div class="flex">
+			<label for="conf_mqtt_pass">MQTT Password</label>
+			<input type="text" id="conf_mqtt_pass" name="conf_mqtt_pass">
+		</div>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
 		<h4>System information</h4>
-			<a class="link-gray" href="update" target="_blank">OTA Update</a><br>
-			<a class="link-gray" href="sysinfo" target="_blank">System Info</a><br>
-			<a class="link-gray" href="status" target="_blank">Door status</a><br>	
+		<button id="toogle_sysinfo" class="btn">show</button>
+	</div>
+	
+	<div id="sysinfo_links" class="collapsible" style="display: none">
+		<a class="link-gray" href="update" target="_blank">OTA Update</a>
+		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
+		<a class="link-gray" href="status" target="_blank">Door status</a>
 	</div>
 		
 	<script>
-	document.getElementById("collapse").onclick = function() {collapse()};
+	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
+	document.getElementById("toggle_config").onclick = function() {collapse('conf_form')};
 
-	function collapse() {
-		var content = document.getElementsByClassName("collapsible");
-		Array.from(content).forEach((x) => {
-			if (x.style.display === "none") {
-			x.style.display = "block";
-			} else {
-			x.style.display = "none";
-			}
-		})
+	function collapse(elementId) {
+		var x = document.getElementById(elementId);
+		if (x.style.display === "none") {
+		x.style.display = "block";
+		} else {
+		x.style.display = "none";
+		}
+		
 	}
 	
 	doorpos = 10;
@@ -156,7 +218,49 @@
 	  	xhr.open("GET", "/command?action="+action, true); 	  
 
 	  xhr.send();
+	}
+
+	function getConfig() {
+	  	//get current config
+	  	var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+			var config = JSON.parse(this.responseText);	
+			console.log(config)
+			document.getElementById("conf_ssid").value = config.ssid
+			document.getElementById("conf_mqtt_server").value = config.mqtt_server
+			document.getElementById("conf_mqtt_user").value = config.mqtt_user
+			return;
+			}
+		};			
+		xmlhttp.open("GET", "/config", true);
+		xmlhttp.send();
 	}  
+
+	function handleSubmitConf(event) {
+		event.preventDefault();
+		console.log('form submitted');
+
+		if (confirm("Changing the Configuration will restart your Device! \n\nIf your Garage Motor is connected you will need to start the BusScan again to clear the resulting Error") != true) 
+		{
+			return;
+		}
+
+		console.log("User confirmed Saving Conf")
+
+		const data = new FormData(event.target);
+		const json = Object.fromEntries(data.entries());
+
+		//send data over post request
+		var xhr = new XMLHttpRequest();
+
+		xhr.open('POST', '/config')
+		xhr.setRequestHeader('Content-Type', 'application/json')
+		xhr.send(JSON.stringify(json))
+	}
+
+	const form = document.getElementById('conf_form');
+	form.addEventListener('submit', handleSubmitConf);
 	
 	function setDoorState(state){
 		stopDoorAnimation();		
@@ -200,7 +304,8 @@
 			xmlhttp.open("GET", "/status", true);
 			xmlhttp.send();
 	}
-		
+
+	getConfig();	
 	Draw();
 	updateData();	
 	setInterval(updateData, 3000);
