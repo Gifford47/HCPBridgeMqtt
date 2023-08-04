@@ -645,6 +645,7 @@ void WiFiEvent(WiFiEvent_t event) {
             break;
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
             eventInfo = "Obtained IP address";
+            xTimerStop(wifiReconnectTimer, 0); // stop in case it was started
             connectToMqtt();
             //Serial.println(WiFi.localIP());
             break;
