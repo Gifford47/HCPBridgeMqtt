@@ -9,6 +9,7 @@ extern "C" {
 	#include "freertos/timers.h"
 }
 #include "ArduinoJson.h"
+#include <Preferences.h>
 
 #include "configuration.h"
 #include "hoermann.h"
@@ -68,10 +69,26 @@ TimerHandle_t wifiReconnectTimer;
 char lastCommandTopic[64];
 char lastCommandPayload[64];
 
+Preferences localPrefs;
+
+char globalMqttServer[64];
+char globalMqttUser[64];
+char globalMqttPass[64];
+
 #ifdef DEBUG
   bool boot_Flag = true;
 #endif
 
+// holds conf data
+class confData {    
+  public:         
+    String wifi_ssid;
+    String wifi_pass;
+    String mqtt_server;
+    String mqtt_user;
+    String mqtt_pass;
+    
+};
 
 const char *ToHA(bool value)
 {
@@ -90,13 +107,22 @@ void switchLamp(bool on){
   hoermannEngine->turnLight(on);
 }
 
-void connectToWifi() {
+void connectToWifi(String ssid, String pass) {
+  if (ssid == "" && pass == "")
+  {
+    Serial.println("WIFI creds not set, AP Mode");
+    WiFi.softAP(HOSTNAME);
+    return;
+  }
+
   Serial.println("Connecting to Wi-Fi...");
-  WiFi.begin(STA_SSID, STA_PASSWD);
+  WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
+  WiFi.begin(ssid, pass);
 }
 void connectToMqtt()
 {
   Serial.println("Connecting to MQTT...");
+  Serial.println(globalMqttServer);
   mqttClient.connect();
 }
 
@@ -591,27 +617,202 @@ void SensorCheck(void *parameter){
 TaskHandle_t sensorTask;
 
 void WiFiEvent(WiFiEvent_t event) {
-    Serial.printf("[WiFi-event] event: %d\n", event);
-    switch(event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
-        Serial.println("WiFi connected");
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
-        xTimerStop(wifiReconnectTimer, 0); // stop timmer as we are connected again
-        connectToMqtt();
-        break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-        Serial.println("WiFi lost connection");
-        xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
-        xTimerStart(wifiReconnectTimer, 0);
-        break;
+    String eventInfo = "No Info";
+
+    switch (event) {
+        case ARDUINO_EVENT_WIFI_READY: 
+            eventInfo = "WiFi interface ready";
+            break;
+        case ARDUINO_EVENT_WIFI_SCAN_DONE:
+            eventInfo = "Completed scan for access points";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_START:
+            eventInfo = "WiFi client started";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_STOP:
+            eventInfo = "WiFi clients stopped";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+            eventInfo = "Connected to access point";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+            eventInfo = "Disconnected from WiFi access point";
+            xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
+            xTimerStart(wifiReconnectTimer, 0);
+            break;
+        case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+            eventInfo = "Authentication mode of access point has changed";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+            eventInfo = "Obtained IP address";
+            connectToMqtt();
+            //Serial.println(WiFi.localIP());
+            break;
+        case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+            eventInfo = "Lost IP address and IP address is reset to 0";
+            break;
+        case ARDUINO_EVENT_WPS_ER_SUCCESS:
+            eventInfo = "WiFi Protected Setup (WPS): succeeded in enrollee mode";
+            break;
+        case ARDUINO_EVENT_WPS_ER_FAILED:
+            eventInfo = "WiFi Protected Setup (WPS): failed in enrollee mode";
+            break;
+        case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+            eventInfo = "WiFi Protected Setup (WPS): timeout in enrollee mode";
+            break;
+        case ARDUINO_EVENT_WPS_ER_PIN:
+            eventInfo = "WiFi Protected Setup (WPS): pin code in enrollee mode";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_START:
+            eventInfo = "WiFi access point started";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_STOP:
+            eventInfo = "WiFi access point  stopped";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+            eventInfo = "Client connected";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+            eventInfo = "Client disconnected";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+            eventInfo = "Assigned IP address to client";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+            eventInfo = "Received probe request";
+            break;
+        case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
+            eventInfo = "AP IPv6 is preferred";
+            break;
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+            eventInfo = "STA IPv6 is preferred";
+            break;
+        case ARDUINO_EVENT_ETH_GOT_IP6:
+            eventInfo = "Ethernet IPv6 is preferred";
+            break;
+        case ARDUINO_EVENT_ETH_START:
+            eventInfo = "Ethernet started";
+            break;
+        case ARDUINO_EVENT_ETH_STOP:
+            eventInfo = "Ethernet stopped";
+            break;
+        case ARDUINO_EVENT_ETH_CONNECTED:
+            eventInfo = "Ethernet connected";
+            break;
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+            eventInfo = "Ethernet disconnected";
+            break;
+        case ARDUINO_EVENT_ETH_GOT_IP:
+            eventInfo = "Obtained IP address";
+            break;
+        default: break;
     }
+    Serial.print("WIFI-Event: ");
+    Serial.println(eventInfo);
 }
+// handle Preferences
+void saveConf(StaticJsonDocument<256> doc) {
+  String ssid = doc["conf_ssid"].as<String>();
+  String pass = doc["conf_pass"].as<String>();
+  String mqtt_server = doc["conf_mqtt_server"].as<String>();
+  String mqtt_user = doc["conf_mqtt_user"].as<String>();
+  String mqtt_pass = doc["conf_mqtt_pass"].as<String>();
+  
+  // only save passwords if set on UI -> otherwise keep them
+  if (!pass.isEmpty())
+  {
+    localPrefs.putString("wifi_pass", pass);
+    Serial.println("WIFI pass was changed");
+  }
+
+  if (!mqtt_pass.isEmpty())
+  {
+    localPrefs.putString("mqtt_pass", mqtt_pass);
+    Serial.println("MQTT pass was changed");
+  }
+  
+  // Save Settings in Prefs
+  localPrefs.putString("wifi_ssid", ssid);
+  localPrefs.putString("mqtt_server", mqtt_server);
+  localPrefs.putString("mqtt_user", mqtt_user);
+  
+  Serial.println(ssid);
+  Serial.println(pass);
+  Serial.println(mqtt_server);
+  Serial.println(mqtt_user);
+  Serial.println(mqtt_pass);
+  Serial.println("Saved CONF to prefs");
+
+  /*
+  // stop and set MQTT Data
+  mqttClient.disconnect();
+  Serial.println("MQQTT disconnect");
+  strcpy(globalMqttServer, mqtt_server.c_str());
+  strcpy(globalMqttUser, mqtt_user.c_str());
+  strcpy(globalMqttPass, mqtt_pass.c_str());
+  Serial.println("saved new MQTT Creds");
+  mqttClient.setServer(globalMqttServer, MQTTPORT);
+  Serial.println("MQTT set server");
+  mqttClient.setCredentials(globalMqttUser, globalMqttPass);
+  Serial.println("MQTT set creds");
+
+  //restart WIFI
+  WiFi.disconnect();
+  Serial.println("disconnect WIFI");
+  WiFi.begin(ssid, pass);
+  Serial.println("WIFI begin again");
+  */
+
+  // just reboot the ESP toa void bugs for now
+  ESP.restart();
+}
+
+confData getConf(){
+  confData currentConf;
+  // first check if conf is set
+  bool ssidIsSet = localPrefs.isKey("wifi_ssid");
+
+  if (ssidIsSet == true) {
+    // return settings from prefs
+    currentConf.wifi_ssid = localPrefs.getString("wifi_ssid");
+    currentConf.wifi_pass = localPrefs.getString("wifi_pass");
+    currentConf.mqtt_server = localPrefs.getString("mqtt_server");
+    currentConf.mqtt_user = localPrefs.getString("mqtt_user");
+    currentConf.mqtt_pass = localPrefs.getString("mqtt_pass");
+  } else
+  {
+    // Return default config
+    currentConf.wifi_ssid = STA_SSID;
+    currentConf.wifi_pass = STA_PASSWD;
+    currentConf.mqtt_server = MQTTSERVER;
+    currentConf.mqtt_user = MQTTUSER;
+    currentConf.mqtt_pass = MQTTPASSWORD;
+  }
+    Serial.println(currentConf.wifi_ssid);
+  Serial.println(currentConf.wifi_pass);
+  Serial.println(currentConf.mqtt_server);
+  Serial.println(currentConf.mqtt_user);
+  Serial.println(currentConf.mqtt_pass);
+  Serial.println("loaded CONF from prefs");
+  Serial.println("-----------");
+  Serial.println(globalMqttServer);
+  Serial.println("-----------");
+  
+  return currentConf;
+}
+
 // setup mcu
 void setup()
 {
   // Serial
   Serial.begin(9600);
+
+  localPrefs.begin("conf", false);
+  confData configAtSetup = getConf();
+  Serial.println("ESP before str_copy");
+  strcpy(globalMqttServer, configAtSetup.mqtt_server.c_str());
+  strcpy(globalMqttUser, configAtSetup.mqtt_user.c_str());
+  strcpy(globalMqttPass, configAtSetup.mqtt_pass.c_str());
 
   // setup modbus
   hoermannEngine->setup();
@@ -620,18 +821,18 @@ void setup()
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   WiFi.setHostname(HOSTNAME);
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_AP_STA);
   WiFi.onEvent(WiFiEvent);
 
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
-  mqttClient.setServer(MQTTSERVER, MQTTPORT);
-  mqttClient.setCredentials(MQTTUSER, MQTTPASSWORD);
+  mqttClient.setServer(globalMqttServer, MQTTPORT);
+  mqttClient.setCredentials(globalMqttUser, globalMqttPass);
   setWill();
   
-  connectToWifi();
+  connectToWifi(configAtSetup.wifi_ssid, configAtSetup.wifi_pass);
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
@@ -754,6 +955,7 @@ void setup()
 
   server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
             {
+              Serial.println("GER SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
               root["freemem"] = ESP.getFreeHeap();
@@ -765,6 +967,33 @@ void setup()
               serializeJson(root, *response);
 
               request->send(response); });
+  
+  server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              Serial.println("GET CONFIG");
+              confData currentConfig = getConf();
+
+              AsyncResponseStream *response = request->beginResponseStream("application/json");
+              DynamicJsonDocument root(1024);
+              root["ssid"] = currentConfig.wifi_ssid;
+              root["mqtt_server"] = currentConfig.mqtt_server;
+              root["mqtt_user"] = currentConfig.mqtt_user;
+              serializeJson(root, *response);
+
+              request->send(response); });
+
+  // load requestbody for json Post requests
+  server.onRequestBody([](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
+          {
+          // Handle setting config request
+          if (request->url() == "/config")
+          {
+            StaticJsonDocument<256> doc;
+            deserializeJson(doc, data);
+            saveConf(doc);
+
+            request->send(200, "text/plain", "OK");
+          } });
 
   AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
 
