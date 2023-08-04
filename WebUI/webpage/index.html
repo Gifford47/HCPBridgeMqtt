@@ -129,17 +129,20 @@
 		</div>
 		<button type="submit" class="btn">Save & Restart</button>
 	</form>
-	
-	<div id="collapsible" class="collapsible" style="display: none">
-		<hr/>
+
+	<div class="flex justify-between">
 		<h4>System information</h4>
+		<button id="toogle_sysinfo" class="btn">show</button>
+	</div>
+	
+	<div id="sysinfo_links" class="collapsible" style="display: none">
 		<a class="link-gray" href="update" target="_blank">OTA Update</a>
 		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
 		<a class="link-gray" href="status" target="_blank">Door status</a>
 	</div>
 		
 	<script>
-	document.getElementById("collapse").onclick = function() {collapse('collapsible')};
+	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
 	document.getElementById("toggle_config").onclick = function() {collapse('conf_form')};
 
 	function collapse(elementId) {
@@ -238,10 +241,15 @@
 		event.preventDefault();
 		console.log('form submitted');
 
+		if (confirm("Changing the Configuration will restart your Device! \n\nIf your Garage Motor is connected you will need to start the BusScan again to clear the resulting Error") != true) 
+		{
+			return;
+		}
+
+		console.log("User confirmed Saving Conf")
+
 		const data = new FormData(event.target);
 		const json = Object.fromEntries(data.entries());
-
-		console.log(json);
 
 		//send data over post request
 		var xhr = new XMLHttpRequest();
