@@ -3,12 +3,12 @@
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
 
-    // Station
-    const char* STA_SSID   = "my-wlan-ssid";
-    const char* STA_PASSWD = "my-wlan-passwd";
+    // Station -> leave empty to use AP for config
+    const char* STA_SSID   = "";
+    const char* STA_PASSWD = "";
 
     // MQTT
-    #define DEVICE_ID "garage_door"
+    #define DEVICE_ID "hcpbridge"
     const char DEVICENAME[] = "Garage Door";
     const char *MQTTSERVER = "192.168.1.100";
     const int MQTTPORT = 1883;
@@ -61,6 +61,11 @@
     #define SR04_TRIGPIN 5
     #define SR04_ECHOPIN 18
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
+
+    // DHT22
+    // #define DHT_PIN 12
+    #define DHT_VCC_PIN 27
+    #define DHTTYPE DHT22
 
     // MQTT strings
     #define BASE_FTOPIC  "hormann/"

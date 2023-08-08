@@ -25,6 +25,11 @@ extern "C" {
   #include <Adafruit_BME280.h>
 #endif
 
+#ifdef USE_DHT22
+  #include <Adafruit_Sensor.h>
+  #include <DHT.h>
+#endif
+
 // webserver on port 80
 AsyncWebServer server(80);
 
@@ -54,6 +59,14 @@ AsyncWebServer server(80);
   int hcsr04_maxdistanceCm = 150;
   bool hcsr04_park_available = false;
   bool hcsr04_lastpark_available = false;
+#endif
+
+#ifdef USE_DHT22
+  DHT dht(DHT_VCC_PIN, DHTTYPE);
+  float dht22_temp = -99.99;
+  float dht22_last_temp = -99.99;
+  float dht22_hum = -99.99;
+  float dht22_last_hum = -99.99;
 #endif
 
 // sensors
@@ -166,6 +179,12 @@ void updateSensors(bool forceUpate = false){
         sprintf(buf, "%d", hcsr04_distanceCm);
         doc["dist"] = buf;
         doc["free"] = ToHA(hcsr04_park_available);
+      #endif
+      #ifdef USE_DHT22
+        dtostrf(dht22_temp,2,2,buf);
+        doc["temp"] = buf;
+        dtostrf(dht22_hum,2,2,buf);
+        doc["hum"] = buf;
       #endif
       serializeJson(doc, payload);
       mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
@@ -470,6 +489,10 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor(GS_FREE_DIST, SENSOR_TOPIC, "dist", device);
       sendDiscoveryMessageForBinarySensor(GS_PARK_AVAIL, SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
+    #if defined(USE_DHT22)
+      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(GS_HUM, SENSOR_TOPIC, "hum", device);
+    #endif
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(GD_DEBUG, "debug", device);
@@ -584,6 +607,20 @@ void SensorCheck(void *parameter){
           new_sensor_data = true;
         }
     #endif
+    #ifdef USE_DHT22
+      pinMode(DHT_VCC_PIN, OUTPUT);
+      digitalWrite(DHT_VCC_PIN, HIGH);
+      dht.begin();
+
+      dht22_temp = dht.readTemperature();
+      dht22_hum = dht.readHumidity();
+
+      if (abs(dht22_temp) >= temp_threshold || abs(dht22_hum) >= hum_threshold){
+        dht22_last_temp = dht22_temp;
+        dht22_last_hum = dht22_hum;
+        new_sensor_data = true;
+      }
+    #endif
     vTaskDelay(SENSE_PERIOD);     // delay task xxx ms if statemachine had nothing to do
   }
 }
@@ -659,6 +696,11 @@ void setup()
       pinMode(SR04_TRIGPIN, OUTPUT); // Sets the trigPin as an Output
       pinMode(SR04_ECHOPIN, INPUT); // Sets the echoPin as an Input
     #endif
+    #ifdef USE_DHT22
+      pinMode(DHT_VCC_PIN, OUTPUT);
+      digitalWrite(DHT_VCC_PIN, HIGH);
+      dht.begin();
+    #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
       "SensorTask",   /* Name of the task */
@@ -696,6 +738,8 @@ void setup()
                   root["temp"] = ds18x20_temp;
                 #elif defined(USE_BME)
                   root["temp"] = bme_temp;
+                #elif defined(USE_DHT22)
+                  root["temp"] = dht22_temp;
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
