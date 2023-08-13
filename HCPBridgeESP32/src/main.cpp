@@ -11,8 +11,8 @@ extern "C" {
 #include "ArduinoJson.h"
 #include <Preferences.h>
 
-#include "configuration.h"
 #include "hoermann.h"
+#include "preferencesKeys.h"
 #include "../../WebUI/index_html.h"
 
 #ifdef USE_DS18X20
@@ -55,6 +55,8 @@ AsyncWebServer server(80);
   int hcsr04_maxdistanceCm = 150;
   bool hcsr04_park_available = false;
   bool hcsr04_lastpark_available = false;
+  int hcsr04_tgpin = 0;
+  int hscr04_ecpin = 0;
 #endif
 
 // sensors
@@ -69,26 +71,12 @@ TimerHandle_t wifiReconnectTimer;
 char lastCommandTopic[64];
 char lastCommandPayload[64];
 
-Preferences localPrefs;
-
-char globalMqttServer[64];
-char globalMqttUser[64];
-char globalMqttPass[64];
+PreferenceHandler prefHandler;
+Preferences *localPrefs = nullptr;
 
 #ifdef DEBUG
   bool boot_Flag = true;
 #endif
-
-// holds conf data
-class confData {    
-  public:         
-    String wifi_ssid;
-    String wifi_pass;
-    String mqtt_server;
-    String mqtt_user;
-    String mqtt_pass;
-    
-};
 
 const char *ToHA(bool value)
 {
@@ -107,29 +95,57 @@ void switchLamp(bool on){
   hoermannEngine->turnLight(on);
 }
 
-void connectToWifi(String ssid, String pass) {
-  if (ssid == "" && pass == "")
+void connectToWifi() {
+  if (localPrefs->getBool(preference_wifi_ap_mode))
   {
     Serial.println("WIFI creds not set, AP Mode");
-    WiFi.softAP(HOSTNAME);
+    WiFi.softAP(prefHandler.getPreferencesCache()->hostname);
     return;
   }
 
   Serial.println("Connecting to Wi-Fi...");
   WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
-  WiFi.begin(ssid, pass);
+  WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
 }
 void connectToMqtt()
 {
   Serial.println("Connecting to MQTT...");
-  Serial.println(globalMqttServer);
   mqttClient.connect();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
   mqttConnected = false;
-  Serial.println("Disconnected from MQTT.");
+  #ifdef DEBUG
+  switch (reason) {
+    case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED: 
+      Serial.println("Disconnected from MQTT. reason : TCP_DISCONNECTED");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION: 
+      Serial.println("Disconnected from MQTT. reason : MQTT_UNACCEPTABLE_PROTOCOL_VERSION");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED: 
+      Serial.println("Disconnected from MQTT. reason : MQTT_IDENTIFIER_REJECTED");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_SERVER_UNAVAILABLE: 
+      Serial.println("Disconnected from MQTT. reason : MQTT_SERVER_UNAVAILABLE");
+      break;
+    case AsyncMqttClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE: 
+      Serial.println("Disconnected from MQTT. reason : ESP8266_NOT_ENOUGH_SPACE");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS: 
+      Serial.println("Disconnected from MQTT. reason : MQTT_MALFORMED_CREDENTIALS");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_NOT_AUTHORIZED: 
+      Serial.println("Disconnected from MQTT. reason : MQTT_NOT_AUTHORIZED");
+      break;
+    case AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT: 
+      Serial.println("Disconnected from MQTT. reason :TLS_BAD_FINGERPRINT");
+      break;
+    default: break;
+  } 
+  #endif
+
 
   if (WiFi.isConnected()) {
     xTimerStart(mqttReconnectTimer, 0);
@@ -505,6 +521,7 @@ void sendDiscoveryMessage()
 
 void onMqttConnect(bool sessionPresent)
 {
+  Serial.println("Function on mqtt connect.");
   mqttConnected = true;
   xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
   sendOnline();
@@ -584,15 +601,16 @@ void SensorCheck(void *parameter){
       }
     #endif
     #ifdef USE_HCSR04
+
         // Clears the trigPin
-        digitalWrite(SR04_TRIGPIN, LOW);
+        digitalWrite(hcsr04_tgpin, LOW);
         delayMicroseconds(2);
         // Sets the trigPin on HIGH state for 10 micro seconds
-        digitalWrite(SR04_TRIGPIN, HIGH);
+        digitalWrite(hcsr04_tgpin, HIGH);
         delayMicroseconds(10);
-        digitalWrite(SR04_TRIGPIN, LOW);
+        digitalWrite(hcsr04_tgpin, LOW);
         // Reads the echoPin, returns the sound wave travel time in microseconds
-        hcsr04_duration = pulseIn(SR04_ECHOPIN, HIGH);
+        hcsr04_duration = pulseIn(hscr04_ecpin, HIGH);
         // Calculate the distance
         hcsr04_distanceCm = hcsr04_duration * SOUND_SPEED/2;
         if (hcsr04_distanceCm > hcsr04_maxdistanceCm) {
@@ -646,7 +664,7 @@ void WiFiEvent(WiFiEvent_t event) {
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
             eventInfo = "Obtained IP address";
             xTimerStop(wifiReconnectTimer, 0); // stop in case it was started
-            connectToMqtt();
+            xTimerStart(mqttReconnectTimer, 0);
             //Serial.println(WiFi.localIP());
             break;
         case ARDUINO_EVENT_WIFI_STA_LOST_IP:
@@ -711,117 +729,30 @@ void WiFiEvent(WiFiEvent_t event) {
     Serial.print("WIFI-Event: ");
     Serial.println(eventInfo);
 }
-// handle Preferences
-void saveConf(StaticJsonDocument<256> doc) {
-  String ssid = doc["conf_ssid"].as<String>();
-  String pass = doc["conf_pass"].as<String>();
-  String mqtt_server = doc["conf_mqtt_server"].as<String>();
-  String mqtt_user = doc["conf_mqtt_user"].as<String>();
-  String mqtt_pass = doc["conf_mqtt_pass"].as<String>();
-  
-  // only save passwords if set on UI -> otherwise keep them
-  if (!pass.isEmpty())
-  {
-    localPrefs.putString("wifi_pass", pass);
-    Serial.println("WIFI pass was changed");
-  }
 
-  if (!mqtt_pass.isEmpty())
-  {
-    localPrefs.putString("mqtt_pass", mqtt_pass);
-    Serial.println("MQTT pass was changed");
-  }
-  
-  // Save Settings in Prefs
-  localPrefs.putString("wifi_ssid", ssid);
-  localPrefs.putString("mqtt_server", mqtt_server);
-  localPrefs.putString("mqtt_user", mqtt_user);
-  
-  Serial.println(ssid);
-  Serial.println(pass);
-  Serial.println(mqtt_server);
-  Serial.println(mqtt_user);
-  Serial.println(mqtt_pass);
-  Serial.println("Saved CONF to prefs");
-
-  /*
-  // stop and set MQTT Data
-  mqttClient.disconnect();
-  Serial.println("MQQTT disconnect");
-  strcpy(globalMqttServer, mqtt_server.c_str());
-  strcpy(globalMqttUser, mqtt_user.c_str());
-  strcpy(globalMqttPass, mqtt_pass.c_str());
-  Serial.println("saved new MQTT Creds");
-  mqttClient.setServer(globalMqttServer, MQTTPORT);
-  Serial.println("MQTT set server");
-  mqttClient.setCredentials(globalMqttUser, globalMqttPass);
-  Serial.println("MQTT set creds");
-
-  //restart WIFI
-  WiFi.disconnect();
-  Serial.println("disconnect WIFI");
-  WiFi.begin(ssid, pass);
-  Serial.println("WIFI begin again");
-  */
-
-  // just reboot the ESP toa void bugs for now
-  ESP.restart();
-}
-
-confData getConf(){
-  confData currentConf;
-  // first check if conf is set
-  bool ssidIsSet = localPrefs.isKey("wifi_ssid");
-
-  if (ssidIsSet == true) {
-    // return settings from prefs
-    currentConf.wifi_ssid = localPrefs.getString("wifi_ssid");
-    currentConf.wifi_pass = localPrefs.getString("wifi_pass");
-    currentConf.mqtt_server = localPrefs.getString("mqtt_server");
-    currentConf.mqtt_user = localPrefs.getString("mqtt_user");
-    currentConf.mqtt_pass = localPrefs.getString("mqtt_pass");
-  } else
-  {
-    // Return default config
-    currentConf.wifi_ssid = STA_SSID;
-    currentConf.wifi_pass = STA_PASSWD;
-    currentConf.mqtt_server = MQTTSERVER;
-    currentConf.mqtt_user = MQTTUSER;
-    currentConf.mqtt_pass = MQTTPASSWORD;
-  }
-    Serial.println(currentConf.wifi_ssid);
-  Serial.println(currentConf.wifi_pass);
-  Serial.println(currentConf.mqtt_server);
-  Serial.println(currentConf.mqtt_user);
-  Serial.println(currentConf.mqtt_pass);
-  Serial.println("loaded CONF from prefs");
-  Serial.println("-----------");
-  Serial.println(globalMqttServer);
-  Serial.println("-----------");
-  
-  return currentConf;
-}
 
 // setup mcu
 void setup()
 {
   // Serial
   Serial.begin(9600);
+/*
+  while (Serial.available()==0){
+    "only continues if an input get received from serial.
+    ;
+  } 
+*/
 
-  localPrefs.begin("conf", false);
-  confData configAtSetup = getConf();
-  Serial.println("ESP before str_copy");
-  strcpy(globalMqttServer, configAtSetup.mqtt_server.c_str());
-  strcpy(globalMqttUser, configAtSetup.mqtt_user.c_str());
-  strcpy(globalMqttPass, configAtSetup.mqtt_pass.c_str());
-
+  // setup preferences
+  prefHandler.initPreferences();
+  localPrefs = prefHandler.getPreferences();
   // setup modbus
   hoermannEngine->setup();
 
   // setup wifi
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
-  WiFi.setHostname(HOSTNAME);
+  WiFi.setHostname(prefHandler.getPreferencesCache()->hostname);
   WiFi.mode(WIFI_AP_STA);
   WiFi.onEvent(WiFiEvent);
 
@@ -829,11 +760,12 @@ void setup()
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
-  mqttClient.setServer(globalMqttServer, MQTTPORT);
-  mqttClient.setCredentials(globalMqttUser, globalMqttPass);
+
+  mqttClient.setServer(prefHandler.getPreferencesCache()->mqtt_server, localPrefs->getInt(preference_mqtt_server_port));
+  mqttClient.setCredentials(prefHandler.getPreferencesCache()->mqtt_user, prefHandler.getPreferencesCache()->mqtt_password);
   setWill();
   
-  connectToWifi(configAtSetup.wifi_ssid, configAtSetup.wifi_pass);
+  connectToWifi();
 
   xTaskCreatePinnedToCore(
       mqttTaskFunc, /* Function to implement the task */
@@ -858,8 +790,10 @@ void setup()
       //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
     #ifdef USE_HCSR04
-      pinMode(SR04_TRIGPIN, OUTPUT); // Sets the trigPin as an Output
-      pinMode(SR04_ECHOPIN, INPUT); // Sets the echoPin as an Input
+      hcsr04_tgpin = localPrefs->getInt(preference_sensor_sr04_trigpin);
+      hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
+      pinMode(hcsr04_tgpin, OUTPUT); // Sets the trigPin as an Output
+      pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
     #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
@@ -972,13 +906,12 @@ void setup()
   server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               Serial.println("GET CONFIG");
-              confData currentConfig = getConf();
-
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
-              root["ssid"] = currentConfig.wifi_ssid;
-              root["mqtt_server"] = currentConfig.mqtt_server;
-              root["mqtt_user"] = currentConfig.mqtt_user;
+               
+              root["ssid"] = localPrefs->getString(preference_wifi_ssid).c_str();
+              root["mqtt_server"] = localPrefs->getString(preference_mqtt_server).c_str();
+              root["mqtt_user"] = localPrefs->getString(preference_mqtt_user).c_str();
               serializeJson(root, *response);
 
               request->send(response); });
@@ -991,7 +924,7 @@ void setup()
           {
             StaticJsonDocument<256> doc;
             deserializeJson(doc, data);
-            saveConf(doc);
+            prefHandler.saveConf(doc);
 
             request->send(200, "text/plain", "OK");
           } });

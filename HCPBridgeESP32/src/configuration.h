@@ -3,7 +3,8 @@
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
 
-    // Station -> leave empty to use AP for config
+    // Station -> set AP_ACTIF to false if you wanna use password from config file
+    const bool AP_ACTIF = (bool)true;
     const char* STA_SSID   = "";
     const char* STA_PASSWD = "";
 
@@ -35,9 +36,6 @@
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
     
-    // swap serial port for RS485
-    //#define SWAPUART
-
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 

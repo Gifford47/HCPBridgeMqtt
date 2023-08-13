@@ -5,50 +5,90 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
+#include "config.h"
+//max lenght of key is 15char.
 #define preference_started_before "run"
-#define preference_device_id_garade_door "deviceId"
-#define preference_mqtt_broker "mqttbroker"
-#define preference_mqtt_broker_port "mqttport"
-#define preference_mqtt_user "mqttuser"
-#define preference_mqtt_password "mqttpass"
-#define preference_mqtt_log_enabled "mqttlog"
+#define preference_gd_id "device_id"
+#define preference_gd_name "device_name"
+#define preference_mqtt_server "mqtt_server"
+#define preference_mqtt_server_port "mqtt_port"
+#define preference_mqtt_user "mqtt_user"
+#define preference_mqtt_password "mqtt_pass"
 
+#define preference_wifi_ap_mode "wifi_ap_enabled"
+#define preference_wifi_ssid "wifi_ssid"
+#define preference_wifi_password "wifi_pass"
 #define preference_hostname "hostname"
+
+#define preference_gd_avail "gd_availability"
+#define preference_gd_light "gd_light"
+#define preference_gd_vent "gd_vent"
+#define preference_gd_status "gd_status"
+#define preference_gd_det_status "gd_det_status"
+#define preference_gd_position "gd_position"
+#define preference_gd_debug "gd_debug_string"
+#define preference_gd_debug_restart "gd_dg_rst_reas"
+#define preference_gs_temp "sensor_temp"
+#define preference_gs_hum "sensor_humidity"
+#define preference_gs_pres "sensor_atmpreas"
+#define preference_gs_free_dist "sensor_freedist"
+#define preference_gs_park_avail "sen_park_avail"
+
+#define preference_sensor_sr04_trigpin "sen_sr04trigpin"
+#define preference_sensor_sr04_echopin "sen_sr04echopin"
+
+
+
 
 #define preference_query_interval_sensors "sensorsStInterval"
 
-std::vector<char*> _keys =
+std::vector<const char*> _keys =
 {
-        preference_started_before, preference_device_id_garade_door, preference_mqtt_broker, preference_mqtt_broker_port,
-        preference_mqtt_user, preference_mqtt_password, preference_mqtt_log_enabled, preference_query_interval_sensors,
-        preference_hostname,
+        preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_gd_id, 
+        preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
+        preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
+        preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
+        preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
 };
 
-std::vector<char*> _strings =
+std::vector<const char*> _strings =
 {
-        preference_started_before, preference_device_id_garade_door, preference_mqtt_broker, preference_mqtt_broker_port,
-        preference_mqtt_user, preference_mqtt_password, preference_mqtt_log_enabled, preference_query_interval_sensors,
-        preference_hostname,
+        preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password,
+        preference_gd_id, preference_gd_name, preference_mqtt_server,
+        preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname, 
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
+        preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
+        preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail,
 };
 
-std::vector<char*> _ints =
+std::vector<const char*> _ints =
 {
-        preference_mqtt_broker_port, preference_query_interval_sensors,
+        preference_mqtt_server_port, preference_query_interval_sensors, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin
 };
 
-std::vector<char*> _redact =
+std::vector<const char*> _redact =
 {
-    preference_mqtt_user, preference_mqtt_password,
+    preference_wifi_password, preference_mqtt_user, preference_mqtt_password,
 };
-std::vector<char*> _boolPrefs =
+std::vector<const char*> _boolPrefs =
 {
-    preference_started_before, preference_mqtt_log_enabled, 
+    preference_started_before, 
+};
+
+class Preferences_cache {    
+  public:         
+    char mqtt_server[64];
+    char mqtt_user[64];
+    char mqtt_password[64];
+    char hostname[64];
 };
 
 class PreferenceHandler{
  private:
     Preferences* preferences = nullptr;
     bool firstStart = true;
+    Preferences_cache* PreferencesCache = nullptr;
     const bool isKey(const char* key) const{
         return std::find(_keys.begin(), _keys.end(), key) != _keys.end();
     }
@@ -72,21 +112,56 @@ class PreferenceHandler{
         this->preferences->begin("hcpbridgeesp32", false);
         this->firstStart = !preferences->getBool(preference_started_before);
 
-        if(this->firstStart)
+        if(this->firstStart || true)//for debug purpose always refresh variables.
         {
             preferences->putBool(preference_started_before, true);
-            //maybe all preferences should be defaulted here 
+            preferences->putString(preference_gd_id, DEVICE_ID);
+            preferences->putString(preference_gd_name, DEVICENAME);
+            preferences->putString(preference_hostname, HOSTNAME);
+            preferences->putBool(preference_wifi_ap_mode, AP_ACTIF);
+            preferences->putString(preference_wifi_ssid, STA_SSID);
+            preferences->putString(preference_wifi_password, STA_PASSWD);
+            preferences->putString(preference_mqtt_password, MQTTPASSWORD);
+            preferences->putString(preference_mqtt_server, MQTTSERVER);
+            preferences->putString(preference_mqtt_user, MQTTUSER);
+            preferences->putInt(preference_mqtt_server_port, MQTTPORT);
+
+            preferences->putString(preference_gd_avail, GD_AVAIL);
+            preferences->putString(preference_gd_light, GD_LIGHT);
+            preferences->putString(preference_gd_vent, GD_VENT);
+            preferences->putString(preference_gd_status, GD_STATUS);
+            preferences->putString(preference_gd_det_status, GD_DET_STATUS);
+            preferences->putString(preference_gd_position, GD_POSITIOM);
+            preferences->putString(preference_gd_debug, GD_DEBUG);
+            preferences->putString(preference_gd_debug_restart, GD_DEBUG_RESTART);
+            preferences->putString(preference_gs_temp, GS_TEMP);
+            preferences->putString(preference_gs_hum, GS_HUM);
+            preferences->putString(preference_gs_pres, GS_PRES);
+            preferences->putString(preference_gs_free_dist, GS_FREE_DIST);
+            preferences->putString(preference_gs_park_avail, GS_PARK_AVAIL);
+
+            preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
+            preferences->putInt(preference_sensor_sr04_echopin, SR04_ECHOPIN);
             //that way we could avoid some vectors to know the type of the preferences.
             //And use the gettype function and updated them with a case.
-            //set preferences from config file as default value??
         }
+        //setup preferences cache.
+            this->PreferencesCache = new Preferences_cache();
+            strcpy(this->PreferencesCache->mqtt_server, preferences->getString(preference_mqtt_server).c_str());
+            strcpy(this->PreferencesCache->mqtt_user, preferences->getString(preference_mqtt_user).c_str());
+            strcpy(this->PreferencesCache->mqtt_password, preferences->getString(preference_mqtt_password).c_str());
+            strcpy(this->PreferencesCache->hostname, preferences->getString(preference_hostname).c_str());
     }
     Preferences* getPreferences(){
         return this->preferences;
     }
+    Preferences_cache* getPreferencesCache(){
+        return this->PreferencesCache;  
+    }
     bool getFirstStart(){
         return this->firstStart;
     }
+    /*
     void setPreferencesJson(const JsonDocument& preferences){
         //check if If we can access to preferences array like this.
         JsonArray arr = preferences.as<JsonArray>();
@@ -113,7 +188,7 @@ class PreferenceHandler{
                         return;
                     }
                     if(this->isBool(kv.key().c_str())){
-                        this->preferences->putBool(kv.key().c_str(), kv.value().as<const bool*>());
+                        this->preferences->putBool(kv.key().c_str(), kv.value().as<bool>());
                         return;
                     }   
                 } 
@@ -121,11 +196,31 @@ class PreferenceHandler{
         }
     }
     JsonDocument getPreferencesJson(){
- 
-        //see debugpreferences to see how the full preferences can been retrived.
-
-
+        //see debugpreferences to see how the full preferences can been retrived.      
+    }
+    */
+    // handle Preferences
+    void saveConf(StaticJsonDocument<256> doc) {
+        String ssid = doc["conf_ssid"].as<String>();
+        String pass = doc["conf_pass"].as<String>();
+        String mqtt_server = doc["conf_mqtt_server"].as<String>();
+        String mqtt_user = doc["conf_mqtt_user"].as<String>();
+        String mqtt_pass = doc["conf_mqtt_pass"].as<String>();
         
+        // only save passwords if set on UI -> otherwise keep them
+        if (!pass.isEmpty()){ //TODO see how nuki handle password
+            this->preferences->putString(preference_wifi_password, pass);
+        }
+
+        if (!mqtt_pass.isEmpty()){
+            this->preferences->putString(preference_mqtt_password, mqtt_pass);
+        }
+        // Save Settings in Prefs
+        this->preferences->putString(preference_wifi_ssid, ssid);
+        this->preferences->putString(preference_mqtt_server, mqtt_server);
+        this->preferences->putString(preference_mqtt_user, mqtt_user);
+        
+        ESP.restart();
     }
 };
 
