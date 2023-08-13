@@ -4,3 +4,4 @@
 *.bak
 *.bin
 testAsyncReconnect.cpp
+configTest.h
