@@ -5,7 +5,7 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
-#include "config.h"
+#include "configuration.h"
 //max lenght of key is 15char.
 #define preference_started_before "run"
 #define preference_gd_id "device_id"
@@ -112,7 +112,7 @@ class PreferenceHandler{
         this->preferences->begin("hcpbridgeesp32", false);
         this->firstStart = !preferences->getBool(preference_started_before);
 
-        if(this->firstStart || true)//for debug purpose always refresh variables.
+        if(this->firstStart)
         {
             preferences->putBool(preference_started_before, true);
             preferences->putString(preference_gd_id, DEVICE_ID);
@@ -201,26 +201,60 @@ class PreferenceHandler{
     */
     // handle Preferences
     void saveConf(StaticJsonDocument<256> doc) {
-        String ssid = doc["conf_ssid"].as<String>();
-        String pass = doc["conf_pass"].as<String>();
-        String mqtt_server = doc["conf_mqtt_server"].as<String>();
-        String mqtt_user = doc["conf_mqtt_user"].as<String>();
-        String mqtt_pass = doc["conf_mqtt_pass"].as<String>();
+        String apactif = doc[preference_wifi_ap_mode].as<String>();
+        String ssid = doc[preference_wifi_ssid].as<String>();
+        String pass = doc[preference_wifi_password].as<String>();
+        String mqtt_server = doc[preference_mqtt_server].as<String>();
+        int mqtt_port = doc[preference_mqtt_server_port].as<int>();
+        String mqtt_user = doc[preference_mqtt_user].as<String>();
+        String mqtt_pass = doc[preference_mqtt_password].as<String>();
         
-        // only save passwords if set on UI -> otherwise keep them
-        if (!pass.isEmpty()){ //TODO see how nuki handle password
+        if(pass != "*"){
+            //* stands for password not changed
             this->preferences->putString(preference_wifi_password, pass);
         }
 
-        if (!mqtt_pass.isEmpty()){
+        if (mqtt_pass != "*"){
             this->preferences->putString(preference_mqtt_password, mqtt_pass);
         }
         // Save Settings in Prefs
+        if (apactif == "on"){
+           this->preferences->putBool(preference_wifi_ap_mode, true); 
+        } else{
+            this->preferences->putBool(preference_wifi_ap_mode, false); 
+        }
+        this->preferences->putBool(preference_wifi_ap_mode, apactif);
         this->preferences->putString(preference_wifi_ssid, ssid);
         this->preferences->putString(preference_mqtt_server, mqtt_server);
+        this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
         this->preferences->putString(preference_mqtt_user, mqtt_user);
         
         ESP.restart();
+    }
+    void getConf(JsonDocument&  conf){
+
+        String ssid = this->preferences->getString(preference_wifi_ssid).c_str();
+        String mqtt_user = this->preferences->getString(preference_mqtt_user).c_str();
+        String mqtt_server = this->preferences->getString(preference_mqtt_server).c_str();
+
+
+        conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
+        conf[preference_wifi_ssid] = ssid;
+        conf[preference_mqtt_server] = mqtt_user;
+        conf[preference_mqtt_user] = mqtt_server;
+        conf[preference_mqtt_server_port] = this->preferences->getInt(preference_mqtt_server_port);
+        if (this->preferences->getString(preference_wifi_password).length() != 0){
+            //if preferences have been set then return *
+            conf[preference_wifi_password] = "*";
+        }else{
+            conf[preference_wifi_password] = "";
+        }
+        if (this->preferences->getString(preference_mqtt_password).length() != 0){
+            //if preferences have been set then return *
+            conf[preference_mqtt_password] = "*";
+        }else{
+            conf[preference_mqtt_password] = "";
+        }
     }
 };
 

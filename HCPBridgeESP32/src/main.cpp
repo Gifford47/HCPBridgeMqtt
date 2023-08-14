@@ -952,12 +952,10 @@ void setup()
             {
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              DynamicJsonDocument root(1024);
-              root["ssid"] = localPrefs->getString(preference_wifi_ssid).c_str();
-              root["mqtt_server"] = localPrefs->getString(preference_mqtt_server).c_str();
-              root["mqtt_user"] = localPrefs->getString(preference_mqtt_user).c_str();
-              serializeJson(root, *response);
-
+              const int capacity = JSON_OBJECT_SIZE(10); //Strings counts twice
+              StaticJsonDocument<capacity> conf;
+              prefHandler.getConf(conf);
+              serializeJson(conf, *response);
               request->send(response); });
 
   // load requestbody for json Post requests
