@@ -18,6 +18,7 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "bitset": "cpp"
     }
 }

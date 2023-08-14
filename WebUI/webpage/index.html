@@ -108,24 +108,32 @@
 	</div>
 	<form id="conf_form" class="collapsible" style="display: none">
 		<div class="flex">
-			<label for="conf_ssid">WIFI SSID</label>
-			<input type="text" id="conf_ssid" name="conf_ssid">
+			<label for="wifi_ap_enabled">Enable Wifi AP</label>
+			<input type="checkbox" id="wifi_ap_enabled" name="wifi_ap_enabled">
 		</div>	
 		<div class="flex">
-			<label for="conf_pass">WIFI Password</label>
-			<input type="text" id="conf_pass" name="conf_pass">
+			<label for="wifi_ssid">WIFI SSID</label>
+			<input type="text" id="wifi_ssid" name="wifi_ssid">
+		</div>	
+		<div class="flex">
+			<label for="wifi_pass">WIFI Password</label>
+			<input type="text" id="wifi_pass" name="wifi_pass">
 		</div>
 		<div class="flex">
-			<label for="conf_mqtt_server">MQTT Server</label>
-			<input type="text" id="conf_mqtt_server" name="conf_mqtt_server">
+			<label for="mqtt_server">MQTT Server</label>
+			<input type="text" id="mqtt_server" name="mqtt_server">
 		</div>
 		<div class="flex">
-			<label for="conf_mqtt_user">MQTT User</label>
-			<input type="text" id="conf_mqtt_user" name="conf_mqtt_user">
+			<label for="mqtt_port">MQTT Port</label>
+			<input type="text" id="mqtt_port" name="mqtt_port" min="1" max="65535" step="1">
 		</div>
 		<div class="flex">
-			<label for="conf_mqtt_pass">MQTT Password</label>
-			<input type="text" id="conf_mqtt_pass" name="conf_mqtt_pass">
+			<label for="mqtt_user">MQTT User</label>
+			<input type="text" id="mqtt_user" name="mqtt_user">
+		</div>
+		<div class="flex">
+			<label for="mqtt_pass">MQTT Password</label>
+			<input type="text" id="mqtt_pass" name="mqtt_pass">
 		</div>
 		<button type="submit" class="btn">Save & Restart</button>
 	</form>
@@ -227,9 +235,13 @@
 			if (this.readyState == 4 && this.status == 200) {
 			var config = JSON.parse(this.responseText);	
 			console.log(config)
-			document.getElementById("conf_ssid").value = config.ssid
-			document.getElementById("conf_mqtt_server").value = config.mqtt_server
-			document.getElementById("conf_mqtt_user").value = config.mqtt_user
+			//if conf actif sent checked="checked" else remove checked attribute.
+			document.getElementById("wifi_ap_enabled").checked = config.wifi_ap_enabled
+			document.getElementById("wifi_ssid").value = config.wifi_ssid
+			document.getElementById("wifi_pass").value = config.wifi_pass
+			document.getElementById("mqtt_server").value = config.mqtt_server
+			document.getElementById("mqtt_port").value = config.mqtt_port
+			document.getElementById("mqtt_pass").value = config.mqtt_pass
 			return;
 			}
 		};			
