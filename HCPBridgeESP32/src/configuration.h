@@ -60,6 +60,10 @@
     #define SR04_ECHOPIN 18
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
+    // DHT22
+    #define DHT_VCC_PIN 27
+    #define DHTTYPE DHT22
+
     // MQTT strings
     #define BASE_FTOPIC  "hormann/"
     #define FTOPIC  BASE_FTOPIC DEVICE_ID "" 
