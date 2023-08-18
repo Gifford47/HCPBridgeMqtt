@@ -8,6 +8,9 @@
 #include "configuration.h"
 //max lenght of key is 15char.
 #define preference_started_before "run"
+//rs485 pins
+#define preference_rs485_txd "rs485_txd"
+#define preference_rs485_rxd "rs485_rxd"
 #define preference_gd_id "device_id"
 #define preference_gd_name "device_name"
 #define preference_mqtt_server "mqtt_server"
@@ -50,6 +53,7 @@ std::vector<const char*> _keys =
         preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
+        preference_rs485_txd, preference_rs485_rxd
 };
 
 std::vector<const char*> _strings =
@@ -64,7 +68,8 @@ std::vector<const char*> _strings =
 
 std::vector<const char*> _ints =
 {
-        preference_mqtt_server_port, preference_query_interval_sensors, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin
+        preference_mqtt_server_port, preference_query_interval_sensors, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
+        preference_rs485_txd, preference_rs485_rxd
 };
 
 std::vector<const char*> _redact =
@@ -115,6 +120,10 @@ class PreferenceHandler{
         if(this->firstStart)
         {
             preferences->putBool(preference_started_before, true);
+
+            preferences->putInt(preference_rs485_txd, PIN_TXD);
+            preferences->putInt(preference_rs485_rxd, PIN_RXD);
+
             preferences->putString(preference_gd_id, DEVICE_ID);
             preferences->putString(preference_gd_name, DEVICENAME);
             preferences->putString(preference_hostname, HOSTNAME);
@@ -208,6 +217,8 @@ class PreferenceHandler{
         int mqtt_port = doc[preference_mqtt_server_port].as<int>();
         String mqtt_user = doc[preference_mqtt_user].as<String>();
         String mqtt_pass = doc[preference_mqtt_password].as<String>();
+        int rs485_rxd = doc[preference_rs485_rxd].as<int>();
+        int rs485_txd = doc[preference_rs485_txd].as<int>();
         
         if(pass != "*"){
             //* stands for password not changed
@@ -223,26 +234,33 @@ class PreferenceHandler{
         } else{
             this->preferences->putBool(preference_wifi_ap_mode, false); 
         }
-        this->preferences->putBool(preference_wifi_ap_mode, apactif);
         this->preferences->putString(preference_wifi_ssid, ssid);
         this->preferences->putString(preference_mqtt_server, mqtt_server);
         this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
         this->preferences->putString(preference_mqtt_user, mqtt_user);
         
+        this->preferences->putInt(preference_rs485_rxd, rs485_rxd);
+        this->preferences->putInt(preference_rs485_txd, rs485_txd);
+
         ESP.restart();
     }
     void getConf(JsonDocument&  conf){
 
-        String ssid = this->preferences->getString(preference_wifi_ssid).c_str();
-        String mqtt_user = this->preferences->getString(preference_mqtt_user).c_str();
-        String mqtt_server = this->preferences->getString(preference_mqtt_server).c_str();
+        char mqtt_server[64];
+        char mqtt_user[64];
+        char wifi_ssid[64];
 
+        strcpy(mqtt_server, preferences->getString(preference_mqtt_server).c_str());
+        strcpy(mqtt_user, preferences->getString(preference_mqtt_user).c_str());
+        strcpy(wifi_ssid, preferences->getString(preference_wifi_ssid).c_str());
 
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
-        conf[preference_wifi_ssid] = ssid;
+        conf[preference_wifi_ssid] = wifi_ssid;
         conf[preference_mqtt_server] = mqtt_user;
         conf[preference_mqtt_user] = mqtt_server;
         conf[preference_mqtt_server_port] = this->preferences->getInt(preference_mqtt_server_port);
+        conf[preference_rs485_rxd] = this->preferences->getInt(preference_rs485_rxd);
+        conf[preference_rs485_txd] = this->preferences->getInt(preference_rs485_txd);
         if (this->preferences->getString(preference_wifi_password).length() != 0){
             //if preferences have been set then return *
             conf[preference_wifi_password] = "*";

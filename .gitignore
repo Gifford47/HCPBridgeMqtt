@@ -5,3 +5,6 @@
 *.bin
 testAsyncReconnect.cpp
 configTest.h
+CMakeLists.txt
+dependencies.lock
+sdkconfig.m5stack-stamps3

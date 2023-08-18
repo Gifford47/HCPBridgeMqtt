@@ -108,6 +108,14 @@
 	</div>
 	<form id="conf_form" class="collapsible" style="display: none">
 		<div class="flex">
+			<label for="rs485_txd">RS485 TXD</label>
+			<input type="text" id="rs485_txd" name="rs485_txd" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="rs485_rxd">RS485 RXD</label>
+			<input type="text" id="rs485_rxd" name="rs485_rxd" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
 			<label for="wifi_ap_enabled">Enable Wifi AP</label>
 			<input type="checkbox" id="wifi_ap_enabled" name="wifi_ap_enabled">
 		</div>	
@@ -239,9 +247,12 @@
 			document.getElementById("wifi_ap_enabled").checked = config.wifi_ap_enabled
 			document.getElementById("wifi_ssid").value = config.wifi_ssid
 			document.getElementById("wifi_pass").value = config.wifi_pass
+			document.getElementById("mqtt_user").value = config.mqtt_user
 			document.getElementById("mqtt_server").value = config.mqtt_server
 			document.getElementById("mqtt_port").value = config.mqtt_port
 			document.getElementById("mqtt_pass").value = config.mqtt_pass
+			document.getElementById("rs485_txd").value = config.rs485_txd
+			document.getElementById("rs485_rxd").value = config.rs485_rxd
 			return;
 			}
 		};			
