@@ -8,6 +8,11 @@
     const char* STA_SSID   = "";
     const char* STA_PASSWD = "";
 
+    //RS485 pins
+
+    #define PIN_TXD 17 // UART 2 TXT - G17
+    #define PIN_RXD 16 // UART 2 RXD - G16
+
     // MQTT
     #define DEVICE_ID "hcpbridge"
     const char DEVICENAME[] = "Garage Door";

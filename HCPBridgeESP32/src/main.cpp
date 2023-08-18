@@ -9,7 +9,6 @@ extern "C" {
 	#include "freertos/timers.h"
 }
 #include "ArduinoJson.h"
-#include <Preferences.h>
 
 #include "hoermann.h"
 #include "preferencesKeys.h"
@@ -784,7 +783,7 @@ void setup()
   prefHandler.initPreferences();
   localPrefs = prefHandler.getPreferences();
   // setup modbus
-  hoermannEngine->setup();
+  hoermannEngine->setup(localPrefs);
 
   // setup wifi
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
@@ -952,7 +951,7 @@ void setup()
             {
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              const int capacity = JSON_OBJECT_SIZE(10); //Strings counts twice
+              const int capacity = JSON_OBJECT_SIZE(12); //Strings counts twice
               StaticJsonDocument<capacity> conf;
               prefHandler.getConf(conf);
               serializeJson(conf, *response);
