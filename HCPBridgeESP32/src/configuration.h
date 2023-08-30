@@ -25,6 +25,7 @@
     const char GS_PRES[] = "Garage ambient pressure";
     const char GS_FREE_DIST[] = "Garage Free distance";
     const char GS_PARK_AVAIL[] = "Garage park available";
+    const char GS_MOTION[] = "Garage Door Motion";
     const char GD_DEBUG[] = "garage Door Debug";
     const char GD_DEBUG_RESTART[] = "garage Restart Reason";
 
@@ -62,6 +63,9 @@
     #define SR04_ECHOPIN 18
     int SR04_MAXDISTANCECM = 150;
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
+
+    //HC-SR501
+    #define SR501PIN 23
 
     // MQTT strings
     #define BASE_FTOPIC  "hormann/"
