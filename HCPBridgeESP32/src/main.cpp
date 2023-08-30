@@ -56,6 +56,11 @@ AsyncWebServer server(80);
   bool hcsr04_lastpark_available = false;
 #endif
 
+#ifdef USE_HCSR501
+  int hcsr501stat = 0;
+  bool hcsr501_laststat = false;
+#endif
+
 // sensors
 bool new_sensor_data = false;
 
@@ -495,6 +500,9 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor(GS_FREE_DIST, SENSOR_TOPIC, "dist", device);
       sendDiscoveryMessageForBinarySensor(GS_PARK_AVAIL, SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
     #endif
+    #if defined(USE_HCSR501)
+      sendDiscoveryMessageForBinarySensor(GS_MOTION, SENSOR_TOPIC, "pir", HA_OFF, HA_ON, device);
+    #endif
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(GD_DEBUG, "debug", device);
@@ -544,6 +552,24 @@ TaskHandle_t mqttTask;
 
 void SensorCheck(void *parameter){
   while(true){
+    // handle motion sensor at first and send state immediately. Do not 
+    // use updateSensors to avoid unneccessary polling of the other sensors
+    #ifdef USE_HCSR501
+      hcsr501stat = digitalRead(SR501PIN);
+      if (hcsr501stat != hcsr501_laststat) {
+        hcsr501_laststat = hcsr501stat;
+        DynamicJsonDocument doc(1024);
+        char payload[1024];
+        if (hcsr501stat) {
+          doc["motion"] = HA_ON;
+        }
+        else {
+          doc["motion"] = HA_OFF;
+        }
+        serializeJson(doc, payload);
+        mqttClient.publish(SENSOR_TOPIC, 1, true, payload);
+      }
+    #endif
     #ifdef USE_DS18X20
       ds18x20_temp = sensors.getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
@@ -859,6 +885,10 @@ void setup()
     #ifdef USE_HCSR04
       pinMode(SR04_TRIGPIN, OUTPUT); // Sets the trigPin as an Output
       pinMode(SR04_ECHOPIN, INPUT); // Sets the echoPin as an Input
+    #endif
+    #ifdef USE_HCSR501
+      pinMode(SR501PIN, INPUT); // Sets the trigPin as an Output
+      hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
     #endif
       xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
