@@ -60,6 +60,7 @@
     //HC-SR04                   //Uncommment to use a HC-SR04 proximity sensor
     #define SR04_TRIGPIN 5
     #define SR04_ECHOPIN 18
+    int SR04_MAXDISTANCECM = 150;
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // MQTT strings
