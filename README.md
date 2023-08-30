@@ -1,48 +1,50 @@
-# HCPBridge with MQTT + HomeAssistant Support
+# Hörmann HCPBridge with MQTT and HomeAssistant Support
 ![image](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
-Emulates Hörmann UAP1-HCP board using an ESP32 and a RS485 converter, and exposes garage door controls over web page and MQTT.
+Emulates Hörmann UAP1-HCP board (HCP2= Hörmann communication protocol 2) using an ESP32 and a RS485 converter, and exposes garage door controls over web page and MQTT.
 
 **Compatible with the following motors (UAP1-HCP / HCP2-Bus / Modbus):**
 
-* SupraMatic E/P Serie 4
-* ProMatic Serie 4
+* SupraMatic E/P **Serie 4**
+* ProMatic **Serie 4**
 
-It is **not** compatible with E3 series motors. Previous generations have different protocol, different pin layout, and already have another supporting project.
+It is **not** compatible with E**3** series motors. Previous generations have different protocol (HCP1), different pin layout, and already have another supporting project (see [hgdo](https://github.com/steff393/hgdo), [hoermann_door](https://github.com/stephan192/hoermann_door) or [hormann-hcp](https://github.com/raintonr/hormann-hcp)).
 
 ## Functions
 
 * Get current status (door open/close/position, light on/off)
-* Trigger the actions
+* Support for ESP32-S1/S2/S3
+* Support multiple HCP Bridges for multiple garage doors
+* HomeAssistant integration via MQTT-AutoDiscovery
+* Trigger actions via Webinterface
   * light on/off
   * gate open, close, stop
   * gate position: half, ventilation, custom (MQTT set_position compatible)
-* Web Interface
-* Web Service (GET)
+* Configuration (Wifi, MQTT, ...) via Web Interface
+* Web Service [API](#web-service)
 * OTA Update (with username and password)
-<!-- * AsyncWifiManger (hotspot when disconnected) -->
-* DS18X20 or BME280 sensor (with threshold)
-* HCSR04 Proximity sensor (to know if a car is below)
-* Efficient MQTT messages (send only MQTT Message if Door state changed)
-
-## Known Bugs
-* None
-
-## Notes by original author
-
-Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisieren, allerdings gibt es durch die WLAN und TCP/IP-Stackumsetzung Timeoutprobleme, die zum Verbindungsabbruch zwischen dem Antrieb und der Steuerung führen können. Durch die ISR-Version konnte das Problem zwar reduziert aber nicht komplett ausgeschlossen werden. Daher gibt es zwei weitere Versionen, die bisher stabil laufen. Eine Variante nutzt den ESP32 statt ESP8266, welcher über 2 Kerne verfügt und so scheinbar besser mit WLAN-Verbindungsproblemen zurecht kommt. Die andere Option ist ein zweiter MCU, der die MODBUS Simulation übernimmt, sodass sich der ESP8266 nur noch um die Netzwerkkommunikation und das WebInterface kümmern muss.
+* First Use Hotspot for configuration
+* External (optional) sensor support (threshold orientated MQTT messages):
+  * DS18X20 temperature sensor
+  * BME280 temperature and humidity sensor
+  * DHT22 temperature and humidity sensor
+  * HC-SR04 proximity sensor (car (below) detection)
+  * HC-SR501 PIR motion sensor
+* Efficient MQTT traffic (send only MQTT Message if states changed)
 
 ## Web Interface
 
 ***http://[deviceip]***
 
-![alt text](Images/webinterface.PNG)
+![alt text](Images/webinterface.png)
 
-## Web Service
+## Web Services
 
-### Commands
+<details>
+<summary>Send commands</summary>
 
-***http://[deviceip]/command?action=[id]***
+URL: **http://[deviceip]/command?action=[id]**
+<br>
 
 | id | Function | Other Parameters
 |--------|--------------|--------------|
@@ -55,14 +57,15 @@ Eigentlich war das Ziel, die Steuerung komplett nur mit einem ESP8266 zu realisi
 | 6 | Restart | |
 | 7 | Set Position | position=[0-100] |
 
+</details>
 
+<details>
+<summary>Status report</summary>
 
-### Status report
+URL: **http://[deviceip]/status**
+<br>
 
-***http://[deviceip]/status***
-
-Response (JSON)
-
+Response:
 ```
 {
 "valid": true,
@@ -77,82 +80,136 @@ Response (JSON)
 "lastCommandPayload": "close"
 }
 ```
+</details>
 
-### Wifi Status
+<details>
+<summary>Wifi status</summary>
 
-***http://[deviceip]/sysinfo***
+URL: **http://[deviceip]/sysinfo**
+<br>
+</details>
 
-### OTA Firmware update (AsyncElegantOTA)
+<details>
+<summary>OTA Firmware update</summary>
 
-***http://[deviceip]/update***
+URL: **http://[deviceip]/update**
+<br>
 
 ![image](https://user-images.githubusercontent.com/14005124/215216505-8c5abe46-5d40-402b-963a-e3825c63d417.png)
 
-## Pinout RS485 (Plug)
+</details><br>
 
-![alt text](Images/plug-min.png)
+# Let`s build it! 🔨
 
-1. GND (Blue)
-2. GND (Yellow)
-3. B- (Green)
-4. A+ (Red)
-5. \+24V (Black)
-6. \+24V (White)
+## Wiring
 
-## RS485 Adapter
-
-![alt text](Images/rs485board-min.png)  
-Pins A+ (Red) and B- (Green) need a 120 Ohm resistor for BUS termination. Some RS485 adapters provide termination pad to be soldered.
-
-## DS18X20 Temperature Sensor
-
-![DS18X20](Images/ds18x20.jpg) <br/>
-DS18X20 connected to GPIO4.
-
-## HC-SR04 Ultra sonic proximity sensor
-
-To use uncommment the line below in configuration.h. There are also the information about the pine used for the sensor.
-```
-//#define USE_HCSR04
-```
-It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is initialised with 150cm in main.cpp, This setting work for me to get the right status if I restart the esp32 with the car below.
-
-## Circuit
-
-![alt text](Images/esp32.png)
+![min wiring](Images/esp32.png)
 
 ESP32 powering requires a Step Down Module such as LM2596S DC-DC, but any 24VDC ==> 5VDC will do, even the tiny ones with 3 pin.
 Please note that the suggested serial pins for serial interfacing, on ESP32, are 16 RXD and 17 TXD.
 
-It is possible to implement it with protoboard and underside soldering:
+
+<details>
+<summary>It is possible to implement it with protoboard and underside soldering:</summary>
+
+<br>
 
 ![alt text](Images/esp32_protoboard.jpg)
-
 ![alt text](Images/esp32_protoboard2.jpg)
+</details>
 
-## 3D Case
+## RS485
 
-![Body](Images/body.jpg)
-Body with optional BME280 Sensor
+<details open>
+<summary>Pinout RS485 Plug</summary>
+<br>
 
-![Lid](Images/lid.jpg)
-Another prototype
+![alt text](Images/plug-min.png)
+
+> 📌 **Pinout**
+> 1. GND (Blue)<br>
+> 2. GND (Yellow)<br>
+> 3. B- (Green)<br>
+> 4. A+ (Red)<br>
+> 5. \+24V (Black)<br>
+> 6. \+24V (White)<br>
+
+</details>
+
+### RS485 Adapter
+![alt text](Images/rs485_raw.jpg)
+> [!NOTE]<br>
+> Pins A+ (Red) and B- (Green) need a 120 Ohm resistor between them for BUS termination. Some RS485 adapters provide termination pad to be soldered.
+
+## Upload the firmware
+To use the board without any additional sensors (f.e. as showed in section [wiring](#wiring)) you only need to upload the standard firmware binary.
+### Sensors
+
+To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](/flashing_instructions.md) for further info.
+<details>
+<summary>DS18X20 Temperature Sensor</summary>
+
+![DS18X20](Images/ds18x20.jpg) <br/>
+DS18X20 connected to GPIO4.
+<br>
+
+</details>
+
+<details>
+<summary>HC-SR501 PIR Motion sensor</summary>
+NOT YET DOCUMENTED!
+<br>
+</details>
+
+<details>
+<summary>DHT22 Temperature and humudity Sensor</summary>
+NOT YET DOCUMENTED!
+<br>
+</details>
+
+<details>
+<summary>BME280 Temperature and humudity Sensor</summary>
+
+![DS18X20](Images/bme280.jpg) <br/>
+SDA connected to  GPIO21<br>
+SCL/SCK connected to GPIO22<br>
+<br>
+</details>
+
+<details>
+<summary>HC-SR04 Ultra sonic proximity sensor</summary>
+
+<br>
+Use the project task for HC-SR04.
+The wiring pins are:<br>
+SR04 Trigger pin is connected to GPIO5<br>
+SR04 ECHO pin is connected to GPIO18<br><br>
+
+It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is defined with 150cm in configuration.h. This setting might not work for everyone. Change it to your needs.
+
+</details>
 
 ## Installation
-
-![alt text](Images/antrieb-min.png)
 
 * Connect the board to the BUS
 * Run a BUS scan: 
   * Old HW-Version / Promatic4: BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS power  (+24v) is removed when no devices are detected. In case of issues, you may find useful to "jump start" the device using the +24V provision of other connectors of the motor control board.
   * New HW version: with newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-errorcode-04-avoid)
 
-# HCPBridge MQTT (HomeAssistant topics)
+![alt text](Images/antrieb-min.png)
+
+## Set the ventilation position 
 
 This is just a quick and dirty implementation and needs refactoring, but it is working.
 Using the Shutter Custom Card (from HACS) it is also possible to get a representation of the current position of the door, and slide it to custom position (through set_position MQTT command).
 
-The switch to put garage in venting position wors with a small hack. Based on the analyses of dupas.me the motor should gave a status 0A in venting position. As this was not the case the variable VENT_POS in hciemulator.h was default with value '0x08' which correspond to the position when my garage door is in venting position (position available under ***http://[deviceip]/status***). When the door is stopped in this position the doorstate is set as venting.
+The switch for the venting position works with a small hack. Based on the analyses of dupas.me the motor should gave a status 0x0A in venting position. As this was not the case the variable VENT_POS in hciemulator.h was default with value '0x08' which correspond to the position when the garage door is in venting position (position available under ***http://[deviceip]/status***). When the door is stopped in this position the doorstate is set as venting.
 
-![image](https://user-images.githubusercontent.com/14005124/215218504-bddf65e2-6c88-4d0a-83bd-de3cacb63c88.png)
-![alt text](Images/HA.png)
+<details>
+<summary>HomeAssistant shutter cards</summary>
+
+<br>
+
+![Homeassistant card1](Images/ha_shuttercard.png)
+![Homeassistant card2](Images/ha.png)
+</details>
