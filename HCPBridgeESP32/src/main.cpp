@@ -116,7 +116,7 @@ void connectToWifi(String ssid, String pass) {
 
   Serial.println("Connecting to Wi-Fi...");
   WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
-  WiFi.begin(ssid, pass);
+  WiFi.begin(ssid.c_str(), pass.c_str());
 }
 void connectToMqtt()
 {
