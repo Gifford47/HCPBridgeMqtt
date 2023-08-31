@@ -35,10 +35,10 @@ AsyncWebServer server(80);
 
 #ifdef USE_DS18X20
   // Setup a oneWire instance to communicate with any OneWire devices
-  OneWire oneWire(oneWireBus);
-  DallasTemperature sensors(&oneWire);
+  DallasTemperature *ds18x20 = nullptr;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
+  int ds18x20_pin = 0;
 #endif
 #ifdef USE_BME
   TwoWire I2CBME = TwoWire(0);
@@ -50,6 +50,9 @@ AsyncWebServer server(80);
   float bme_last_hum = -99.99;
   float bme_pres = -99.99;
   float bme_last_pres = -99.99;
+  int i2c_onoffpin = 0;
+  int i2c_sdapin = 0;
+  int i2c_sclpin = 0;
 #endif
 
 #ifdef USE_HCSR04
@@ -64,11 +67,12 @@ AsyncWebServer server(80);
 #endif
 
 #ifdef USE_DHT22
-  DHT dht(DHT_VCC_PIN, DHTTYPE);
+  DHT *dht = nullptr;
   float dht22_temp = -99.99;
   float dht22_last_temp = -99.99;
   float dht22_hum = -99.99;
   float dht22_last_hum = -99.99;
+  int dht_vcc_pin = 0;
 #endif
 
 // sensors
@@ -86,6 +90,34 @@ char lastCommandPayload[64];
 PreferenceHandler prefHandler;
 Preferences *localPrefs = nullptr;
 
+class MqttStrings {    
+  public:         
+    char availability_topic [64];
+    char state_topic [64];
+    char cmd_topic [64];
+    char pos_topic [64];
+    char setpos_topic [64];
+    char lamp_topic [64];
+    char door_topic [64];
+    char vent_topic [64];
+    char sensor_topic [64];
+    char debug_topic [64];
+    String st_availability_topic;
+    String st_state_topic;
+    String st_cmd_topic;
+    String st_cmd_topic_var;
+    String st_cmd_topic_subs;
+    String st_pos_topic;
+    String st_setpos_topic;
+    String st_lamp_topic;
+    String st_door_topic;
+    String st_vent_topic;
+    String st_sensor_topic;
+    String st_debug_topic;   
+};
+MqttStrings mqttStrings;
+
+
 #ifdef DEBUG
   bool boot_Flag = true;
 #endif
@@ -101,6 +133,33 @@ const char *ToHA(bool value)
     return HA_OFF;
   }
   return "UNKNOWN";
+}
+
+void setuptMqttStrings(){
+  String ftopic = "hormann/" + localPrefs->getString(preference_gd_id);
+  mqttStrings.st_availability_topic = ftopic + "/availability";
+  mqttStrings.st_state_topic = ftopic + "/state";
+  mqttStrings.st_cmd_topic = ftopic + "/command";
+  mqttStrings.st_cmd_topic_var = mqttStrings.st_cmd_topic + "/%s";
+  mqttStrings.st_cmd_topic_subs = mqttStrings.st_cmd_topic + "/#";
+  mqttStrings.st_pos_topic = ftopic + "/position";
+  mqttStrings.st_setpos_topic = ftopic + "/set_position";
+  mqttStrings.st_lamp_topic = mqttStrings.st_cmd_topic  + "/lamp";
+  mqttStrings.st_door_topic = mqttStrings.st_cmd_topic  + "/door";
+  mqttStrings.st_vent_topic = mqttStrings.st_cmd_topic  + "/vent";
+  mqttStrings.st_sensor_topic = ftopic + "/sensor";
+  mqttStrings.st_debug_topic = ftopic + "/debug";
+
+  strcpy(mqttStrings.availability_topic, mqttStrings.st_availability_topic.c_str());
+  strcpy(mqttStrings.state_topic, mqttStrings.st_state_topic.c_str());
+  strcpy(mqttStrings.cmd_topic, mqttStrings.st_cmd_topic.c_str());
+  strcpy(mqttStrings.pos_topic, mqttStrings.st_pos_topic.c_str()); 
+  strcpy(mqttStrings.setpos_topic, mqttStrings.st_setpos_topic.c_str());
+  strcpy(mqttStrings.lamp_topic, mqttStrings.st_lamp_topic.c_str());
+  strcpy(mqttStrings.door_topic, mqttStrings.st_door_topic.c_str());
+  strcpy(mqttStrings.vent_topic, mqttStrings.st_vent_topic.c_str());
+  strcpy(mqttStrings.sensor_topic, mqttStrings.st_sensor_topic.c_str());
+  strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
 
 void switchLamp(bool on){
@@ -187,10 +246,10 @@ void updateDoorStatus(bool forceUpate = false)
     doc["vent"] = venting;
 
     serializeJson(doc, payload);
-    mqttClient.publish(STATE_TOPIC, 1, true, payload);
+    mqttClient.publish(mqttStrings.state_topic, 1, true, payload);
 
     sprintf(payload, "%d", (int)(hoermannEngine->state->currentPosition * 100));
-    mqttClient.publish(POS_TOPIC, 1, true, payload);
+    mqttClient.publish(mqttStrings.pos_topic, 1, true, payload);
   }
 }
 void updateSensors(bool forceUpate = false){
@@ -228,7 +287,7 @@ void updateSensors(bool forceUpate = false){
         doc["hum"] = buf;
       #endif
       serializeJson(doc, payload);
-      mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+      mqttClient.publish(mqttStrings.sensor_topic, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
     }
   #endif
 }
@@ -241,7 +300,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   strncpy(lastCommandPayload, payload, len);
   lastCommandPayload[len] = '\0';
 
-  if (strcmp(topic, LAMP_TOPIC) == 0){
+  if (strcmp(topic, mqttStrings.lamp_topic) == 0){
     if (strncmp(payload, HA_ON, len) == 0){
       switchLamp(true);
     }
@@ -252,7 +311,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       hoermannEngine->toogleLight();
     }
   }
-  else if (strcmp(DOOR_TOPIC, topic) == 0 || strcmp(VENT_TOPIC, topic) == 0){
+  else if (strcmp(mqttStrings.door_topic, topic) == 0 || strcmp(mqttStrings.vent_topic, topic) == 0){
     if (strncmp(payload, HA_OPEN, len) == 0){
       hoermannEngine->openDoor();
     }
@@ -269,7 +328,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       hoermannEngine->ventilationPositionDoor();
     }
   }
-  else if (strcmp(SETPOS_TOPIC, topic) == 0){
+  else if (strcmp(mqttStrings.setpos_topic, topic) == 0){
     hoermannEngine->setPosition(atoi(lastCommandPayload));
   }
 
@@ -277,12 +336,12 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void sendOnline()
 {
-  mqttClient.publish(AVAILABILITY_TOPIC, 0, true, HA_ONLINE);
+  mqttClient.publish(mqttStrings.availability_topic, 0, true, HA_ONLINE);
 }
 
 void setWill()
 {
-  mqttClient.setWill(AVAILABILITY_TOPIC, 0, true, HA_OFFLINE);
+  mqttClient.setWill(mqttStrings.availability_topic, 0, true, HA_OFFLINE);
 }
 
 void sendDebug(char *key, String value)
@@ -292,17 +351,17 @@ void sendDebug(char *key, String value)
   doc["reset-reason"] = esp_reset_reason();
   doc["debug"] = hoermannEngine->state->debugMessage;
   serializeJson(doc, payload);
-  mqttClient.publish(DEBUGTOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+  mqttClient.publish(mqttStrings.debug_topic, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
 }
 
 void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char key[], const char off[], const char on[], const JsonDocument& device)
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, DEVICE_ID, key);
+  sprintf(full_topic, HA_DISCOVERY_BIN_SENSOR, localPrefs->getString(preference_gd_id), key);
 
   char uid[64];
-  sprintf(uid, "%s_binary_sensor_%s", DEVICE_ID, key);
+  sprintf(uid, "%s_binary_sensor_%s", localPrefs->getString(preference_gd_id), key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -311,7 +370,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 
   doc["name"] = name;
   doc["state_topic"] = topic;
-  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
@@ -329,14 +388,14 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
 void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 {
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_AV_SENSOR, DEVICE_ID);
+  sprintf(full_topic, HA_DISCOVERY_AV_SENSOR, localPrefs->getString(preference_gd_id));
 
   char uid[64];
-  sprintf(uid, "%s_sensor_availability", DEVICE_ID);
+  sprintf(uid, "%s_sensor_availability", localPrefs->getString(preference_gd_id));
   DynamicJsonDocument doc(1024);
 
-  doc["name"] = GD_AVAIL;
-  doc["state_topic"] = AVAILABILITY_TOPIC;
+  doc["name"] = localPrefs->getString(preference_gd_avail);
+  doc["state_topic"] = mqttStrings.availability_topic;
   doc["unique_id"] = uid;
   doc["device"] = device;
 
@@ -350,10 +409,10 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
 {
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_SENSOR, DEVICE_ID, key);
+  sprintf(full_topic, HA_DISCOVERY_SENSOR, localPrefs->getString(preference_gd_id), key);
 
   char uid[64];
-  sprintf(uid, "%s_sensor_%s", DEVICE_ID, key);
+  sprintf(uid, "%s_sensor_%s", localPrefs->getString(preference_gd_id), key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -362,7 +421,7 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
 
   doc["name"] = name;
   doc["state_topic"] = topic;
-  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
@@ -379,13 +438,13 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
 {
 
   char command_topic[64];
-  sprintf(command_topic, CMD_TOPIC "/%s", DEBUGTOPIC);
+  sprintf(command_topic, mqttStrings.st_cmd_topic_var.c_str(), mqttStrings.debug_topic);
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_TEXT, DEVICE_ID, key);
+  sprintf(full_topic, HA_DISCOVERY_TEXT, localPrefs->getString(preference_gd_id), key);
 
   char uid[64];
-  sprintf(uid, "%s_text_%s", DEVICE_ID, key);
+  sprintf(uid, "%s_text_%s", localPrefs->getString(preference_gd_id), key);
 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
@@ -393,9 +452,9 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = DEBUGTOPIC;
+  doc["state_topic"] = mqttStrings.debug_topic;
   doc["command_topic"] = command_topic;
-  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
@@ -411,31 +470,31 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
 void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false)
 {
   char command_topic[64];
-  sprintf(command_topic, CMD_TOPIC "/%s", topic);
+  sprintf(command_topic, mqttStrings.st_cmd_topic_var.c_str(), topic);
 
   char full_topic[64];
-  sprintf(full_topic, discovery, DEVICE_ID, topic);
+  sprintf(full_topic, discovery, localPrefs->getString(preference_gd_id), topic);
 
   char value_template[64];
   sprintf(value_template, "{{ value_json.%s }}", topic);
 
   char uid[64];
   if (discovery == HA_DISCOVERY_LIGHT){
-    sprintf(uid, "%s_light_%s",DEVICE_ID, topic);
+    sprintf(uid, "%s_light_%s",localPrefs->getString(preference_gd_id), topic);
   }
   else{
-    sprintf(uid, "%s_switch_%s",DEVICE_ID, topic);
+    sprintf(uid, "%s_switch_%s",localPrefs->getString(preference_gd_id), topic);
   }
 
   DynamicJsonDocument doc(1024);
 
   doc["name"] = name;
-  doc["state_topic"] = STATE_TOPIC;
+  doc["state_topic"] = mqttStrings.state_topic;
   doc["command_topic"] = command_topic;
   doc["payload_on"] = on;
   doc["payload_off"] = off;
   doc["icon"] = icon;
-  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
@@ -453,21 +512,21 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
 {
 
   char command_topic[64];
-  sprintf(command_topic, CMD_TOPIC "/%s", topic);
+  sprintf(command_topic, mqttStrings.st_cmd_topic_var.c_str(), topic);
 
   char full_topic[64];
-  sprintf(full_topic, HA_DISCOVERY_COVER, DEVICE_ID, topic);
+  sprintf(full_topic, HA_DISCOVERY_COVER, localPrefs->getString(preference_gd_id), topic);
 
   char uid[64];
-  sprintf(uid, "%s_cover_%s", DEVICE_ID, topic);
+  sprintf(uid, "%s_cover_%s", localPrefs->getString(preference_gd_id), topic);
 
   DynamicJsonDocument doc(1024);
  //if it didn't work try without state topic.
   doc["name"] = name;
-  doc["state_topic"] = STATE_TOPIC;
+  doc["state_topic"] = mqttStrings.state_topic;
   doc["command_topic"] = command_topic;
-  doc["position_topic"] = POS_TOPIC;
-  doc["set_position_topic"] = SETPOS_TOPIC;
+  doc["position_topic"] = mqttStrings.pos_topic;
+  doc["set_position_topic"] = mqttStrings.setpos_topic;
   doc["position_open"] = 100;
   doc["position_closed"] = 0;
 
@@ -484,7 +543,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   doc["state_closed"] = HA_CLOSED;
   doc["state_closing"] = HA_CLOSING;
   doc["state_stopped"] = HA_STOP;
-  doc["availability_topic"] = AVAILABILITY_TOPIC;
+  doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
@@ -502,42 +561,42 @@ void sendDiscoveryMessage()
   //declare json object here for device instead of creating in each methode. 150 bytes should be enough
   const int capacity = JSON_OBJECT_SIZE(5);
   StaticJsonDocument<capacity> device;
-  device["identifiers"] = DEVICENAME;
-  device["name"] = DEVICENAME;
+  device["identifiers"] = localPrefs->getString(preference_gd_name);
+  device["name"] = localPrefs->getString(preference_gd_name);
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
   device["manufacturer"] = "Hörmann";
   
   sendDiscoveryMessageForAVSensor(device);
   //not able to get it working sending the discovery message for light.
-  sendDiscoveryMessageForSwitch(GD_LIGHT, HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
-  sendDiscoveryMessageForBinarySensor(GD_LIGHT, STATE_TOPIC, "lamp", HA_OFF, HA_ON, device);
-  sendDiscoveryMessageForSwitch(GD_VENT, HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
-  sendDiscoveryMessageForCover(DEVICENAME, "door", device);
+  sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_light).c_str(), HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
+  sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gd_light).c_str(), mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
+  sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+  sendDiscoveryMessageForCover(localPrefs->getString(preference_gd_name).c_str(), "door", device);
 
-  sendDiscoveryMessageForSensor(GD_STATUS, STATE_TOPIC, "doorstate", device);
-  sendDiscoveryMessageForSensor(GD_DET_STATUS, STATE_TOPIC, "detailedState", device);
-  sendDiscoveryMessageForSensor(GD_POSITIOM, STATE_TOPIC, "doorposition", device);
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device);
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device);
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_position).c_str(), mqttStrings.state_topic, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
-      sendDiscoveryMessageForSensor(GS_HUM, SENSOR_TOPIC, "hum", device);
-      sendDiscoveryMessageForSensor(GS_PRES, SENSOR_TOPIC, "pres", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device);
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
     #endif
     #if defined(USE_HCSR04)
-      sendDiscoveryMessageForSensor(GS_FREE_DIST, SENSOR_TOPIC, "dist", device);
-      sendDiscoveryMessageForBinarySensor(GS_PARK_AVAIL, SENSOR_TOPIC, "free", HA_OFF, HA_ON, device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device);
+      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_park_avail).c_str(), mqttStrings.sensor_topic, "free", HA_OFF, HA_ON, device);
     #endif
     #if defined(USE_DHT22)
-      sendDiscoveryMessageForSensor(GS_TEMP, SENSOR_TOPIC, "temp", device);
-      sendDiscoveryMessageForSensor(GS_HUM, SENSOR_TOPIC, "hum", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
     #endif
   #endif
   #ifdef DEBUG
-    sendDiscoveryMessageForDebug(GD_DEBUG, "debug", device);
-    sendDiscoveryMessageForDebug(GD_DEBUG_RESTART, "reset-reason", device);
+    sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug).c_str(), "debug", device);
+    sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug_restart).c_str(), "reset-reason", device);
   #endif
 }
 
@@ -547,7 +606,7 @@ void onMqttConnect(bool sessionPresent)
   mqttConnected = true;
   xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
   sendOnline();
-  mqttClient.subscribe(CMD_TOPIC "/#", 1);
+  mqttClient.subscribe(mqttStrings.st_cmd_topic_subs.c_str(), 1);
   updateDoorStatus(true);
   updateSensors(true);
   sendDiscoveryMessage();
@@ -585,17 +644,17 @@ TaskHandle_t mqttTask;
 void SensorCheck(void *parameter){
   while(true){
     #ifdef USE_DS18X20
-      ds18x20_temp = sensors.getTempCByIndex(0);
+      ds18x20_temp = ds18x20->getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
         ds18x20_last_temp = ds18x20_temp;
         new_sensor_data = true;
       }
     #endif
     #ifdef USE_BME
-      if (digitalRead(I2C_ON_OFF) == LOW) {
-        digitalWrite(I2C_ON_OFF, HIGH);   // activate sensor
+      if (digitalRead(i2c_onoffpin) == LOW) {
+        digitalWrite(i2c_onoffpin, HIGH);   // activate sensor
         sleep(10);
-        I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+        I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
         bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
         //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
       }
@@ -605,7 +664,7 @@ void SensorCheck(void *parameter){
         // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
         // serializeJson(doc, payload);
         // mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
-        digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
+        digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
       } else {
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
@@ -618,7 +677,7 @@ void SensorCheck(void *parameter){
             new_sensor_data = true;
           }
         } else {
-          digitalWrite(I2C_ON_OFF, LOW);      // deactivate sensor
+          digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
         }
       }
     #endif
@@ -651,12 +710,12 @@ void SensorCheck(void *parameter){
         }
     #endif
     #ifdef USE_DHT22
-      pinMode(DHT_VCC_PIN, OUTPUT);
-      digitalWrite(DHT_VCC_PIN, HIGH);
-      dht.begin();
+      pinMode(dht_vcc_pin, OUTPUT);
+      digitalWrite(dht_vcc_pin, HIGH);
+      dht->begin();
 
-      dht22_temp = dht.readTemperature();
-      dht22_hum = dht.readHumidity();
+      dht22_temp = dht->readTemperature();
+      dht22_hum = dht->readHumidity();
 
       if (abs(dht22_temp) >= temp_threshold || abs(dht22_hum) >= hum_threshold){
         dht22_last_temp = dht22_temp;
@@ -664,7 +723,7 @@ void SensorCheck(void *parameter){
         new_sensor_data = true;
       }
     #endif
-    vTaskDelay(SENSE_PERIOD);     // delay task xxx ms if statemachine had nothing to do
+    vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
   }
 }
 
@@ -792,6 +851,7 @@ void setup()
   WiFi.mode(WIFI_AP_STA);
   WiFi.onEvent(WiFiEvent);
 
+  setuptMqttStrings();
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onMessage(onMqttMessage);
@@ -816,12 +876,19 @@ void setup()
 
   #ifdef SENSORS
     #ifdef USE_DS18X20
-      // Start the DS18B20 sensor
-      sensors.begin();
+      ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
+      OneWire oneWire(ds18x20_pin);
+      static DallasTemperature static_ds18x20(&oneWire);
+      // save its address.
+      ds18x20 = &static_ds18x20;
+      ds18x20->begin();
     #endif
     #ifdef USE_BME
-      pinMode(I2C_ON_OFF, OUTPUT);
-      I2CBME.begin(I2C_SDA, I2C_SCL);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
+      i2c_onoffpin = localPrefs->getInt(preference_sensor_i2c_on_off);
+      i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
+      i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
+      pinMode(i2c_onoffpin, OUTPUT);
+      I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
       //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
@@ -832,9 +899,13 @@ void setup()
       pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
     #endif
     #ifdef USE_DHT22
-      pinMode(DHT_VCC_PIN, OUTPUT);
-      digitalWrite(DHT_VCC_PIN, HIGH);
-      dht.begin();
+      dht_vcc_pin = localPrefs->getInt(preference_sensor_dht_vcc_pin);
+       static DHT static_dht(dht_vcc_pin, DHTTYPE);
+      // save its address.
+      dht = &static_dht;
+      pinMode(dht_vcc_pin, OUTPUT);
+      digitalWrite(dht_vcc_pin, HIGH);
+      dht->begin();
     #endif
 
     xTaskCreatePinnedToCore(
@@ -951,7 +1022,7 @@ void setup()
             {
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              const int capacity = JSON_OBJECT_SIZE(12); //Strings counts twice
+              const int capacity = JSON_OBJECT_SIZE(65); //Strings counts twice
               StaticJsonDocument<capacity> conf;
               prefHandler.getConf(conf);
               serializeJson(conf, *response);
@@ -963,7 +1034,8 @@ void setup()
           // Handle setting config request
           if (request->url() == "/config")
           {
-            StaticJsonDocument<256> doc;
+            const int capacity = JSON_OBJECT_SIZE(70); //Strings counts twice
+            StaticJsonDocument<capacity> doc;
             deserializeJson(doc, data);
             prefHandler.saveConf(doc);
 

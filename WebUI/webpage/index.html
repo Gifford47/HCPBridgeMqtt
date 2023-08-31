@@ -69,6 +69,15 @@
   		border-radius: 4px;
 		font-size: 1.2rem;
 	}
+	input[type=number] {
+		width: 100%;
+		padding: 8px 8px;
+		margin: 8px 0;
+		box-sizing: border-box;
+		border: 2px solid grey;
+  		border-radius: 4px;
+		font-size: 1.2rem;
+	}
 
 	.flex label {
 		min-width: 12rem;
@@ -109,11 +118,11 @@
 	<form id="conf_form" class="collapsible" style="display: none">
 		<div class="flex">
 			<label for="rs485_txd">RS485 TXD</label>
-			<input type="text" id="rs485_txd" name="rs485_txd" min="1" max="45" step="1">
+			<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="45" step="1">
 		</div>
 		<div class="flex">
 			<label for="rs485_rxd">RS485 RXD</label>
-			<input type="text" id="rs485_rxd" name="rs485_rxd" min="1" max="45" step="1">
+			<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="45" step="1">
 		</div>
 		<div class="flex">
 			<label for="wifi_ap_enabled">Enable Wifi AP</label>
@@ -133,7 +142,7 @@
 		</div>
 		<div class="flex">
 			<label for="mqtt_port">MQTT Port</label>
-			<input type="text" id="mqtt_port" name="mqtt_port" min="1" max="65535" step="1">
+			<input type="number" id="mqtt_port" name="mqtt_port" min="1" max="65535" step="1">
 		</div>
 		<div class="flex">
 			<label for="mqtt_user">MQTT User</label>
@@ -142,6 +151,90 @@
 		<div class="flex">
 			<label for="mqtt_pass">MQTT Password</label>
 			<input type="text" id="mqtt_pass" name="mqtt_pass">
+		</div>
+		<div class="flex">
+			<label for="gd_availability">GD Availability</label>
+			<input type="text" id="gd_availability" name="gd_availability">
+		</div>
+		<div class="flex">
+			<label for="gd_light">GD Light</label>
+			<input type="text" id="gd_light" name="gd_light">
+		</div>
+		<div class="flex">
+			<label for="gd_vent">GD Vent</label>
+			<input type="text" id="gd_vent" name="gd_vent">
+		</div>
+		<div class="flex">
+			<label for="gd_status">GD Status</label>
+			<input type="text" id="gd_status" name="gd_status">
+		</div>
+		<div class="flex">
+			<label for="gd_det_status">GD Detailed Statsu</label>
+			<input type="text" id="gd_det_status" name="gd_det_status">
+		</div>
+		<div class="flex">
+			<label for="gd_position">GD Position</label>
+			<input type="text" id="gd_position" name="gd_position">
+		</div>
+		<div class="flex">
+			<label for="gd_debug_string">GD Debug String</label>
+			<input type="text" id="gd_debug_string" name="gd_debug_string">
+		</div>
+		<div class="flex">
+			<label for="gd_dg_rst_reas">Restart Reason</label>
+			<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas">
+		</div>
+		<div class="flex">
+			<label for="sensor_temp">Sensor temp</label>
+			<input type="text" id="sensor_temp" name="sensor_temp">
+		</div>
+		<div class="flex">
+			<label for="sensor_humidity">Sensor Humitidy</label>
+			<input type="text" id="sensor_humidity" name="sensor_humidity">
+		</div>
+		<div class="flex">
+			<label for="sensor_atmpreas">Sensor preasure</label>
+			<input type="text" id="sensor_atmpreas" name="sensor_atmpreas">
+		</div>
+		<div class="flex">
+			<label for="sensor_freedist">Sensor free Dist</label>
+			<input type="text" id="sensor_freedist" name="sensor_freedist">
+		</div>
+		<div class="flex">
+			<label for="sen_park_avail">Sensor park Available</label>
+			<input type="text" id="sen_park_avail" name="sen_park_avail">
+		</div>
+		<div class="flex">
+			<label for="sen_i2c_sda">Pin i2c SDA</label>
+			<input type="number" id="sen_i2c_sda" name="sen_i2c_sda" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_i2c_scl">Pin i2c SCL</label>
+			<input type="number" id="sen_i2c_scl" name="sen_i2c_scl" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_i2c_onoff">Pin i2c on off</label>
+			<input type="number" id="sen_i2c_onoff" name="sen_i2c_onoff" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_dhtvccpin">Pin DHTVCC</label>
+			<input type="number" id="sen_dhtvccpin" name="sen_dhtvccpin" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_ds18x20pin">Pin ds18x20</label>
+			<input type="number" id="sen_ds18x20pin" name="sen_ds18x20pin" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_sr04trigpin">Pin SR04 trig</label>
+			<input type="number" id="sen_sr04trigpin" name="sen_sr04trigpin" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sen_sr04echopin">Pin SR04 ercho</label>
+			<input type="number" id="sen_sr04echopin" name="sen_sr04echopin" min="1" max="45" step="1">
+		</div>
+		<div class="flex">
+			<label for="sensorsStInterval">Sensor Query interval</label>
+			<input type="number" id="sensorsStInterval" name="sensorsStInterval" min="1" step="1">
 		</div>
 		<button type="submit" class="btn">Save & Restart</button>
 	</form>
@@ -253,6 +346,27 @@
 			document.getElementById("mqtt_pass").value = config.mqtt_pass
 			document.getElementById("rs485_txd").value = config.rs485_txd
 			document.getElementById("rs485_rxd").value = config.rs485_rxd
+
+			document.getElementById("gd_availability").value = config.gd_availability
+			document.getElementById("gd_light").value = config.gd_light
+			document.getElementById("gd_vent").value = config.gd_vent
+			document.getElementById("gd_status").value = config.gd_status
+			document.getElementById("gd_det_status").value = config.gd_det_status
+			document.getElementById("gd_position").value = config.gd_position
+			document.getElementById("gd_debug_string").value = config.gd_debug_string
+
+			document.getElementById("sensor_temp").value = config.sensor_temp
+			document.getElementById("sensor_humidity").value = config.sensor_humidity
+			document.getElementById("sensor_atmpreas").value = config.sensor_atmpreas
+			document.getElementById("sensor_freedist").value = config.sensor_freedist
+			document.getElementById("sen_i2c_sda").value = config.sen_i2c_sda
+			document.getElementById("sen_i2c_scl").value = config.sen_i2c_scl
+			document.getElementById("sen_i2c_onoff").value = config.sen_i2c_onoff
+			document.getElementById("sen_dhtvccpin").value = config.sen_dhtvccpin
+			document.getElementById("sen_ds18x20pin").value = config.sen_ds18x20pin
+			document.getElementById("sen_sr04trigpin").value = config.sen_sr04trigpin
+			document.getElementById("sen_sr04echopin").value = config.sen_sr04echopin
+			document.getElementById("sensorsStInterval").value = config.sensorsStInterval
 			return;
 			}
 		};			

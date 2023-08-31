@@ -21,7 +21,7 @@
 #define preference_wifi_ap_mode "wifi_ap_enabled"
 #define preference_wifi_ssid "wifi_ssid"
 #define preference_wifi_password "wifi_pass"
-#define preference_hostname "hostname"
+#define preference_hostname "hostname"  //todo needs to be added in the Webui
 
 #define preference_gd_avail "gd_availability"
 #define preference_gd_light "gd_light"
@@ -37,30 +37,35 @@
 #define preference_gs_free_dist "sensor_freedist"
 #define preference_gs_park_avail "sen_park_avail"
 
+
+#define preference_sensor_i2c_sda "sen_i2c_sda"
+#define preference_sensor_i2c_scl "sen_i2c_scl"
+#define preference_sensor_i2c_on_off "sen_i2c_onoff"
+
+#define preference_sensor_dht_vcc_pin "sen_dhtvccpin"
+#define preference_sensor_ds18x20_pin "sen_ds18x20pin"
+
 #define preference_sensor_sr04_trigpin "sen_sr04trigpin"
 #define preference_sensor_sr04_echopin "sen_sr04echopin"
-
-
-
 
 #define preference_query_interval_sensors "sensorsStInterval"
 
 std::vector<const char*> _keys =
 {
-        preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_gd_id, 
+        preference_started_before, preference_rs485_txd, preference_rs485_rxd, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_gd_id, 
         preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
         preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
         preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
-        preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
-        preference_rs485_txd, preference_rs485_rxd
+        preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_i2c_sda, preference_sensor_i2c_scl,
+        preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
 };
 
 std::vector<const char*> _strings =
 {
         preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password,
         preference_gd_id, preference_gd_name, preference_mqtt_server,
-        preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname, 
+        preference_mqtt_user, preference_mqtt_password, preference_hostname, 
         preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail,
@@ -68,8 +73,9 @@ std::vector<const char*> _strings =
 
 std::vector<const char*> _ints =
 {
-        preference_mqtt_server_port, preference_query_interval_sensors, preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
-        preference_rs485_txd, preference_rs485_rxd
+        preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  
+        preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, 
+        preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
 };
 
 std::vector<const char*> _redact =
@@ -79,6 +85,10 @@ std::vector<const char*> _redact =
 std::vector<const char*> _boolPrefs =
 {
     preference_started_before, 
+};
+std::vector<const char*> _longPrefs =
+{
+    preference_query_interval_sensors, 
 };
 
 class Preferences_cache {    
@@ -149,8 +159,19 @@ class PreferenceHandler{
             preferences->putString(preference_gs_free_dist, GS_FREE_DIST);
             preferences->putString(preference_gs_park_avail, GS_PARK_AVAIL);
 
+
+            preferences->putInt(preference_sensor_i2c_sda, I2C_SDA);
+            preferences->putInt(preference_sensor_i2c_scl, I2C_SCL);
+            preferences->putInt(preference_sensor_i2c_on_off, I2C_ON_OFF);
+
+            preferences->putInt(preference_sensor_dht_vcc_pin, DHT_VCC_PIN);
+            preferences->putInt(preference_sensor_ds18x20_pin, oneWireBus);
+
             preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
             preferences->putInt(preference_sensor_sr04_echopin, SR04_ECHOPIN);
+
+            preferences->putLong(preference_query_interval_sensors, SENSE_PERIOD);
+            //TODO putin didn't works 
             //that way we could avoid some vectors to know the type of the preferences.
             //And use the gettype function and updated them with a case.
         }
@@ -209,7 +230,7 @@ class PreferenceHandler{
     }
     */
     // handle Preferences
-    void saveConf(StaticJsonDocument<256> doc) {
+    void saveConf(JsonDocument& doc) {
         String apactif = doc[preference_wifi_ap_mode].as<String>();
         String ssid = doc[preference_wifi_ssid].as<String>();
         String pass = doc[preference_wifi_password].as<String>();
@@ -217,8 +238,32 @@ class PreferenceHandler{
         int mqtt_port = doc[preference_mqtt_server_port].as<int>();
         String mqtt_user = doc[preference_mqtt_user].as<String>();
         String mqtt_pass = doc[preference_mqtt_password].as<String>();
+
+        String gd_avail = doc[preference_gd_avail].as<String>();
+        String gd_light = doc[preference_gd_light].as<String>();
+        String gd_vent = doc[preference_gd_vent].as<String>();
+        String gd_status = doc[preference_gd_status].as<String>();
+        String gd_det_status = doc[preference_gd_det_status].as<String>();
+        String gd_position = doc[preference_gd_position].as<String>();
+        String gd_debug = doc[preference_gd_debug].as<String>();
+        String gd_debug_rest = doc[preference_gd_debug_restart].as<String>();
+        String gs_temp = doc[preference_gs_temp].as<String>();
+        String gs_hum = doc[preference_gs_hum].as<String>();
+        String gs_pres = doc[preference_gs_pres].as<String>();
+        String gs_free_dist = doc[preference_gs_free_dist].as<String>();
+        String gs_park_avail = doc[preference_gs_park_avail].as<String>();
+
+
         int rs485_rxd = doc[preference_rs485_rxd].as<int>();
         int rs485_txd = doc[preference_rs485_txd].as<int>();
+        int i2c_sda = doc[preference_sensor_i2c_sda].as<int>();
+        int i2c_scl = doc[preference_sensor_i2c_scl].as<int>();
+        int i2c_on_off = doc[preference_sensor_i2c_on_off].as<int>();
+        int dht_vcc = doc[preference_sensor_dht_vcc_pin].as<int>();
+        int ds18x20 = doc[preference_sensor_ds18x20_pin].as<int>();
+        int sr04_trig = doc[preference_sensor_sr04_trigpin].as<int>();
+        int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
+        long qry_long = doc[preference_query_interval_sensors].as<long>();
         
         if(pass != "*"){
             //* stands for password not changed
@@ -238,9 +283,35 @@ class PreferenceHandler{
         this->preferences->putString(preference_mqtt_server, mqtt_server);
         this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
         this->preferences->putString(preference_mqtt_user, mqtt_user);
+                
+        this->preferences->putString(preference_gd_avail, gd_avail);
+        this->preferences->putString(preference_gd_light, gd_light);
+        this->preferences->putString(preference_gd_vent, gd_vent);
+        this->preferences->putString(preference_gd_status, gd_status);
+        this->preferences->putString(preference_gd_det_status, gd_det_status);
+        this->preferences->putString(preference_gd_position, gd_position);
+        this->preferences->putString(preference_gd_debug, gd_debug);
+        this->preferences->putString(preference_gd_debug_restart, gd_debug_rest);
+        this->preferences->putString(preference_gs_temp, gs_temp);
+        this->preferences->putString(preference_gs_hum, gs_hum);
+        this->preferences->putString(preference_gs_pres, gs_pres);
+        this->preferences->putString(preference_gs_free_dist, gs_free_dist);
+        this->preferences->putString(preference_gs_park_avail, gs_park_avail);
         
         this->preferences->putInt(preference_rs485_rxd, rs485_rxd);
         this->preferences->putInt(preference_rs485_txd, rs485_txd);
+
+        this->preferences->putInt(preference_sensor_i2c_sda, i2c_sda);
+        this->preferences->putInt(preference_sensor_i2c_scl, i2c_scl);
+        this->preferences->putInt(preference_sensor_i2c_on_off, i2c_on_off);
+
+        this->preferences->putInt(preference_sensor_dht_vcc_pin, dht_vcc);
+        this->preferences->putInt(preference_sensor_ds18x20_pin, ds18x20);
+
+        this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
+        this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
+
+        this->preferences->putLong(preference_query_interval_sensors, qry_long);
 
         ESP.restart();
     }
@@ -249,10 +320,36 @@ class PreferenceHandler{
         char mqtt_server[64];
         char mqtt_user[64];
         char wifi_ssid[64];
+        char gd_avail[64];
+        char gd_light[64];
+        char gd_vent[64];
+        char gd_status[64];
+        char gd_det_status[64];
+        char gd_position[64];
+        char gd_debug[64];
+        char gd_debug_rest[64];
+        char gs_temp[64];
+        char gs_hum[64];
+        char gs_pres[64];
+        char gs_free_dist[64];
+        char gs_park_avail[64];
 
         strcpy(mqtt_server, preferences->getString(preference_mqtt_server).c_str());
         strcpy(mqtt_user, preferences->getString(preference_mqtt_user).c_str());
         strcpy(wifi_ssid, preferences->getString(preference_wifi_ssid).c_str());
+        strcpy(gd_avail, preferences->getString(preference_gd_avail).c_str());
+        strcpy(gd_light, preferences->getString(preference_gd_light).c_str());
+        strcpy(gd_vent, preferences->getString(preference_gd_vent).c_str());
+        strcpy(gd_status, preferences->getString(preference_gd_status).c_str());
+        strcpy(gd_det_status, preferences->getString(preference_gd_det_status).c_str());
+        strcpy(gd_position, preferences->getString(preference_gd_position).c_str());
+        strcpy(gd_debug, preferences->getString(preference_gd_debug).c_str());
+        strcpy(gd_debug_rest, preferences->getString(preference_gd_debug_restart).c_str());
+        strcpy(gs_temp, preferences->getString(preference_gs_temp).c_str());
+        strcpy(gs_hum, preferences->getString(preference_gs_hum).c_str());
+        strcpy(gs_pres, preferences->getString(preference_gs_pres).c_str());
+        strcpy(gs_free_dist, preferences->getString(preference_gs_free_dist).c_str());
+        strcpy(gs_park_avail, preferences->getString(preference_gs_park_avail).c_str());
 
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
         conf[preference_wifi_ssid] = wifi_ssid;
@@ -261,6 +358,32 @@ class PreferenceHandler{
         conf[preference_mqtt_server_port] = this->preferences->getInt(preference_mqtt_server_port);
         conf[preference_rs485_rxd] = this->preferences->getInt(preference_rs485_rxd);
         conf[preference_rs485_txd] = this->preferences->getInt(preference_rs485_txd);
+
+        conf[preference_gd_avail] = gd_avail;
+        conf[preference_gd_light] = gd_light;
+        conf[preference_gd_vent] = gd_vent;
+        conf[preference_gd_status] = gd_status;
+        conf[preference_gd_det_status] = gd_det_status;
+        conf[preference_gd_position] = gd_position;
+        conf[preference_gd_debug] = gd_debug;
+        conf[preference_gd_debug_restart] = gd_debug_rest;
+        conf[preference_gs_temp] = gs_temp;
+        conf[preference_gs_hum] = gs_hum;
+        conf[preference_gs_pres] = gs_pres;
+        conf[preference_gs_free_dist] = gs_free_dist;
+        conf[preference_gs_park_avail] = gs_park_avail;
+
+        conf[preference_sensor_i2c_sda] = this->preferences->getInt(preference_sensor_i2c_sda);
+        conf[preference_sensor_i2c_scl] = this->preferences->getInt(preference_sensor_i2c_scl);
+        conf[preference_sensor_i2c_on_off] = this->preferences->getInt(preference_sensor_i2c_on_off);
+        conf[preference_sensor_dht_vcc_pin] = this->preferences->getInt(preference_sensor_dht_vcc_pin);
+        conf[preference_sensor_ds18x20_pin] = this->preferences->getInt(preference_sensor_ds18x20_pin);
+        conf[preference_sensor_sr04_trigpin] = this->preferences->getInt(preference_sensor_sr04_trigpin);
+        conf[preference_sensor_sr04_echopin] = this->preferences->getInt(preference_sensor_sr04_echopin);
+
+        conf[preference_query_interval_sensors] = this->preferences->getLong(preference_query_interval_sensors);
+
+
         if (this->preferences->getString(preference_wifi_password).length() != 0){
             //if preferences have been set then return *
             conf[preference_wifi_password] = "*";
