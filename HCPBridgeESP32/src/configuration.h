@@ -9,7 +9,6 @@
     const char* STA_PASSWD = "";
 
     //RS485 pins
-
     #define PIN_TXD 17 // UART 2 TXT - G17
     #define PIN_RXD 16 // UART 2 RXD - G16
 
@@ -52,15 +51,15 @@
     #define prox_treshold 10    //only send mqtt msg when distance change this treshold. Set 0 to send every status
 
     //DS18X20
-    const int oneWireBus = 4;     //GPIO where the DS18B20 is connected to
+    #define oneWireBus 4     //GPIO where the DS18B20 is connected to
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
-    //BME280                      //Uncomment to use a I2C BME280 Sensor
+    //BME280                     
     #define I2C_ON_OFF  4       // switches I2C On and Off: connect VDD to this GPIO! (due to interferences on i2c bus while door actions (UP/DOWN ...))
     #define I2C_SDA 21
     #define I2C_SCL 22
 
-    //HC-SR04                   //Uncommment to use a HC-SR04 proximity sensor
+    //HC-SR04                   
     #define SR04_TRIGPIN 5
     #define SR04_ECHOPIN 18
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
@@ -70,18 +69,6 @@
     #define DHTTYPE DHT22
 
     // MQTT strings
-    #define BASE_FTOPIC  "hormann/"
-    #define FTOPIC  BASE_FTOPIC DEVICE_ID "" 
-    #define AVAILABILITY_TOPIC FTOPIC "/availability"
-    #define STATE_TOPIC FTOPIC "/state"
-    #define CMD_TOPIC FTOPIC "/command"
-    #define POS_TOPIC FTOPIC "/position"
-    #define SETPOS_TOPIC CMD_TOPIC "/set_position"
-    #define LAMP_TOPIC FTOPIC "/command/lamp"
-    #define DOOR_TOPIC FTOPIC "/command/door"
-    #define VENT_TOPIC FTOPIC "/command/vent"
-    #define SENSOR_TOPIC FTOPIC "/sensor"
-
     #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/%s/%s/config"
     #define HA_DISCOVERY_AV_SENSOR "homeassistant/sensor/%s/available/config"
     #define HA_DISCOVERY_SENSOR "homeassistant/sensor/%s/%s/config"
@@ -92,7 +79,6 @@
 
     // DEBUG
     //#define DEBUG
-    #define DEBUGTOPIC FTOPIC "/DEBUG"
 
     // HA Topics
     #ifndef AlignToOpenHab
