@@ -52,7 +52,6 @@ AsyncWebServer server(80);
   long hcsr04_duration = -99.99;
   int hcsr04_distanceCm = 0;
   int hcsr04_lastdistanceCm = 0;
-  int hcsr04_maxdistanceCm = 150;
   bool hcsr04_park_available = false;
   bool hcsr04_lastpark_available = false;
 #endif
@@ -117,7 +116,7 @@ void connectToWifi(String ssid, String pass) {
 
   Serial.println("Connecting to Wi-Fi...");
   WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
-  WiFi.begin(ssid, pass);
+  WiFi.begin(ssid.c_str(), pass.c_str());
 }
 void connectToMqtt()
 {
@@ -595,11 +594,11 @@ void SensorCheck(void *parameter){
         hcsr04_duration = pulseIn(SR04_ECHOPIN, HIGH);
         // Calculate the distance
         hcsr04_distanceCm = hcsr04_duration * SOUND_SPEED/2;
-        if (hcsr04_distanceCm > hcsr04_maxdistanceCm) {
+        if (hcsr04_distanceCm > SR04_MAXDISTANCECM) {
           // set new Max
-          hcsr04_maxdistanceCm = hcsr04_distanceCm;
+          SR04_MAXDISTANCECM = hcsr04_distanceCm;
         }
-        if ((hcsr04_distanceCm + prox_treshold) > hcsr04_maxdistanceCm ){
+        if ((hcsr04_distanceCm + prox_treshold) > SR04_MAXDISTANCECM ){
           hcsr04_park_available = true;
         } else {
           hcsr04_park_available = false;
