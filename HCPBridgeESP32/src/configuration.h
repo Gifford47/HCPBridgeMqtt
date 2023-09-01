@@ -72,6 +72,7 @@
     //HC-SR04                   
     #define SR04_TRIGPIN 5
     #define SR04_ECHOPIN 18
+    #define SR04_MAXDISTANCECM 150
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // DHT22
