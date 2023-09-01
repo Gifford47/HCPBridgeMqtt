@@ -9,8 +9,18 @@
     const char* STA_PASSWD = "";
 
     //RS485 pins
-    #define PIN_TXD 17 // UART 2 TXT - G17
-    #define PIN_RXD 16 // UART 2 RXD - G16
+    #ifdef CONFIG_IDF_TARGET_ESP32S3
+        #ifdef M5STACK
+            #define PIN_TXD 13
+            #define PIN_RXD 15          
+        #else
+            #define PIN_TXD 17
+            #define PIN_RXD 18
+        #endif
+    #else
+        #define PIN_TXD 17 // UART 2 TXT - G17
+        #define PIN_RXD 16 // UART 2 RXD - G16
+    #endif
 
     // MQTT
     #define DEVICE_ID "hcpbridge"
