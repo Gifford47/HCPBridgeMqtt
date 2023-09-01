@@ -11,8 +11,8 @@
 //rs485 pins
 #define preference_rs485_txd "rs485_txd"
 #define preference_rs485_rxd "rs485_rxd"
-#define preference_gd_id "device_id"
-#define preference_gd_name "device_name"
+#define preference_gd_id "device_id" //
+#define preference_gd_name "device_name" //
 #define preference_mqtt_server "mqtt_server"
 #define preference_mqtt_server_port "mqtt_port"
 #define preference_mqtt_user "mqtt_user"
@@ -47,6 +47,7 @@
 
 #define preference_sensor_sr04_trigpin "sen_sr04trigpin"
 #define preference_sensor_sr04_echopin "sen_sr04echopin"
+#define preference_sensor_sr04_max_dist "sen_sr04maxdist" //
 
 #define preference_query_interval_sensors "sensorsStInterval"
 
@@ -59,6 +60,7 @@ std::vector<const char*> _keys =
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_i2c_sda, preference_sensor_i2c_scl,
         preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
+        preference_sensor_sr04_max_dist,
 };
 
 std::vector<const char*> _strings =
@@ -75,7 +77,7 @@ std::vector<const char*> _ints =
 {
         preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  
         preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, 
-        preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
+        preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin, preference_sensor_sr04_max_dist,
 };
 
 std::vector<const char*> _redact =
@@ -123,6 +125,7 @@ class PreferenceHandler{
     //Should be converted to constructor.
     //has to be called during setup of main.
     void initPreferences(){
+        long lc_sens_per = SENSE_PERIOD;
         this->preferences = new Preferences();
         this->preferences->begin("hcpbridgeesp32", false);
         this->firstStart = !preferences->getBool(preference_started_before);
@@ -169,8 +172,9 @@ class PreferenceHandler{
 
             preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
             preferences->putInt(preference_sensor_sr04_echopin, SR04_ECHOPIN);
+            preferences->putInt(preference_sensor_sr04_max_dist, SR04_MAXDISTANCECM);
 
-            preferences->putLong(preference_query_interval_sensors, SENSE_PERIOD);
+            preferences->putLong(preference_query_interval_sensors, lc_sens_per);
             //TODO putin didn't works 
             //that way we could avoid some vectors to know the type of the preferences.
             //And use the gettype function and updated them with a case.
@@ -231,6 +235,8 @@ class PreferenceHandler{
     */
     // handle Preferences
     void saveConf(JsonDocument& doc) {
+        String gd_id = doc[preference_gd_id].as<String>();
+        String gd_name = doc[preference_gd_name].as<String>();
         String apactif = doc[preference_wifi_ap_mode].as<String>();
         String ssid = doc[preference_wifi_ssid].as<String>();
         String pass = doc[preference_wifi_password].as<String>();
@@ -263,6 +269,7 @@ class PreferenceHandler{
         int ds18x20 = doc[preference_sensor_ds18x20_pin].as<int>();
         int sr04_trig = doc[preference_sensor_sr04_trigpin].as<int>();
         int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
+        int sr04_maxdist = doc[preference_sensor_sr04_max_dist].as<int>();
         long qry_long = doc[preference_query_interval_sensors].as<long>();
         
         if(pass != "*"){
@@ -279,6 +286,8 @@ class PreferenceHandler{
         } else{
             this->preferences->putBool(preference_wifi_ap_mode, false); 
         }
+        this->preferences->putString(preference_gd_id, gd_id);
+        this->preferences->putString(preference_gd_name, gd_name);
         this->preferences->putString(preference_wifi_ssid, ssid);
         this->preferences->putString(preference_mqtt_server, mqtt_server);
         this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
@@ -310,13 +319,14 @@ class PreferenceHandler{
 
         this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
         this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
+        this->preferences->putInt(preference_sensor_sr04_max_dist, sr04_maxdist);
 
         this->preferences->putLong(preference_query_interval_sensors, qry_long);
 
         ESP.restart();
     }
     void getConf(JsonDocument&  conf){
-
+        char gd_id[64];
         char mqtt_server[64];
         char mqtt_user[64];
         char wifi_ssid[64];
@@ -334,6 +344,8 @@ class PreferenceHandler{
         char gs_free_dist[64];
         char gs_park_avail[64];
 
+        strcpy(gd_id, preferences->getString(preference_gd_id).c_str());
+        preferences->putString(preference_gd_name, DEVICENAME);
         strcpy(mqtt_server, preferences->getString(preference_mqtt_server).c_str());
         strcpy(mqtt_user, preferences->getString(preference_mqtt_user).c_str());
         strcpy(wifi_ssid, preferences->getString(preference_wifi_ssid).c_str());
@@ -351,6 +363,7 @@ class PreferenceHandler{
         strcpy(gs_free_dist, preferences->getString(preference_gs_free_dist).c_str());
         strcpy(gs_park_avail, preferences->getString(preference_gs_park_avail).c_str());
 
+        conf[preference_gd_id] = gd_id;
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
         conf[preference_wifi_ssid] = wifi_ssid;
         conf[preference_mqtt_server] = mqtt_server;
@@ -380,6 +393,7 @@ class PreferenceHandler{
         conf[preference_sensor_ds18x20_pin] = this->preferences->getInt(preference_sensor_ds18x20_pin);
         conf[preference_sensor_sr04_trigpin] = this->preferences->getInt(preference_sensor_sr04_trigpin);
         conf[preference_sensor_sr04_echopin] = this->preferences->getInt(preference_sensor_sr04_echopin);
+        conf[preference_sensor_sr04_max_dist] = this->preferences->getInt(preference_sensor_sr04_max_dist);
 
         conf[preference_query_interval_sensors] = this->preferences->getLong(preference_query_interval_sensors);
 

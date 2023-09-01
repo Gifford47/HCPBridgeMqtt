@@ -723,8 +723,8 @@ void SensorCheck(void *parameter){
         new_sensor_data = true;
       }
     #endif
-    //vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
-    vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
+    vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
+    //vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
   }
 }
 
@@ -896,6 +896,7 @@ void setup()
     #ifdef USE_HCSR04
       hcsr04_tgpin = localPrefs->getInt(preference_sensor_sr04_trigpin);
       hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
+      hcsr04_maxdistanceCm = localPrefs->getInt(preference_sensor_sr04_max_dist);
       pinMode(hcsr04_tgpin, OUTPUT); // Sets the trigPin as an Output
       pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
     #endif
