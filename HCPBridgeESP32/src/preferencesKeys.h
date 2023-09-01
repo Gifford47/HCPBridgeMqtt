@@ -353,8 +353,8 @@ class PreferenceHandler{
 
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
         conf[preference_wifi_ssid] = wifi_ssid;
-        conf[preference_mqtt_server] = mqtt_user;
-        conf[preference_mqtt_user] = mqtt_server;
+        conf[preference_mqtt_server] = mqtt_server;
+        conf[preference_mqtt_user] = mqtt_user;
         conf[preference_mqtt_server_port] = this->preferences->getInt(preference_mqtt_server_port);
         conf[preference_rs485_rxd] = this->preferences->getInt(preference_rs485_rxd);
         conf[preference_rs485_txd] = this->preferences->getInt(preference_rs485_txd);

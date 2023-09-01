@@ -723,7 +723,8 @@ void SensorCheck(void *parameter){
         new_sensor_data = true;
       }
     #endif
-    vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
+    //vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
+    vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
   }
 }
 
