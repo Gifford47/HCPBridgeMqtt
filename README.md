@@ -20,8 +20,9 @@ It is **not** compatible with E3 series motors. Previous generations have differ
 * Web Interface
 * Web Service (GET)
 * OTA Update (with username and password)
+* Set WiFi and other user Settings setup in Web Interface
 <!-- * AsyncWifiManger (hotspot when disconnected) -->
-* DS18X20 or BME280 sensor (with threshold)
+* DS18X20, BME280 or DHT22 sensor (with threshold)
 * HCSR04 Proximity sensor (to know if a car is below)
 * Efficient MQTT messages (send only MQTT Message if Door state changed)
 
@@ -111,10 +112,8 @@ DS18X20 connected to GPIO4.
 
 ## HC-SR04 Ultra sonic proximity sensor
 
-To use uncommment the line below in configuration.h. There are also the information about the pine used for the sensor.
-```
-//#define USE_HCSR04
-```
+To use set the appropriate build env in platformio.ini. The pin can either by set in the configuration.h or in the Web UI.
+
 It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is initialised with 150cm in main.cpp, This setting work for me to get the right status if I restart the esp32 with the car below.
 
 ## Circuit
@@ -137,6 +136,9 @@ Body with optional BME280 Sensor
 
 ![Lid](Images/lid.jpg)
 Another prototype
+
+## Flashing instruction
+See flashing_instructions.md
 
 ## Installation
 
