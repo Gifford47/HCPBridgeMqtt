@@ -59,7 +59,6 @@ AsyncWebServer server(80);
   long hcsr04_duration = -99.99;
   int hcsr04_distanceCm = 0;
   int hcsr04_lastdistanceCm = 0;
-  int hcsr04_maxdistanceCm = 150;
   bool hcsr04_park_available = false;
   bool hcsr04_lastpark_available = false;
   int hcsr04_tgpin = 0;
@@ -73,6 +72,11 @@ AsyncWebServer server(80);
   float dht22_hum = -99.99;
   float dht22_last_hum = -99.99;
   int dht_vcc_pin = 0;
+#endif
+
+#ifdef USE_HCSR501
+  int hcsr501stat = 0;
+  bool hcsr501_laststat = false;
 #endif
 
 // sensors
@@ -176,7 +180,9 @@ void connectToWifi() {
 
   Serial.println("Connecting to Wi-Fi...");
   WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
+
   WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
+
 }
 void connectToMqtt()
 {
@@ -593,6 +599,9 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
     #endif
+    #if defined(USE_HCSR501)
+      sendDiscoveryMessageForBinarySensor(GS_MOTION, SENSOR_TOPIC, "pir", HA_OFF, HA_ON, device);
+    #endif
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug).c_str(), "debug", device);
@@ -643,6 +652,24 @@ TaskHandle_t mqttTask;
 
 void SensorCheck(void *parameter){
   while(true){
+    // handle motion sensor at first and send state immediately. Do not 
+    // use updateSensors to avoid unneccessary polling of the other sensors
+    #ifdef USE_HCSR501
+      hcsr501stat = digitalRead(SR501PIN);
+      if (hcsr501stat != hcsr501_laststat) {
+        hcsr501_laststat = hcsr501stat;
+        DynamicJsonDocument doc(1024);
+        char payload[1024];
+        if (hcsr501stat) {
+          doc["motion"] = HA_ON;
+        }
+        else {
+          doc["motion"] = HA_OFF;
+        }
+        serializeJson(doc, payload);
+        mqttClient.publish(SENSOR_TOPIC, 1, true, payload);
+      }
+    #endif
     #ifdef USE_DS18X20
       ds18x20_temp = ds18x20->getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
@@ -694,11 +721,11 @@ void SensorCheck(void *parameter){
         hcsr04_duration = pulseIn(hscr04_ecpin, HIGH);
         // Calculate the distance
         hcsr04_distanceCm = hcsr04_duration * SOUND_SPEED/2;
-        if (hcsr04_distanceCm > hcsr04_maxdistanceCm) {
+        if (hcsr04_distanceCm > SR04_MAXDISTANCECM) {
           // set new Max
-          hcsr04_maxdistanceCm = hcsr04_distanceCm;
+          SR04_MAXDISTANCECM = hcsr04_distanceCm;
         }
-        if ((hcsr04_distanceCm + prox_treshold) > hcsr04_maxdistanceCm ){
+        if ((hcsr04_distanceCm + prox_treshold) > SR04_MAXDISTANCECM ){
           hcsr04_park_available = true;
         } else {
           hcsr04_park_available = false;
@@ -898,6 +925,10 @@ void setup()
       hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
       pinMode(hcsr04_tgpin, OUTPUT); // Sets the trigPin as an Output
       pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
+    #endif
+    #ifdef USE_HCSR501
+      pinMode(SR501PIN, INPUT); // Sets the trigPin as an Output
+      hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
     #endif
     #ifdef USE_DHT22
       dht_vcc_pin = localPrefs->getInt(preference_sensor_dht_vcc_pin);
