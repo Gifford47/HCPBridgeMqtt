@@ -188,7 +188,8 @@ void connectToWifi() {
   }
 
   Serial.println("Connecting to Wi-Fi...");
-  WiFi.softAPdisconnect();  //stop AP, we now work as a wifi client
+  //this disocnnect should not be necessary as we restart the esp after changing form AP mode to Station mode.
+  WiFi.softAPdisconnect(true);  //stop AP, we now work as a wifi client
 
   WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
 
@@ -886,7 +887,15 @@ void setup()
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   WiFi.setHostname(prefHandler.getPreferencesCache()->hostname);
-  WiFi.mode(WIFI_AP_STA);
+  if (localPrefs->getBool(preference_wifi_ap_mode)){
+    Serial.println("WIFI creds not set, AP Mode");
+    WiFi.mode(WIFI_AP);
+    }
+  else{
+    WiFi.mode(WIFI_STA);  
+  }
+  
+
   WiFi.onEvent(WiFiEvent);
 
   setuptMqttStrings();
