@@ -38,6 +38,11 @@ It is **not** compatible with E**3** series motors. Previous generations have di
 
 ![alt text](Images/webinterface.png)
 
+## Configuration
+At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there. 
+After first boot you can change your settings directly in the Web interface without the need to create a new build. The preferences will stay even after a OTA update.
+When the memory of your ESP get's deleted your ESP will again load the settings from the configuration.h file.
+
 ## Web Services
 
 <details>
