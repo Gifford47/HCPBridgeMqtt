@@ -1,6 +1,7 @@
 #ifndef CONFIGURATION_H_
     #define CONFIGURATION_H_
     // WIFI Hostname
+
     const char HOSTNAME[]   = "HCPBRIDGE";
 
     // Station -> set AP_ACTIF to false if you wanna use password from config file
@@ -53,7 +54,7 @@
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 
-    #define SENSE_PERIOD (2*60*1000L)  //read interval of all defined sensors
+    #define SENSE_PERIOD 120  //read interval in Seconds of all defined sensors in seconds
 
     #define temp_threshold 0.5    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
     #define hum_threshold 1    //only send mqtt msg when temp,pressure or humidity rises this threshold. set 0 to send every status
@@ -121,6 +122,6 @@
         const char *HA_ONLINE = "online";
         const char *HA_OFFLINE = "offline";
     #endif
-    const char *HA_VERSION = "0.0.5.3";
+    const char *HA_VERSION = "0.0.6.0";
 
 #endif
