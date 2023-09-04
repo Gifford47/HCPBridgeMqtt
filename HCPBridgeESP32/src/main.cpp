@@ -33,6 +33,14 @@ extern "C" {
 // webserver on port 80
 AsyncWebServer server(80);
 
+#ifdef SENSORS
+  int     sensor_prox_tresh   = 0;
+  double  sensor_temp_thresh  = 0;
+  int     sensor_hum_thresh   = 0;
+  int     sensor_pres_thresh  = 0;
+#endif
+
+
 #ifdef USE_DS18X20
   // Setup a oneWire instance to communicate with any OneWire devices
   DallasTemperature *ds18x20 = nullptr;
@@ -673,7 +681,7 @@ void SensorCheck(void *parameter){
     #endif
     #ifdef USE_DS18X20
       ds18x20_temp = ds18x20->getTempCByIndex(0);
-      if (abs(ds18x20_temp-ds18x20_last_temp) >= temp_threshold){
+      if (abs(ds18x20_temp-ds18x20_last_temp) >= sensor_temp_thresh){
         ds18x20_last_temp = ds18x20_temp;
         new_sensor_data = true;
       }
@@ -698,7 +706,7 @@ void SensorCheck(void *parameter){
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
         if (bme_hum < 99.9){                   // I2C hung up ...
-          if (abs(bme_temp-bme_last_temp) >= temp_threshold || abs(bme_hum-bme_last_hum) >= hum_threshold || abs(bme_pres-bme_last_pres) >= pres_threshold){
+          if (abs(bme_temp-bme_last_temp) >= sensor_temp_thresh || abs(bme_hum-bme_last_hum) >= sensor_hum_thresh || abs(bme_pres-bme_last_pres) >= sensor_pres_thresh){
             bme_last_temp = bme_temp;
             bme_last_hum = bme_hum;
             bme_last_pres = bme_pres;
@@ -726,12 +734,12 @@ void SensorCheck(void *parameter){
           // set new Max
           hcsr04_maxdistanceCm = hcsr04_distanceCm;
         }
-        if ((hcsr04_distanceCm + prox_treshold) > hcsr04_maxdistanceCm ){
+        if ((hcsr04_distanceCm + sensor_prox_tresh) > hcsr04_maxdistanceCm ){
           hcsr04_park_available = true;
         } else {
           hcsr04_park_available = false;
         }
-        if (abs(hcsr04_distanceCm-hcsr04_lastdistanceCm) >= prox_treshold || hcsr04_park_available != hcsr04_lastpark_available ){
+        if (abs(hcsr04_distanceCm-hcsr04_lastdistanceCm) >= sensor_prox_tresh || hcsr04_park_available != hcsr04_lastpark_available ){
           hcsr04_lastdistanceCm = hcsr04_distanceCm;
           hcsr04_lastpark_available = hcsr04_park_available;
           new_sensor_data = true;
@@ -745,13 +753,13 @@ void SensorCheck(void *parameter){
       dht22_temp = dht->readTemperature();
       dht22_hum = dht->readHumidity();
 
-      if (abs(dht22_temp) >= temp_threshold || abs(dht22_hum) >= hum_threshold){
+      if (abs(dht22_temp) >= sensor_temp_thresh || abs(dht22_hum) >= sensor_hum_thresh){
         dht22_last_temp = dht22_temp;
         dht22_last_hum = dht22_hum;
         new_sensor_data = true;
       }
     #endif
-    vTaskDelay(localPrefs->getLong(preference_query_interval_sensors));     // delay task xxx ms if statemachine had nothing to do
+    vTaskDelay(localPrefs->getInt(preference_query_interval_sensors)*1000);     // delay task xxx ms if statemachine had nothing to do
     //vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
   }
 }
@@ -860,12 +868,13 @@ void setup()
 {
   // Serial
   Serial.begin(9600);
+
 /*
   while (Serial.available()==0){
-    "only continues if an input get received from serial.
+    //only continues if an input get received from serial.
     ;
   } 
-*/
+*/  
 
   // setup preferences
   prefHandler.initPreferences();
@@ -904,6 +913,10 @@ void setup()
 
 
   #ifdef SENSORS
+    sensor_prox_tresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_temp_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_hum_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_pres_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
     #ifdef USE_DS18X20
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire oneWire(ds18x20_pin);
@@ -1039,7 +1052,7 @@ void setup()
 
   server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              Serial.println("GER SYSINFO");
+              Serial.println("GET SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               DynamicJsonDocument root(1024);
               root["freemem"] = ESP.getFreeHeap();
@@ -1075,6 +1088,16 @@ void setup()
 
             request->send(200, "text/plain", "OK");
           } });
+  server.on("/reset", HTTP_GET, [](AsyncWebServerRequest *request)
+        {
+          Serial.println("GET reset");
+          AsyncResponseStream *response = request->beginResponseStream("application/json");
+          DynamicJsonDocument root(1024);
+          root["reset"] = "OK";
+          serializeJson(root, *response);
+          request->send(response); 
+          prefHandler.resetPreferences();
+          });
 
   AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
 

@@ -233,8 +233,8 @@
 			<input type="number" id="sen_sr04echopin" name="sen_sr04echopin" min="1" max="45" step="1">
 		</div>
 		<div class="flex">
-			<label for="sensorsStInterval">Sensor Query interval</label>
-			<input type="number" id="sensorsStInterval" name="sensorsStInterval" min="1" step="1">
+			<label for="sen_StInterval">Sensor Query interval</label>
+			<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
 		</div>
 		<button type="submit" class="btn">Save & Restart</button>
 	</form>
@@ -367,7 +367,7 @@
 			document.getElementById("sen_ds18x20pin").value = config.sen_ds18x20pin
 			document.getElementById("sen_sr04trigpin").value = config.sen_sr04trigpin
 			document.getElementById("sen_sr04echopin").value = config.sen_sr04echopin
-			document.getElementById("sensorsStInterval").value = config.sensorsStInterval
+			document.getElementById("sen_StInterval").value = config.sen_StInterval
 			return;
 			}
 		};			

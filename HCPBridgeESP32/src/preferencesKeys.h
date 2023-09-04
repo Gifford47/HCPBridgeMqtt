@@ -37,6 +37,10 @@
 #define preference_gs_free_dist "sensor_freedist"
 #define preference_gs_park_avail "sen_park_avail"
 
+#define preference_sensor_temp_treshold "sen_temp_tresh" //
+#define preference_sensor_hum_threshold "sen_hum_thresh" //
+#define preference_sensor_pres_threshold "sen_pres_thresh" //
+#define preference_sensor_prox_treshold "sen_prox_thresh" //
 
 #define preference_sensor_i2c_sda "sen_i2c_sda"
 #define preference_sensor_i2c_scl "sen_i2c_scl"
@@ -49,7 +53,7 @@
 #define preference_sensor_sr04_echopin "sen_sr04echopin"
 #define preference_sensor_sr04_max_dist "sen_sr04maxdist" //
 
-#define preference_query_interval_sensors "sensorsStInterval"
+#define preference_query_interval_sensors "sen_StInterval"
 
 std::vector<const char*> _keys =
 {
@@ -57,7 +61,9 @@ std::vector<const char*> _keys =
         preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
         preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
         preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
-        preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
+        preference_gd_position,preference_gd_debug, preference_gd_debug_restart, 
+        preference_sensor_temp_treshold, preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
+        preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_i2c_sda, preference_sensor_i2c_scl,
         preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
         preference_sensor_sr04_max_dist,
@@ -75,7 +81,8 @@ std::vector<const char*> _strings =
 
 std::vector<const char*> _ints =
 {
-        preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  
+        preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  preference_query_interval_sensors, 
+        preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, 
         preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin, preference_sensor_sr04_max_dist,
 };
@@ -88,9 +95,9 @@ std::vector<const char*> _boolPrefs =
 {
     preference_started_before, 
 };
-std::vector<const char*> _longPrefs =
+std::vector<const char*> _doublePrefs =
 {
-    preference_query_interval_sensors, 
+    preference_sensor_temp_treshold, 
 };
 
 class Preferences_cache {    
@@ -125,15 +132,12 @@ class PreferenceHandler{
     //Should be converted to constructor.
     //has to be called during setup of main.
     void initPreferences(){
-        long lc_sens_per = SENSE_PERIOD;
         this->preferences = new Preferences();
         this->preferences->begin("hcpbridgeesp32", false);
         this->firstStart = !preferences->getBool(preference_started_before);
 
-        if(this->firstStart)
-        {
+        if(this->firstStart){
             preferences->putBool(preference_started_before, true);
-
             preferences->putInt(preference_rs485_txd, PIN_TXD);
             preferences->putInt(preference_rs485_rxd, PIN_RXD);
 
@@ -162,7 +166,11 @@ class PreferenceHandler{
             preferences->putString(preference_gs_free_dist, GS_FREE_DIST);
             preferences->putString(preference_gs_park_avail, GS_PARK_AVAIL);
 
-
+            preferences->putDouble(preference_sensor_temp_treshold, temp_threshold);
+            preferences->putInt(preference_sensor_hum_threshold, hum_threshold);
+            preferences->putInt(preference_sensor_pres_threshold, pres_threshold);
+            preferences->putInt(preference_sensor_prox_treshold, prox_treshold);
+           
             preferences->putInt(preference_sensor_i2c_sda, I2C_SDA);
             preferences->putInt(preference_sensor_i2c_scl, I2C_SCL);
             preferences->putInt(preference_sensor_i2c_on_off, I2C_ON_OFF);
@@ -173,8 +181,7 @@ class PreferenceHandler{
             preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
             preferences->putInt(preference_sensor_sr04_echopin, SR04_ECHOPIN);
             preferences->putInt(preference_sensor_sr04_max_dist, SR04_MAXDISTANCECM);
-
-            preferences->putLong(preference_query_interval_sensors, lc_sens_per);
+            preferences->putInt(preference_query_interval_sensors, SENSE_PERIOD);
             //TODO putin didn't works 
             //that way we could avoid some vectors to know the type of the preferences.
             //And use the gettype function and updated them with a case.
@@ -194,6 +201,11 @@ class PreferenceHandler{
     }
     bool getFirstStart(){
         return this->firstStart;
+    }
+    void resetPreferences(){
+        //if function is called first Start Routine will be triggered
+        preferences->putBool(preference_started_before, false);
+        ESP.restart();
     }
     /*
     void setPreferencesJson(const JsonDocument& preferences){
@@ -262,6 +274,11 @@ class PreferenceHandler{
 
         int rs485_rxd = doc[preference_rs485_rxd].as<int>();
         int rs485_txd = doc[preference_rs485_txd].as<int>();
+
+        double temp_tres = doc[preference_sensor_temp_treshold].as<double>();
+        int hum_tres = doc[preference_sensor_hum_threshold].as<int>();
+        int pres_tres = doc[preference_sensor_pres_threshold].as<int>();
+        int prox_tres= doc[preference_sensor_prox_treshold].as<int>();
         int i2c_sda = doc[preference_sensor_i2c_sda].as<int>();
         int i2c_scl = doc[preference_sensor_i2c_scl].as<int>();
         int i2c_on_off = doc[preference_sensor_i2c_on_off].as<int>();
@@ -270,7 +287,7 @@ class PreferenceHandler{
         int sr04_trig = doc[preference_sensor_sr04_trigpin].as<int>();
         int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
         int sr04_maxdist = doc[preference_sensor_sr04_max_dist].as<int>();
-        long qry_long = doc[preference_query_interval_sensors].as<long>();
+        int qry_int = doc[preference_query_interval_sensors].as<int>();
         
         if(pass != "*"){
             //* stands for password not changed
@@ -310,6 +327,11 @@ class PreferenceHandler{
         this->preferences->putInt(preference_rs485_rxd, rs485_rxd);
         this->preferences->putInt(preference_rs485_txd, rs485_txd);
 
+        this->preferences->putDouble(preference_sensor_temp_treshold, temp_tres);
+        this->preferences->putInt(preference_sensor_hum_threshold, hum_tres);
+        this->preferences->putInt(preference_sensor_pres_threshold, pres_tres);
+        this->preferences->putInt(preference_sensor_prox_treshold, prox_tres);
+
         this->preferences->putInt(preference_sensor_i2c_sda, i2c_sda);
         this->preferences->putInt(preference_sensor_i2c_scl, i2c_scl);
         this->preferences->putInt(preference_sensor_i2c_on_off, i2c_on_off);
@@ -321,7 +343,7 @@ class PreferenceHandler{
         this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
         this->preferences->putInt(preference_sensor_sr04_max_dist, sr04_maxdist);
 
-        this->preferences->putLong(preference_query_interval_sensors, qry_long);
+        this->preferences->putInt(preference_query_interval_sensors, qry_int);
 
         ESP.restart();
     }
@@ -386,6 +408,10 @@ class PreferenceHandler{
         conf[preference_gs_free_dist] = gs_free_dist;
         conf[preference_gs_park_avail] = gs_park_avail;
 
+        conf[preference_sensor_temp_treshold] = this->preferences->getDouble(preference_sensor_temp_treshold);
+        conf[preference_sensor_hum_threshold] = this->preferences->getInt(preference_sensor_hum_threshold);
+        conf[preference_sensor_pres_threshold] = this->preferences->getInt(preference_sensor_pres_threshold);
+        conf[preference_sensor_prox_treshold] = this->preferences->getInt(preference_sensor_prox_treshold);
         conf[preference_sensor_i2c_sda] = this->preferences->getInt(preference_sensor_i2c_sda);
         conf[preference_sensor_i2c_scl] = this->preferences->getInt(preference_sensor_i2c_scl);
         conf[preference_sensor_i2c_on_off] = this->preferences->getInt(preference_sensor_i2c_on_off);
@@ -395,7 +421,7 @@ class PreferenceHandler{
         conf[preference_sensor_sr04_echopin] = this->preferences->getInt(preference_sensor_sr04_echopin);
         conf[preference_sensor_sr04_max_dist] = this->preferences->getInt(preference_sensor_sr04_max_dist);
 
-        conf[preference_query_interval_sensors] = this->preferences->getLong(preference_query_interval_sensors);
+        conf[preference_query_interval_sensors] = this->preferences->getInt(preference_query_interval_sensors);
 
 
         if (this->preferences->getString(preference_wifi_password).length() != 0){
