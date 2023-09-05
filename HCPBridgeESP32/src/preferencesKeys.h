@@ -204,7 +204,7 @@ class PreferenceHandler{
     }
     void resetPreferences(){
         //if function is called first Start Routine will be triggered
-        preferences->putBool(preference_started_before, false);
+        preferences->clear();
         ESP.restart();
     }
     /*
