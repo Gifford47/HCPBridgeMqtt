@@ -361,10 +361,10 @@
 				var el = document.getElementById(key);
 				if(el) {		// if element exists in doc...
 					if (config.key == "checked") {
-						el.checked = config.key
+						el.checked = config[key]
 					}
 					else {
-						el.value = config.key
+						el.value = config[key]
 					}
 				}
 				else {
