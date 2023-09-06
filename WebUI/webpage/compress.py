@@ -1,17 +1,29 @@
-#pip install htmlmin
-#or python -m pip install htmlmin
-#pip install jsmin
-#or python -m pip install jsmin
+#pip install gzip zlib htmlmin jsmin
+#or python -m pip install gzip zlib htmlmin jsmin
+
+Import("env")
+print('Used environment:' + env["PIOENV"])
 
 import gzip
-import zlib
-import htmlmin
-from jsmin import jsmin
 
-
+try:
+    import htmlmin
+except ImportError:
+    env.Execute("$PYTHONEXE -m pip install htmlmin")
+    import htmlmin
+try:
+    import zlib
+except ImportError:
+    env.Execute("$PYTHONEXE -m pip install zlib")
+    import zlib
+try:
+    from jsmin import jsmin
+except ImportError:
+    env.Execute("$PYTHONEXE -m pip install jsmin")
+    from jsmin import jsmin
 
 content = ""
-with open('index.html','rt',encoding="utf-8") as f:
+with open('..\WebUI\webpage\index.html','rt',encoding="utf-8") as f:
     content=f.read()
 
 
@@ -29,7 +41,7 @@ for c in zlib.compress(content.encode("UTF-8"),9):
           result=result + ","
 
 
-with open('../index_html.h',"wt") as f:
+with open('../WebUI/index_html.h',"wt") as f:
 	f.write("const uint8_t index_html[] PROGMEM = {");
 	f.write(result.strip(","))
 	f.write("};");
