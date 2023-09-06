@@ -1,6 +1,8 @@
 #pip install gzip zlib htmlmin jsmin
 #or python -m pip install gzip zlib htmlmin jsmin
 
+print("Compressing WebUI...")
+
 Import("env")
 print('Used environment:' + env["PIOENV"])
 
@@ -23,7 +25,7 @@ except ImportError:
     from jsmin import jsmin
 
 content = ""
-with open('..\WebUI\webpage\index.html','rt',encoding="utf-8") as f:
+with open('../WebUI/webpage/index.html','rt',encoding="utf-8") as f:
     content=f.read()
 
 
