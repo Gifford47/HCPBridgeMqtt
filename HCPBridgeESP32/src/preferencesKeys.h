@@ -37,7 +37,7 @@
 #define preference_gs_free_dist "sensor_freedist"
 #define preference_gs_park_avail "sen_park_avail"
 
-#define preference_sensor_temp_treshold "sen_temp_tresh" //
+#define preference_sensor_temp_treshold "sen_temp_thresh" //
 #define preference_sensor_hum_threshold "sen_hum_thresh" //
 #define preference_sensor_pres_threshold "sen_pres_thresh" //
 #define preference_sensor_prox_treshold "sen_prox_thresh" //
@@ -441,7 +441,7 @@ class PreferenceHandler{
 
 
 
-
+/*
 class DebugPreferences
 {
 private:
@@ -598,3 +598,4 @@ public:
     }
 
 };
+*/

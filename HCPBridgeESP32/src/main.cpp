@@ -131,6 +131,7 @@ class MqttStrings {
 MqttStrings mqttStrings;
 
 unsigned long resetButtonTimePressed = 0l;
+TimerHandle_t resetTimer;
 
 #ifdef DEBUG
   bool boot_Flag = true;
@@ -175,25 +176,27 @@ void setuptMqttStrings(){
   strcpy(mqttStrings.sensor_topic, mqttStrings.st_sensor_topic.c_str());
   strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
-void reset_button_change(){
+void IRAM_ATTR reset_button_change(){
   if (digitalRead(0) == 0)
   {
     // Pressed
     resetButtonTimePressed = millis();
-    Serial.print("Reset DOWN...");
   } else {
     // unpressed
     unsigned long timeNow = millis();
     int timeInSecs = (timeNow - resetButtonTimePressed) / 1000;
     if (timeInSecs > 5)
     {
-      Serial.println("RESETTING....");
-      prefHandler.resetPreferences();
+      xTimerStart(resetTimer, 0);
     }
-    Serial.print("Reset UP: ");
-    Serial.println(timeInSecs);
     resetButtonTimePressed = 0;
   }
+}
+
+void resetPreferences()
+{
+  xTimerStop(resetTimer, 0);
+  prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
@@ -907,6 +910,7 @@ void setup()
   //Add interrupts for Factoryreset over Boot button
   pinMode(0, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(0), reset_button_change, CHANGE);
+  resetTimer = xTimerCreate("resetTimer", pdMS_TO_TICKS(10), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(resetPreferences));
 
   // setup wifi
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));

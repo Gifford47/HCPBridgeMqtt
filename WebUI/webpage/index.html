@@ -158,6 +158,10 @@
 		<div class="subtitle">
 			<h5>Door config</h5>
 			<div class="flex">
+				<label for="device_id">Device ID</label>
+				<input type="text" id="device_id" name="device_id">
+			</div>
+			<div class="flex">
 				<label for="gd_availability">Availability</label>
 				<input type="text" id="gd_availability" name="gd_availability">
 			</div>
@@ -228,6 +232,26 @@
 			<div class="flex">
 				<label for="sen_StInterval">Sensor Query interval</label>
 				<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_temp_thresh">Temperature threshold</label>
+				<input type="number" id="sen_temp_thresh" name="sen_temp_thresh">
+			</div>
+			<div class="flex">
+				<label for="sen_hum_thresh">Humidity threshold</label>
+				<input type="number" id="sen_hum_thresh" name="sen_hum_thresh" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_pres_thresh">Preasure threshold</label>
+				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_prox_thresh">Proximity threshold</label>
+				<input type="number" id="sen_prox_thresh" name="sen_prox_thresh" min="1" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_sr04maxdist">SR04 Max Dist</label>
+				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
 			</div>
 		</div>
 		<button type="submit" class="btn">Save & Restart</button>
@@ -360,7 +384,7 @@
 			for (const key in config){
 				var el = document.getElementById(key);
 				if(el) {		// if element exists in doc...
-					if (config.key == "checked") {
+					if (config[key] == true) {
 						el.checked = config[key]
 					}
 					else {
