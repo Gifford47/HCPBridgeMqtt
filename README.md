@@ -153,7 +153,7 @@ Please note that the suggested serial pins for serial interfacing, on ESP32, are
 To use the board without any additional sensors (f.e. as showed in section [wiring](#wiring)) you only need to upload the standard firmware binary.
 ### Sensors
 
-To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](/flashing_instructions.md) for further info.
+To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](docs/flashing_instructions.md) for further info.
 <details>
 <summary>DS18X20 Temperature Sensor</summary>
 
