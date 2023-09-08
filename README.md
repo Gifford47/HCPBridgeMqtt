@@ -7,6 +7,7 @@ Emulates Hörmann UAP1-HCP board (HCP2= Hörmann communication protocol 2) using
 
 * SupraMatic E/P **Serie 4**
 * ProMatic **Serie 4**
+* [Rollmatic v2](docs/rollmatic_v2.md)
 
 It is **not** compatible with E**3** series motors. Previous generations have different protocol (HCP1), different pin layout, and already have another supporting project (see [hgdo](https://github.com/steff393/hgdo), [hoermann_door](https://github.com/stephan192/hoermann_door) or [hormann-hcp](https://github.com/raintonr/hormann-hcp)).
 
