@@ -384,7 +384,7 @@
 			for (const key in config){
 				var el = document.getElementById(key);
 				if(el) {		// if element exists in doc...
-					if (config[key] == true) {
+					if (config[key] === true) {
 						el.checked = config[key]
 					}
 					else {
