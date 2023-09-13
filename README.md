@@ -40,11 +40,21 @@ It is **not** compatible with E**3** series motors. Previous generations have di
 ![alt text](Images/webinterface.png)
 
 ## Configuration
-At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there. 
+At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there.
 After first boot you can change your settings directly in the Web interface without the need to create a new build. 
-The Password fields are redacted if there are set with a *. If you don't want to change it just leave the * as it will be interpretet as no change.<br>
+
+With the default configuration it will open a Wifi Hotspot you can connect to. When connected to it you can use the url http://192.168.4.1 in a webbrowser to access the Web Interface and configure the device.
+
+Use the Basic Configuration section to set your wifi and MQTT credentials, after hitting the Save button your device will reboot.
+The Password fields are redacted if there are set with a *. If you don't want to change it just leave the * as it will be interpretet as no change.
+
+![image](https://github.com/Gifford47/HCPBridgeMqtt/assets/13482963/0081e0bc-ec8e-4cec-a537-c7b0c5758035)
+
 The preferences will stay even after a OTA update.
 When the memory of your ESP get's deleted your ESP will again load the settings from the configuration.h file.
+
+You can reset all preferences by pressing the BOOT button on the ESP for longer then 5 Seconds and releasing it.
+This will reset all preferences to the default values from configuration.h in the flashed firmware build.
 
 ## Web Services
 
