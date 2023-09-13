@@ -117,10 +117,10 @@
 	<hr>
 	<br>
 	<div class="flex justify-between">
-		<h4>Configuration</h4>
-		<button id="toggle_config" class="btn">show</button>
+		<h4>Basic Configuration</h4>
+		<button id="toggle_basic_conf" class="btn">show</button>
 	</div>
-	<form id="conf_form" class="collapsible" style="display: none">
+	<form id="basic_conf_form" class="collapsible" style="display: none">
 		<div class="subtitle">
 			<h5>Wifi</h5>
 			<div class="flex">
@@ -154,13 +154,21 @@
 				<label for="mqtt_pass">MQTT Password</label>
 				<input type="text" id="mqtt_pass" name="mqtt_pass">
 			</div>
-		</div>
-		<div class="subtitle">
-			<h5>Door config</h5>
 			<div class="flex">
 				<label for="device_id">Device ID</label>
 				<input type="text" id="device_id" name="device_id">
 			</div>
+		</div>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
+		<h4>Expert Configuration</h4>
+		<button id="toggle_expert_conf" class="btn">show</button>
+	</div>
+	<form id="expert_conf_form" class="collapsible" style="display: none">
+		<div class="subtitle">
+			<h5>Door config</h5>
 			<div class="flex">
 				<label for="gd_availability">Availability</label>
 				<input type="text" id="gd_availability" name="gd_availability">
@@ -261,12 +269,12 @@
 		<h4>System information</h4>
 		<button id="toogle_sysinfo" class="btn">show</button>
 	</div>
-	
 	<div id="sysinfo_links" class="collapsible" style="display: none">
 		<a class="link-gray" href="update" target="_blank">OTA Update</a>
 		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
 		<a class="link-gray" href="status" target="_blank">Door status</a>
-
+		<br>
+		<br>		
 		<div class="flex">
 			<label for="gd_dg_rst_reas">Restart Reason</label>
 			<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas" readonly>
@@ -296,7 +304,8 @@
 		
 	<script>
 	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
-	document.getElementById("toggle_config").onclick = function() {collapse('conf_form')};
+	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
+	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
 	function collapse(elementId) {
 		var x = document.getElementById(elementId);
@@ -395,39 +404,6 @@
 					console.error('ID ' + key + ' doesnt exist!')
 				}
 			}
-
-			//if conf actif sent checked="checked" else remove checked attribute.
-			// document.getElementById("wifi_ap_enabled").checked = config.wifi_ap_enabled
-			// document.getElementById("wifi_ssid").value = config.wifi_ssid
-			// document.getElementById("wifi_pass").value = config.wifi_pass
-			// document.getElementById("mqtt_user").value = config.mqtt_user
-			// document.getElementById("mqtt_server").value = config.mqtt_server
-			// document.getElementById("mqtt_port").value = config.mqtt_port
-			// document.getElementById("mqtt_pass").value = config.mqtt_pass
-			// document.getElementById("rs485_txd").value = config.rs485_txd
-			// document.getElementById("rs485_rxd").value = config.rs485_rxd
-
-			// document.getElementById("gd_availability").value = config.gd_availability
-			// document.getElementById("gd_light").value = config.gd_light
-			// document.getElementById("gd_vent").value = config.gd_vent
-			// document.getElementById("gd_status").value = config.gd_status
-			// document.getElementById("gd_det_status").value = config.gd_det_status
-			// document.getElementById("gd_position").value = config.gd_position
-			// document.getElementById("gd_debug_string").value = config.gd_debug_string
-			// document.getElementById("gd_dg_rst_reas").value = config.gd_dg_rst_reas
-			// document.getElementById("sensor_temp").value = config.sensor_temp
-			// document.getElementById("sensor_humidity").value = config.sensor_humidity
-			// document.getElementById("sensor_atmpreas").value = config.sensor_atmpreas
-			// document.getElementById("sensor_freedist").value = config.sensor_freedist
-			// document.getElementById("sen_park_avail").value = config.sen_park_avail
-			// document.getElementById("sen_i2c_sda").value = config.sen_i2c_sda
-			// document.getElementById("sen_i2c_scl").value = config.sen_i2c_scl
-			// document.getElementById("sen_i2c_onoff").value = config.sen_i2c_onoff
-			// document.getElementById("sen_dhtvccpin").value = config.sen_dhtvccpin
-			// document.getElementById("sen_ds18x20pin").value = config.sen_ds18x20pin
-			// document.getElementById("sen_sr04trigpin").value = config.sen_sr04trigpin
-			// document.getElementById("sen_sr04echopin").value = config.sen_sr04echopin
-			// document.getElementById("sen_StInterval").value = config.sen_StInterval
 			return;
 			}
 		};			
@@ -457,8 +433,11 @@
 		xhr.send(JSON.stringify(json))
 	}
 
-	const form = document.getElementById('conf_form');
-	form.addEventListener('submit', handleSubmitConf);
+	const basicConfForm = document.getElementById('basic_conf_form');
+	basicConfForm.addEventListener('submit', handleSubmitConf);
+
+	const expertConfForm = document.getElementById('expert_conf_form');
+	expertConfForm.addEventListener('submit', handleSubmitConf);
 	
 	function setDoorState(state){
 		stopDoorAnimation();		
