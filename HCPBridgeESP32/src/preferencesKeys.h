@@ -245,8 +245,10 @@ class PreferenceHandler{
         //see debugpreferences to see how the full preferences can been retrived.      
     }
     */
+
     // handle Preferences
     void saveConf(JsonDocument& doc) {
+        // basic conf on WebUI
         String gd_id = doc[preference_gd_id].as<String>();
         String gd_name = doc[preference_gd_name].as<String>();
         String apactif = doc[preference_wifi_ap_mode].as<String>();
@@ -257,6 +259,7 @@ class PreferenceHandler{
         String mqtt_user = doc[preference_mqtt_user].as<String>();
         String mqtt_pass = doc[preference_mqtt_password].as<String>();
 
+        //expert conf on WebUI
         String gd_avail = doc[preference_gd_avail].as<String>();
         String gd_light = doc[preference_gd_light].as<String>();
         String gd_vent = doc[preference_gd_vent].as<String>();
@@ -288,65 +291,82 @@ class PreferenceHandler{
         int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
         int sr04_maxdist = doc[preference_sensor_sr04_max_dist].as<int>();
         int qry_int = doc[preference_query_interval_sensors].as<int>();
+/*
+        Serial.print("basic check: ");
+        Serial.println(gd_id);
+
+        Serial.print("expert check: ");
+        Serial.println(gd_avail);
+*/
+        // only save basic config if gd_id is provided
+        if (gd_id != "null")
+        {
+            //Serial.println("basic config only");
+            if(pass != "*"){
+                //* stands for password not changed
+                this->preferences->putString(preference_wifi_password, pass);
+            }
+
+            if (mqtt_pass != "*"){
+                this->preferences->putString(preference_mqtt_password, mqtt_pass);
+            }
+            // Save Settings in Prefs
+            if (apactif == "on"){
+            this->preferences->putBool(preference_wifi_ap_mode, true); 
+            } else{
+                this->preferences->putBool(preference_wifi_ap_mode, false); 
+            }
+            this->preferences->putString(preference_gd_id, gd_id);
+            this->preferences->putString(preference_gd_name, gd_name);
+            this->preferences->putString(preference_wifi_ssid, ssid);
+            this->preferences->putString(preference_mqtt_server, mqtt_server);
+            this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
+            this->preferences->putString(preference_mqtt_user, mqtt_user);
+        }
+
+        // only save expert config if gd_avail is provided
+        if (gd_avail != "null")
+        {
+            //Serial.println("expert config only");
+            this->preferences->putString(preference_gd_avail, gd_avail);
+            this->preferences->putString(preference_gd_light, gd_light);
+            this->preferences->putString(preference_gd_vent, gd_vent);
+            this->preferences->putString(preference_gd_status, gd_status);
+            this->preferences->putString(preference_gd_det_status, gd_det_status);
+            this->preferences->putString(preference_gd_position, gd_position);
+            this->preferences->putString(preference_gd_debug, gd_debug);
+            this->preferences->putString(preference_gd_debug_restart, gd_debug_rest);
+            this->preferences->putString(preference_gs_temp, gs_temp);
+            this->preferences->putString(preference_gs_hum, gs_hum);
+            this->preferences->putString(preference_gs_pres, gs_pres);
+            this->preferences->putString(preference_gs_free_dist, gs_free_dist);
+            this->preferences->putString(preference_gs_park_avail, gs_park_avail);
+            
+            this->preferences->putInt(preference_rs485_rxd, rs485_rxd);
+            this->preferences->putInt(preference_rs485_txd, rs485_txd);
+
+            this->preferences->putDouble(preference_sensor_temp_treshold, temp_tres);
+            this->preferences->putInt(preference_sensor_hum_threshold, hum_tres);
+            this->preferences->putInt(preference_sensor_pres_threshold, pres_tres);
+            this->preferences->putInt(preference_sensor_prox_treshold, prox_tres);
+
+            this->preferences->putInt(preference_sensor_i2c_sda, i2c_sda);
+            this->preferences->putInt(preference_sensor_i2c_scl, i2c_scl);
+            this->preferences->putInt(preference_sensor_i2c_on_off, i2c_on_off);
+
+            this->preferences->putInt(preference_sensor_dht_vcc_pin, dht_vcc);
+            this->preferences->putInt(preference_sensor_ds18x20_pin, ds18x20);
+
+            this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
+            this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
+            this->preferences->putInt(preference_sensor_sr04_max_dist, sr04_maxdist);
+
+            this->preferences->putInt(preference_query_interval_sensors, qry_int);
+        }
         
-        if(pass != "*"){
-            //* stands for password not changed
-            this->preferences->putString(preference_wifi_password, pass);
-        }
-
-        if (mqtt_pass != "*"){
-            this->preferences->putString(preference_mqtt_password, mqtt_pass);
-        }
-        // Save Settings in Prefs
-        if (apactif == "on"){
-           this->preferences->putBool(preference_wifi_ap_mode, true); 
-        } else{
-            this->preferences->putBool(preference_wifi_ap_mode, false); 
-        }
-        this->preferences->putString(preference_gd_id, gd_id);
-        this->preferences->putString(preference_gd_name, gd_name);
-        this->preferences->putString(preference_wifi_ssid, ssid);
-        this->preferences->putString(preference_mqtt_server, mqtt_server);
-        this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
-        this->preferences->putString(preference_mqtt_user, mqtt_user);
-                
-        this->preferences->putString(preference_gd_avail, gd_avail);
-        this->preferences->putString(preference_gd_light, gd_light);
-        this->preferences->putString(preference_gd_vent, gd_vent);
-        this->preferences->putString(preference_gd_status, gd_status);
-        this->preferences->putString(preference_gd_det_status, gd_det_status);
-        this->preferences->putString(preference_gd_position, gd_position);
-        this->preferences->putString(preference_gd_debug, gd_debug);
-        this->preferences->putString(preference_gd_debug_restart, gd_debug_rest);
-        this->preferences->putString(preference_gs_temp, gs_temp);
-        this->preferences->putString(preference_gs_hum, gs_hum);
-        this->preferences->putString(preference_gs_pres, gs_pres);
-        this->preferences->putString(preference_gs_free_dist, gs_free_dist);
-        this->preferences->putString(preference_gs_park_avail, gs_park_avail);
-        
-        this->preferences->putInt(preference_rs485_rxd, rs485_rxd);
-        this->preferences->putInt(preference_rs485_txd, rs485_txd);
-
-        this->preferences->putDouble(preference_sensor_temp_treshold, temp_tres);
-        this->preferences->putInt(preference_sensor_hum_threshold, hum_tres);
-        this->preferences->putInt(preference_sensor_pres_threshold, pres_tres);
-        this->preferences->putInt(preference_sensor_prox_treshold, prox_tres);
-
-        this->preferences->putInt(preference_sensor_i2c_sda, i2c_sda);
-        this->preferences->putInt(preference_sensor_i2c_scl, i2c_scl);
-        this->preferences->putInt(preference_sensor_i2c_on_off, i2c_on_off);
-
-        this->preferences->putInt(preference_sensor_dht_vcc_pin, dht_vcc);
-        this->preferences->putInt(preference_sensor_ds18x20_pin, ds18x20);
-
-        this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
-        this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
-        this->preferences->putInt(preference_sensor_sr04_max_dist, sr04_maxdist);
-
-        this->preferences->putInt(preference_query_interval_sensors, qry_int);
-
         ESP.restart();
     }
+
     void getConf(JsonDocument&  conf){
         char gd_id[64];
         char mqtt_server[64];
