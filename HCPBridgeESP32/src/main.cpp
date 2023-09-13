@@ -196,6 +196,7 @@ void IRAM_ATTR reset_button_change(){
 void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
+  Serial.println("Resetting config...");
   prefHandler.resetPreferences();
 }
 
