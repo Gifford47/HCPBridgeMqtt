@@ -600,7 +600,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
 void sendDiscoveryMessage()
 {
   //declare json object here for device instead of creating in each methode. 150 bytes should be enough
-  const int capacity = JSON_OBJECT_SIZE(5);
+  const int capacity = JSON_OBJECT_SIZE(6);
   StaticJsonDocument<capacity> device;
   device["identifiers"] = localPrefs->getString(preference_gd_name);
   device["name"] = localPrefs->getString(preference_gd_name);
