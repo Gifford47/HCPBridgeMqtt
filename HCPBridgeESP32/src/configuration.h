@@ -41,8 +41,8 @@
     const char GS_PRES[] = "Garage ambient pressure";
     const char GS_FREE_DIST[] = "Garage Free distance";
     const char GS_PARK_AVAIL[] = "Garage park available";
-    const char GD_DEBUG[] = "garage Door Debug";
-    const char GD_DEBUG_RESTART[] = "garage Restart Reason";
+    const char GD_DEBUG[] = "Garage Door Debug";
+    const char GD_DEBUG_RESTART[] = "Garage Restart Reason";
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab

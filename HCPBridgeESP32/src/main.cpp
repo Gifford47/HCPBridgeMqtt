@@ -205,18 +205,24 @@ void switchLamp(bool on){
 }
 
 void connectToWifi() {
-  if (localPrefs->getBool(preference_wifi_ap_mode))
+  /*if (localPrefs->getBool(preference_wifi_ap_mode))
   {
-    Serial.println("WIFI creds not set, AP Mode");
+    Serial.println("WIFI AP mode enabled, set Hostname");
     WiFi.softAP(prefHandler.getPreferencesCache()->hostname);
     return;
+  }*/
+  if (localPrefs->getString(preference_wifi_ssid) != "")
+  {
+    Serial.println("Connecting to Wi-Fi...");
+    WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
+  } else
+  {
+    Serial.println("No WiFi Client enabled");
   }
 
-  Serial.println("Connecting to Wi-Fi...");
+  //Serial.println("Connecting to Wi-Fi...");
   //this disocnnect should not be necessary as we restart the esp after changing form AP mode to Station mode.
-  WiFi.softAPdisconnect(true);  //stop AP, we now work as a wifi client
-
-  WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
+  //WiFi.softAPdisconnect(true);  //stop AP, we now work as a wifi client
 
 }
 void connectToMqtt()
@@ -918,8 +924,9 @@ void setup()
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   WiFi.setHostname(prefHandler.getPreferencesCache()->hostname);
   if (localPrefs->getBool(preference_wifi_ap_mode)){
-    Serial.println("WIFI creds not set, AP Mode");
-    WiFi.mode(WIFI_AP);
+    Serial.println("WIFI AP enabled");
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP(prefHandler.getPreferencesCache()->hostname);
     }
   else{
     WiFi.mode(WIFI_STA);  
@@ -937,6 +944,8 @@ void setup()
   mqttClient.setServer(prefHandler.getPreferencesCache()->mqtt_server, localPrefs->getInt(preference_mqtt_server_port));
   mqttClient.setCredentials(prefHandler.getPreferencesCache()->mqtt_user, prefHandler.getPreferencesCache()->mqtt_password);
   setWill();
+
+  delay(1000);
   
   connectToWifi();
 
