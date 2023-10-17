@@ -18,6 +18,8 @@ Click the Open Folder button and select the HCPBridgeESp32 Folder inside the ext
 
 ## Configuration
 
+In this step you can preset the preferences. On first boot they will be stored on the Memory of the ESP. 
+After you have to change it from the WEB ui or Reset the ESP memory to load again the data from the configuration file.
 Use the left Sidebar again and click on the Folder Symbol to switch to the File List.
 Before you can flash the Firmware you will need to change the Configuration in the configuration.h File located in the src Folder.
 
