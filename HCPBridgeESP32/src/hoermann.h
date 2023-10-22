@@ -4,28 +4,24 @@
 
         #include <Arduino.h>
         #include <Stream.h>
-
         #include "ArduinoJson.h"
         #include "ModbusRTU.h"
-
+        
+        #include "preferencesKeys.h"
         #define SLAVE_ID 2
         #define SIMULATEKEYPRESSDELAYMS 100
         #define DEADREPORTTIMEOUT 60000
 
         #define RS485 Serial2
-        #ifdef CONFIG_IDF_TARGET_ESP32S3
-            #define PIN_TXD 17
-            #define PIN_RXD 18
-        #else
-            #define PIN_TXD 17 // UART 2 TXT - G17
-            #define PIN_RXD 16 // UART 2 RXD - G16
-        #endif
 
         // workaround as my Supramatic did not Report the Status 0x0A when it's en vent Position
         // When the door is at position 0x08 and not moving Status get changed to Ventig.
         #define VENT_POS 0x08
 
         static const char *TAG_HCI = "HCI-BUS";
+
+        int rs485_pin_txd = 0;
+        int rs485_pin_rxd = 0;
 
         TaskHandle_t modBusTask;
         void modbusServeTask(void *parameter);
@@ -220,12 +216,17 @@
         };
 
         class HoermannGarageEngine {
+        private:
+            Preferences *localPrefs = nullptr;
         public:
             HoermannState *state = new HoermannState();
             HoermannGarageEngine(){};
 
-            void setup() {
-                RS485.begin(57600, SERIAL_8E1, PIN_RXD, PIN_TXD);
+            void setup(Preferences* prefs) {
+                localPrefs = prefs;
+                rs485_pin_txd = localPrefs->getInt(preference_rs485_txd);
+                rs485_pin_rxd = localPrefs->getInt(preference_rs485_rxd);
+                RS485.begin(57600, SERIAL_8E1, rs485_pin_rxd, rs485_pin_txd);
                 mb.begin(&RS485);
                 mb.slave(SLAVE_ID);
 
