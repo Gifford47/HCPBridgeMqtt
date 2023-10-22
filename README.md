@@ -175,13 +175,13 @@ DS18X20 connected to GPIO4.
 
 <details>
 <summary>HC-SR501 PIR Motion sensor</summary>
-NOT YET DOCUMENTED!
+Digital out connected to GPIO23.
 <br>
 </details>
 
 <details>
 <summary>DHT22 Temperature and humudity Sensor</summary>
-NOT YET DOCUMENTED!
+Digital out connected to GPIO27.
 <br>
 </details>
 
@@ -210,9 +210,14 @@ It will send an mqtt discovery for two sensor one for the distance in cm availab
 ## Installation
 
 * Connect the board to the BUS
-* Run a BUS scan: 
-  * Old HW-Version / Promatic4: BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS power  (+24v) is removed when no devices are detected. In case of issues, you may find useful to "jump start" the device using the +24V provision of other connectors of the motor control board.
-  * New HW version: with newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
+* Run a BUS scan (differs on the following hardware version): 
+
+### Old Hardware version
+
+BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS power  (+24v) is removed when no devices are detected. In case of issues, you may find useful to "jump start" the device using the +24V provision of other connectors of the motor control board.
+  
+### New Hardware version 
+With newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
 
 ![alt text](Images/antrieb-min.png)
 
