@@ -36,6 +36,7 @@
     const char GD_STATUS[] = "Garage Door Status";
     const char GD_DET_STATUS[] = "Garage Door detailed Status";
     const char GD_POSITIOM[] = "Garage Door Position";
+    const char GD_MOTION[] = "Garage Door Motion";
     const char GS_TEMP[] = "Garage Temperature";
     const char GS_HUM[] = "Garage Humidity";
     const char GS_PRES[] = "Garage ambient pressure";
@@ -79,6 +80,9 @@
     // DHT22
     #define DHT_VCC_PIN 27
     #define DHTTYPE DHT22
+
+    //HC-SR501
+    #define SR501PIN 23
 
     // MQTT strings
     #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/%s/%s/config"

@@ -37,10 +37,10 @@
 #define preference_gs_free_dist "sensor_freedist"
 #define preference_gs_park_avail "sen_park_avail"
 
-#define preference_sensor_temp_treshold "sen_temp_thresh" //
-#define preference_sensor_hum_threshold "sen_hum_thresh" //
-#define preference_sensor_pres_threshold "sen_pres_thresh" //
-#define preference_sensor_prox_treshold "sen_prox_thresh" //
+#define preference_sensor_temp_treshold "sen_temp_thresh"
+#define preference_sensor_hum_threshold "sen_hum_thresh"
+#define preference_sensor_pres_threshold "sen_pres_thresh"
+#define preference_sensor_prox_treshold "sen_prox_thresh"
 
 #define preference_sensor_i2c_sda "sen_i2c_sda"
 #define preference_sensor_i2c_scl "sen_i2c_scl"
@@ -51,7 +51,8 @@
 
 #define preference_sensor_sr04_trigpin "sen_sr04trigpin"
 #define preference_sensor_sr04_echopin "sen_sr04echopin"
-#define preference_sensor_sr04_max_dist "sen_sr04maxdist" //
+#define preference_sensor_sr04_max_dist "sen_sr04maxdist"
+#define preference_sensor_sr501 "sen_sr501pin"
 
 #define preference_query_interval_sensors "sen_StInterval"
 
@@ -61,12 +62,12 @@ std::vector<const char*> _keys =
         preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
         preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
         preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
-        preference_gd_position,preference_gd_debug, preference_gd_debug_restart, 
+        preference_gd_position, preference_gd_debug, preference_gd_debug_restart, 
         preference_sensor_temp_treshold, preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_i2c_sda, preference_sensor_i2c_scl,
         preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
-        preference_sensor_sr04_max_dist,
+        preference_sensor_sr04_max_dist, preference_sensor_sr501
 };
 
 std::vector<const char*> _strings =
@@ -84,7 +85,7 @@ std::vector<const char*> _ints =
         preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  preference_query_interval_sensors, 
         preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, 
-        preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin, preference_sensor_sr04_max_dist,
+        preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin, preference_sensor_sr04_max_dist, preference_sensor_sr501
 };
 
 std::vector<const char*> _redact =
@@ -181,6 +182,7 @@ class PreferenceHandler{
             preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
             preferences->putInt(preference_sensor_sr04_echopin, SR04_ECHOPIN);
             preferences->putInt(preference_sensor_sr04_max_dist, SR04_MAXDISTANCECM);
+            preferences->putInt(preference_sensor_sr501, SR501PIN);
             preferences->putInt(preference_query_interval_sensors, SENSE_PERIOD);
             //TODO putin didn't works 
             //that way we could avoid some vectors to know the type of the preferences.
@@ -290,6 +292,7 @@ class PreferenceHandler{
         int sr04_trig = doc[preference_sensor_sr04_trigpin].as<int>();
         int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
         int sr04_maxdist = doc[preference_sensor_sr04_max_dist].as<int>();
+        int sr501 = doc[preference_sensor_sr501].as<int>();
         int qry_int = doc[preference_query_interval_sensors].as<int>();
 /*
         Serial.print("basic check: ");
@@ -360,6 +363,7 @@ class PreferenceHandler{
             this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
             this->preferences->putInt(preference_sensor_sr04_echopin, sr04_echo);
             this->preferences->putInt(preference_sensor_sr04_max_dist, sr04_maxdist);
+            this->preferences->putInt(preference_sensor_sr501, sr501);
 
             this->preferences->putInt(preference_query_interval_sensors, qry_int);
         }
@@ -440,6 +444,7 @@ class PreferenceHandler{
         conf[preference_sensor_sr04_trigpin] = this->preferences->getInt(preference_sensor_sr04_trigpin);
         conf[preference_sensor_sr04_echopin] = this->preferences->getInt(preference_sensor_sr04_echopin);
         conf[preference_sensor_sr04_max_dist] = this->preferences->getInt(preference_sensor_sr04_max_dist);
+        conf[preference_sensor_sr501] = this->preferences->getInt(preference_sensor_sr501);
 
         conf[preference_query_interval_sensors] = this->preferences->getInt(preference_query_interval_sensors);
 
