@@ -641,7 +641,7 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
     #endif
     #if defined(USE_HCSR501)
-      sendDiscoveryMessageForBinarySensor(GS_MOTION, SENSOR_TOPIC, "pir", HA_OFF, HA_ON, device);
+      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
     #endif
   #endif
   #ifdef DEBUG
@@ -708,7 +708,7 @@ void SensorCheck(void *parameter){
           doc["motion"] = HA_OFF;
         }
         serializeJson(doc, payload);
-        mqttClient.publish(SENSOR_TOPIC, 1, true, payload);
+        mqttClient.publish(mqttStrings.sensor_topic, 1, true, payload);
       }
     #endif
     #ifdef USE_DS18X20
