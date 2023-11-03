@@ -16,27 +16,37 @@
     input:checked+.slider {background-color: #b30000}
     input:checked+.slider:before {-webkit-transform: translateX(32px); -ms-transform: translateX(32px); transform: translateX(32px)}
 	
-	.button {
-		border: 4px;
-		border-style: solid;
+	.btn {
+		background-color: whitesmoke;
+		border: 0px;
 		color: black;
-		width: 100px;
-		height: 100px;
 		text-align: center;
 		display: inline;
 		text-decoration: none;
 		display: inline-block;
-		font-weight: bold;
 		font-size: 20px;
 		margin: 4px 2px;
 		cursor: pointer;
+		border-radius: 8px;
+		padding: 8px 16px;
+		&:hover {
+			background-color: lightgray;
+		}
+	}
+
+	.btn-round {
+		border: 4px;
+		border-style: solid;
+		height: 100px;
+		width: 100px;
 		border-radius: 50px;
 	}
-	.buttonred {border-color: #ED5961;}
-	.buttonyellow {border-color: #fcca00;}
-	.buttonorange {border-color: #ffa500;}
-	.buttongreen {border-color: #48bd81;}  
-	.buttonblack {border-color: #000000;}
+
+	.btn-red {border-color: #ED5961;}
+	.btn-yellow {border-color: #fcca00;}
+	.btn-orange {border-color: #ffa500;}
+	.btn-green {border-color: #48bd81;}  
+	.btn-black {border-color: #000000;}
 	
 	.link-gray {
 		font-size: 1rem;
@@ -49,11 +59,44 @@
 			background: #4e5664;
 		}
 	}
-	
-	.collapsible {
-		padding: 0 18px;
-		display: none;
-		overflow: hidden;
+
+	input[type=text] {
+		width: 100%;
+		padding: 8px 8px;
+		margin: 8px 0;
+		box-sizing: border-box;
+		border: 2px solid grey;
+  		border-radius: 4px;
+		font-size: 1.2rem;
+	}
+	input[type=number] {
+		width: 100%;
+		padding: 8px 8px;
+		margin: 8px 0;
+		box-sizing: border-box;
+		border: 2px solid grey;
+  		border-radius: 4px;
+		font-size: 1.2rem;
+	}
+
+	.flex label {
+		min-width: 12rem;
+		text-align: left;
+	}
+
+	.flex {
+		display: flex;
+		align-items:center;
+		padding: 0rem 1rem;
+	}
+
+	.flex.justify-between {
+		justify-content: space-between;
+	}
+
+	.subtitle {
+		text-align: left;
+		padding: 0rem 1rem;
 	}
 	
   </style>
@@ -64,33 +107,224 @@
 	<h3 id="status">Waiting connection.</h3>	
 	
 	<hr/>
-	<button class="button buttonred" onclick="doCommand(1)">Up</button>
-	<button class="button buttonyellow" onclick="doCommand(4)">Half</button>
-	<button class="button buttonorange" onclick="doCommand(3)">Vent</button>
-	<button class="button buttonblack" onclick="doCommand(2)">Stop</button>
-	<button class="button buttongreen" onclick="doCommand(0)">Down</button>
+	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
+	<button class="btn btn-round btn-yellow" onclick="doCommand(4)">Half</button>
+	<button class="btn btn-round btn-orange" onclick="doCommand(3)">Vent</button>
+	<button class="btn btn-round btn-black" onclick="doCommand(2)">Stop</button>
+	<button class="btn btn-round btn-green" onclick="doCommand(0)">Down</button>
 	<hr/>
 	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
-	<div class="collapsible">
-		<hr/>
-		<h4>System information</h4>
-			<a class="link-gray" href="update" target="_blank">OTA Update</a><br>
-			<a class="link-gray" href="sysinfo" target="_blank">System Info</a><br>
-			<a class="link-gray" href="status" target="_blank">Door status</a><br>	
+	<hr>
+	<br>
+	<div class="flex justify-between">
+		<h4>Basic Configuration</h4>
+		<button id="toggle_basic_conf" class="btn">show</button>
 	</div>
+	<form id="basic_conf_form" class="collapsible" style="display: none">
+		<div class="subtitle">
+			<h5>Wifi</h5>
+			<div class="flex">
+				<label for="wifi_ap_enabled">Enable Wifi AP</label>
+				<input type="checkbox" id="wifi_ap_enabled" name="wifi_ap_enabled">
+			</div>
+			<div class="flex">
+				<label for="wifi_ssid">WIFI SSID</label>
+				<input type="text" id="wifi_ssid" name="wifi_ssid">
+			</div>	
+			<div class="flex">
+				<label for="wifi_pass">WIFI Password</label>
+				<input type="text" id="wifi_pass" name="wifi_pass">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>MQTT</h5>
+			<div class="flex">
+				<label for="mqtt_server">MQTT Server</label>
+				<input type="text" id="mqtt_server" name="mqtt_server">
+			</div>
+			<div class="flex">
+				<label for="mqtt_port">MQTT Port</label>
+				<input type="number" id="mqtt_port" name="mqtt_port" min="1" max="65535" step="1">
+			</div>
+			<div class="flex">
+				<label for="mqtt_user">MQTT User</label>
+				<input type="text" id="mqtt_user" name="mqtt_user">
+			</div>
+			<div class="flex">
+				<label for="mqtt_pass">MQTT Password</label>
+				<input type="text" id="mqtt_pass" name="mqtt_pass">
+			</div>
+			<div class="flex">
+				<label for="device_id">Device ID</label>
+				<input type="text" id="device_id" name="device_id">
+			</div>
+		</div>
+		<br>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
+		<h4>Expert Configuration</h4>
+		<button id="toggle_expert_conf" class="btn">show</button>
+	</div>
+	<form id="expert_conf_form" class="collapsible" style="display: none">
+		<div class="subtitle">
+			<h5>Door Status Text Definition</h5>
+			<div class="flex">
+				<label for="gd_availability">Availability</label>
+				<input type="text" id="gd_availability" name="gd_availability">
+			</div>
+			<div class="flex">
+				<label for="gd_light">Light</label>
+				<input type="text" id="gd_light" name="gd_light">
+			</div>
+			<div class="flex">
+				<label for="gd_vent">Ventilation</label>
+				<input type="text" id="gd_vent" name="gd_vent">
+			</div>
+			<div class="flex">
+				<label for="gd_status">Status</label>
+				<input type="text" id="gd_status" name="gd_status">
+			</div>
+			<div class="flex">
+				<label for="gd_det_status">Detailed Status</label>
+				<input type="text" id="gd_det_status" name="gd_det_status">
+			</div>
+			<div class="flex">
+				<label for="gd_position">Position</label>
+				<input type="text" id="gd_position" name="gd_position">
+			</div>
+			<div class="flex">
+				<label for="gd_debug_string">Debug String</label>
+				<input type="text" id="gd_debug_string" name="gd_debug_string">
+			</div>
+		</div>
+
+		<div class="subtitle">
+			<h5>Pin Definition</h5>
+			<div class="flex">
+				<label for="rs485_txd">RS485 TXD</label>
+				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="rs485_rxd">RS485 RXD</label>
+				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_i2c_sda">I2C SDA</label>
+				<input type="number" id="sen_i2c_sda" name="sen_i2c_sda" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_i2c_scl">I2C SCL</label>
+				<input type="number" id="sen_i2c_scl" name="sen_i2c_scl" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_i2c_onoff">I2C on off</label>
+				<input type="number" id="sen_i2c_onoff" name="sen_i2c_onoff" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_dhtvccpin">DHT VCC</label>
+				<input type="number" id="sen_dhtvccpin" name="sen_dhtvccpin" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_ds18x20pin">DS18X20</label>
+				<input type="number" id="sen_ds18x20pin" name="sen_ds18x20pin" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_sr04trigpin">SR04 trigger</label>
+				<input type="number" id="sen_sr04trigpin" name="sen_sr04trigpin" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_sr04echopin">SR04 echo</label>
+				<input type="number" id="sen_sr04echopin" name="sen_sr04echopin" min="1" max="45" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_sr04echopin">SR501</label>
+				<input type="number" id="sen_sr501pin" name="sen_sr501pin" min="1" max="45" step="1">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Sensor Adjustments</h5>
+			<div class="flex">
+				<label for="sen_StInterval">Sensor Query interval</label>
+				<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_temp_thresh">Temperature threshold</label>
+				<input type="number" step="0.1" id="sen_temp_thresh" name="sen_temp_thresh">
+			</div>
+			<div class="flex">
+				<label for="sen_hum_thresh">Humidity threshold</label>
+				<input type="number" id="sen_hum_thresh" name="sen_hum_thresh" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_pres_thresh">Preasure threshold</label>
+				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_prox_thresh">Proximity threshold</label>
+				<input type="number" id="sen_prox_thresh" name="sen_prox_thresh" min="1" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_sr04maxdist">SR04 Max Dist</label>
+				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Other Text Definition</h5>	
+			<div class="flex">
+				<label for="gd_dg_rst_reas">Restart Reason</label>
+				<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas">
+			</div>
+			<div class="flex">
+				<label for="sensor_temp">Temperature</label>
+				<input type="text" id="sensor_temp" name="sensor_temp">
+			</div>
+			<div class="flex">
+				<label for="sensor_humidity">Humitidy</label>
+				<input type="text" id="sensor_humidity" name="sensor_humidity">
+			</div>
+			<div class="flex">
+				<label for="sensor_atmpreas">Pressure</label>
+				<input type="text" id="sensor_atmpreas" name="sensor_atmpreas">
+			</div>
+			<div class="flex">
+				<label for="sensor_freedist">Free distance</label>
+				<input type="text" id="sensor_freedist" name="sensor_freedist">
+			</div>
+			<div class="flex">
+				<label for="sen_park_avail">Park availability</label>
+				<input type="text" id="sen_park_avail" name="sen_park_avail">
+			</div>
+		</div>
+		<br>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
+		<h4>System information</h4>
+		<button id="toogle_sysinfo" class="btn">show</button>
+	</div>
+	<div id="sysinfo_links" class="collapsible" style="display: none">
+		<a class="link-gray" href="update" target="_blank">OTA Update</a>
+		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
+		<a class="link-gray" href="status" target="_blank">Door status</a>
+	</div>
+
 		
 	<script>
-	document.getElementById("collapse").onclick = function() {collapse()};
+	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
+	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
+	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
-	function collapse() {
-		var content = document.getElementsByClassName("collapsible");
-		Array.from(content).forEach((x) => {
-			if (x.style.display === "none") {
-			x.style.display = "block";
-			} else {
-			x.style.display = "none";
-			}
-		})
+	function collapse(elementId) {
+		var x = document.getElementById(elementId);
+		if (x.style.display === "none") {
+		x.style.display = "block";
+		} else {
+		x.style.display = "none";
+		}
+		
 	}
 	
 	doorpos = 10;
@@ -156,7 +390,64 @@
 	  	xhr.open("GET", "/command?action="+action, true); 	  
 
 	  xhr.send();
+	}
+
+	function getConfig() {
+	  	//get current config
+	  	var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+			var config = JSON.parse(this.responseText);	
+			console.log(config)
+			// access objects by key/value pair
+			for (const key in config){
+				var el = document.getElementById(key);
+				if(el) {		// if element exists in doc...
+					if (config[key] === true) {
+						el.checked = config[key]
+					}
+					else {
+						el.value = config[key]
+					}
+				}
+				else {
+					console.error('ID ' + key + ' doesnt exist!')
+				}
+			}
+			return;
+			}
+		};			
+		xmlhttp.open("GET", "/config", true);
+		xmlhttp.send();
 	}  
+
+	function handleSubmitConf(event) {
+		event.preventDefault();
+		console.log('form submitted');
+
+		if (confirm("Changing the Configuration will restart your Device! \n\nIf your Garage Motor is connected you will need to start the BusScan again to clear the resulting Error") != true) 
+		{
+			return;
+		}
+
+		console.log("User confirmed Saving Conf")
+
+		const data = new FormData(event.target);
+		const json = Object.fromEntries(data.entries());
+
+		//send data over post request
+		var xhr = new XMLHttpRequest();
+
+		xhr.open('POST', '/config')
+		xhr.setRequestHeader('Content-Type', 'application/json')
+		xhr.send(JSON.stringify(json))
+	}
+
+	const basicConfForm = document.getElementById('basic_conf_form');
+	basicConfForm.addEventListener('submit', handleSubmitConf);
+
+	const expertConfForm = document.getElementById('expert_conf_form');
+	expertConfForm.addEventListener('submit', handleSubmitConf);
 	
 	function setDoorState(state){
 		stopDoorAnimation();		
@@ -200,7 +491,8 @@
 			xmlhttp.open("GET", "/status", true);
 			xmlhttp.send();
 	}
-		
+
+	getConfig();	
 	Draw();
 	updateData();	
 	setInterval(updateData, 3000);
