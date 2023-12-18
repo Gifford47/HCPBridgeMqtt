@@ -38,6 +38,8 @@ AsyncWebServer server(80);
   double  sensor_temp_thresh  = 0;
   int     sensor_hum_thresh   = 0;
   int     sensor_pres_thresh  = 0;
+  int     sensor_last_update  = 0;
+  int     sensor_force_update_intervall = 7200;    // force sending sensor updates after amount of time since last update
 #endif
 
 
@@ -299,8 +301,13 @@ void updateDoorStatus(bool forceUpate = false)
     mqttClient.publish(mqttStrings.pos_topic, 1, true, payload);
   }
 }
+
 void updateSensors(bool forceUpate = false){
   #ifdef SENSORS
+    if (millis()-sensor_last_update >= sensor_force_update_intervall) {
+      forceUpate = true;
+    }
+    
     if (new_sensor_data || forceUpate) {
       new_sensor_data = false;
       DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
@@ -335,6 +342,7 @@ void updateSensors(bool forceUpate = false){
       #endif
       serializeJson(doc, payload);
       mqttClient.publish(mqttStrings.sensor_topic, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+      sensor_last_update = millis();
     }
   #endif
 }
