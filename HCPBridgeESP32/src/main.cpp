@@ -39,7 +39,7 @@ AsyncWebServer server(80);
   int     sensor_hum_thresh   = 0;
   int     sensor_pres_thresh  = 0;
   int     sensor_last_update  = 0;
-  int     sensor_force_update_intervall = 7200;    // force sending sensor updates after amount of time since last update
+  int     sensor_force_update_intervall = 7200000;    // force sending sensor updates after amount of time since last update
 #endif
 
 
