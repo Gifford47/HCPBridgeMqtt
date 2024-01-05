@@ -158,7 +158,7 @@ void setuptMqttStrings(){
   mqttStrings.st_cmd_topic_var = mqttStrings.st_cmd_topic + "/%s";
   mqttStrings.st_cmd_topic_subs = mqttStrings.st_cmd_topic + "/#";
   mqttStrings.st_pos_topic = ftopic + "/position";
-  mqttStrings.st_setpos_topic = ftopic + "/set_position";
+  mqttStrings.st_setpos_topic = mqttStrings.st_cmd_topic  + "/set_position";
   mqttStrings.st_lamp_topic = mqttStrings.st_cmd_topic  + "/lamp";
   mqttStrings.st_door_topic = mqttStrings.st_cmd_topic  + "/door";
   mqttStrings.st_vent_topic = mqttStrings.st_cmd_topic  + "/vent";
