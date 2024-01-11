@@ -35,7 +35,7 @@ AsyncWebServer server(80);
 
 #ifdef SENSORS
   int     sensor_prox_tresh   = 0;
-  double  sensor_temp_thresh  = 0;
+  float  sensor_temp_thresh  = 0;
   int     sensor_hum_thresh   = 0;
   int     sensor_pres_thresh  = 0;
   int     sensor_last_update  = 0;
@@ -314,15 +314,15 @@ void updateSensors(bool forceUpate = false){
       char payload[1024];
       char buf[20];
       #ifdef USE_DS18X20
-        dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+        dtostrf(ds18x20_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
       #endif
       #ifdef USE_BME
-        dtostrf(bme_temp,2,2,buf);    // convert to string
+        dtostrf(bme_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
-        dtostrf(bme_hum,2,2,buf);    // convert to string
+        dtostrf(bme_hum,2,1,buf);    // convert to string
         //Serial.println("Hum: "+ (String)buf);
         doc["hum"] = buf;
         dtostrf(bme_pres,2,1,buf);    // convert to string
@@ -470,7 +470,7 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   sprintf(uid, "%s_sensor_%s", localPrefs->getString(preference_gd_id), key);
 
   char vtemp[64];
-  sprintf(vtemp, "{{ value_json.%s }}", key);
+  sprintf(vtemp, "{{ value_json.%s | float }}", key);
 
   DynamicJsonDocument doc(1024);
 
