@@ -148,7 +148,7 @@
             }
 
             String toStatusJson() {
-                DynamicJsonDocument root(1024);
+                JsonDocument root;
                 root["valid"] = this->isValid();
                 root["targetPosition"] = (int)(this->targetPosition*100);
                 root["currentPosition"] = (int)(this->currentPosition*100);
