@@ -35,9 +35,11 @@ AsyncWebServer server(80);
 
 #ifdef SENSORS
   int     sensor_prox_tresh   = 0;
-  double  sensor_temp_thresh  = 0;
+  float  sensor_temp_thresh  = 0;
   int     sensor_hum_thresh   = 0;
   int     sensor_pres_thresh  = 0;
+  int     sensor_last_update  = 0;
+  int     sensor_force_update_intervall = 7200000;    // force sending sensor updates after amount of time since last update
 #endif
 
 
@@ -158,7 +160,7 @@ void setuptMqttStrings(){
   mqttStrings.st_cmd_topic_var = mqttStrings.st_cmd_topic + "/%s";
   mqttStrings.st_cmd_topic_subs = mqttStrings.st_cmd_topic + "/#";
   mqttStrings.st_pos_topic = ftopic + "/position";
-  mqttStrings.st_setpos_topic = ftopic + "/set_position";
+  mqttStrings.st_setpos_topic = mqttStrings.st_cmd_topic  + "/set_position";
   mqttStrings.st_lamp_topic = mqttStrings.st_cmd_topic  + "/lamp";
   mqttStrings.st_door_topic = mqttStrings.st_cmd_topic  + "/door";
   mqttStrings.st_vent_topic = mqttStrings.st_cmd_topic  + "/vent";
@@ -278,7 +280,7 @@ void updateDoorStatus(bool forceUpate = false)
   // onyl send updates when state changed
   if (hoermannEngine->state->changed || forceUpate){
     hoermannEngine->state->clearChanged();
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
     char payload[1024];
     const char *venting = HA_CLOSE;
 
@@ -299,23 +301,28 @@ void updateDoorStatus(bool forceUpate = false)
     mqttClient.publish(mqttStrings.pos_topic, 1, true, payload);
   }
 }
+
 void updateSensors(bool forceUpate = false){
   #ifdef SENSORS
+    if (millis()-sensor_last_update >= sensor_force_update_intervall) {
+      forceUpate = true;
+    }
+    
     if (new_sensor_data || forceUpate) {
       new_sensor_data = false;
-      DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+      JsonDocument doc;    //2048 needed because of BME280 float values!
       char payload[1024];
       char buf[20];
       #ifdef USE_DS18X20
-        dtostrf(ds18x20_temp,2,2,buf);    // convert to string
+        dtostrf(ds18x20_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
       #endif
       #ifdef USE_BME
-        dtostrf(bme_temp,2,2,buf);    // convert to string
+        dtostrf(bme_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
-        dtostrf(bme_hum,2,2,buf);    // convert to string
+        dtostrf(bme_hum,2,1,buf);    // convert to string
         //Serial.println("Hum: "+ (String)buf);
         doc["hum"] = buf;
         dtostrf(bme_pres,2,1,buf);    // convert to string
@@ -335,6 +342,7 @@ void updateSensors(bool forceUpate = false){
       #endif
       serializeJson(doc, payload);
       mqttClient.publish(mqttStrings.sensor_topic, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+      sensor_last_update = millis();
     }
   #endif
 }
@@ -393,7 +401,7 @@ void setWill()
 
 void sendDebug(char *key, String value)
 {
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   char payload[1024];
   doc["reset-reason"] = esp_reset_reason();
   doc["debug"] = hoermannEngine->state->debugMessage;
@@ -413,7 +421,7 @@ void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], 
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
 
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
   doc["name"] = name;
   doc["state_topic"] = topic;
@@ -439,7 +447,7 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
 
   char uid[64];
   sprintf(uid, "%s_sensor_availability", localPrefs->getString(preference_gd_id));
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
   doc["name"] = localPrefs->getString(preference_gd_avail);
   doc["state_topic"] = mqttStrings.availability_topic;
@@ -462,9 +470,17 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   sprintf(uid, "%s_sensor_%s", localPrefs->getString(preference_gd_id), key);
 
   char vtemp[64];
-  sprintf(vtemp, "{{ value_json.%s }}", key);
+  //small workaround to get the value as float
+  if (key == "hum" || key == "temp" || key == "pres"){
+    sprintf(vtemp, "{{ value_json.%s | float }}", key);
+  } else {
+    sprintf(vtemp, "{{ value_json.%s }}", key);
+  }
+  
+  
+  
 
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
   doc["name"] = name;
   doc["state_topic"] = topic;
@@ -496,7 +512,7 @@ void sendDiscoveryMessageForDebug(const char name[], const char key[], const Jso
   char vtemp[64];
   sprintf(vtemp, "{{ value_json.%s }}", key);
 
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
   doc["name"] = name;
   doc["state_topic"] = mqttStrings.debug_topic;
@@ -533,7 +549,7 @@ void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], co
     sprintf(uid, "%s_switch_%s",localPrefs->getString(preference_gd_id), topic);
   }
 
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
   doc["name"] = name;
   doc["state_topic"] = mqttStrings.state_topic;
@@ -567,7 +583,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   char uid[64];
   sprintf(uid, "%s_cover_%s", localPrefs->getString(preference_gd_id), topic);
 
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
  //if it didn't work try without state topic.
   doc["name"] = name;
   doc["state_topic"] = mqttStrings.state_topic;
@@ -606,8 +622,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
 void sendDiscoveryMessage()
 {
   //declare json object here for device instead of creating in each methode. 150 bytes should be enough
-  const int capacity = JSON_OBJECT_SIZE(6);
-  StaticJsonDocument<capacity> device;
+  JsonDocument device;
   device["identifiers"] = localPrefs->getString(preference_gd_name);
   device["name"] = localPrefs->getString(preference_gd_name);
   device["sw_version"] = HA_VERSION;
@@ -699,7 +714,7 @@ void SensorCheck(void *parameter){
       hcsr501stat = digitalRead(SR501PIN);
       if (hcsr501stat != hcsr501_laststat) {
         hcsr501_laststat = hcsr501stat;
-        DynamicJsonDocument doc(1024);
+        JsonDocument doc;
         char payload[1024];
         if (hcsr501stat) {
           doc["motion"] = HA_ON;
@@ -727,7 +742,7 @@ void SensorCheck(void *parameter){
         //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
       }
       if (!bme_status) {
-        DynamicJsonDocument doc(1024);    //2048 needed because of BME280 float values!
+        JsonDocument doc;    //2048 needed because of BME280 float values!
         // char payload[1024];
         // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
         // serializeJson(doc, payload);
@@ -1025,7 +1040,7 @@ void setup()
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
               //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              DynamicJsonDocument root(1024);
+              JsonDocument root;
               //response->print(hoermannEngine->state->toStatusJson());
               root["doorstate"] = hoermannEngine->state->translatedState;
               root["valid"] = hoermannEngine->state->valid;
@@ -1102,7 +1117,7 @@ void setup()
             {
               Serial.println("GET SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              DynamicJsonDocument root(1024);
+              JsonDocument root;
               root["freemem"] = ESP.getFreeHeap();
               root["hostname"] = WiFi.getHostname();
               root["ip"] = WiFi.localIP().toString();
@@ -1117,8 +1132,7 @@ void setup()
             {
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
-              const int capacity = JSON_OBJECT_SIZE(65); //Strings counts twice
-              StaticJsonDocument<capacity> conf;
+              JsonDocument conf;
               prefHandler.getConf(conf);
               serializeJson(conf, *response);
               request->send(response); });
@@ -1129,8 +1143,7 @@ void setup()
           // Handle setting config request
           if (request->url() == "/config")
           {
-            const int capacity = JSON_OBJECT_SIZE(70); //Strings counts twice
-            StaticJsonDocument<capacity> doc;
+            JsonDocument doc;
             deserializeJson(doc, data);
             prefHandler.saveConf(doc);
 
@@ -1140,7 +1153,7 @@ void setup()
         {
           Serial.println("GET reset");
           AsyncResponseStream *response = request->beginResponseStream("application/json");
-          DynamicJsonDocument root(1024);
+          JsonDocument root;
           root["reset"] = "OK";
           serializeJson(root, *response);
           request->send(response); 
