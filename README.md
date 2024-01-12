@@ -136,6 +136,14 @@ Please note that the suggested serial pins for serial interfacing, on ESP32, are
 ![alt text](Images/esp32_protoboard2.jpg)
 </details>
 
+<details>
+<summary>Details specific to Az-delivery ESP32 (ESP32-WROOM-32)</summary>
+Note the pinout on this cheap but widespread ESP32 module is a bit different. The GND on the bottom left must not be used (it is actually wrongly labeled, it should be CMD). Use the top right instead. Moreover use the pin 16 as RXD and pin 17 as TXD to match the code on this repository (using UART2, not UART0).
+ 
+![image](https://github.com/Gifford47/HCPBridgeMqtt/assets/248961/1ad1c298-cf27-48cc-bf30-7667c27c3304)
+
+</details>
+
 ## RS485
 
 <details open>

@@ -373,6 +373,7 @@ class PreferenceHandler{
 
     void getConf(JsonDocument&  conf){
         char gd_id[64];
+        char gd_name[64];
         char mqtt_server[64];
         char mqtt_user[64];
         char wifi_ssid[64];
@@ -391,7 +392,7 @@ class PreferenceHandler{
         char gs_park_avail[64];
 
         strcpy(gd_id, preferences->getString(preference_gd_id).c_str());
-        preferences->putString(preference_gd_name, DEVICENAME);
+        strcpy(gd_name, preferences->getString(preference_gd_name).c_str());
         strcpy(mqtt_server, preferences->getString(preference_mqtt_server).c_str());
         strcpy(mqtt_user, preferences->getString(preference_mqtt_user).c_str());
         strcpy(wifi_ssid, preferences->getString(preference_wifi_ssid).c_str());
@@ -410,6 +411,7 @@ class PreferenceHandler{
         strcpy(gs_park_avail, preferences->getString(preference_gs_park_avail).c_str());
 
         conf[preference_gd_id] = gd_id;
+        conf[preference_gd_name] = gd_name;
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
         conf[preference_wifi_ssid] = wifi_ssid;
         conf[preference_mqtt_server] = mqtt_server;
