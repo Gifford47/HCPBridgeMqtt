@@ -1,6 +1,6 @@
 # Getting started with prebuild PCBs
 
-If you bought a prebuild PCB from either [Tynet.eu](https://shop.tynet.eu/rs485-bridge-diy-hoermann-mqtt-adapter-esp32-s3-dev-board) or someone else you can follow this setp by step guide to setup your HCP-Bridge with your Hörmann Garage Door.
+If you bought a prebuild PCB from either Tynet.eu or someone else you can follow this setp by step guide to setup your HCP-Bridge with your Hörmann Garage Door.
 These instructions focus on the tynet.eu PCB version, but it will be really similar with all PCBs.
 
 ## What you need
