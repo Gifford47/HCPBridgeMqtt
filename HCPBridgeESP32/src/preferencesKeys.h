@@ -46,7 +46,7 @@
 #define preference_sensor_i2c_scl "sen_i2c_scl"
 #define preference_sensor_i2c_on_off "sen_i2c_onoff"
 
-#define preference_sensor_dht_vcc_pin "sen_dhtvccpin"
+#define preference_sensor_dht_data_pin "sen_dhtdatapin"
 #define preference_sensor_ds18x20_pin "sen_ds18x20pin"
 
 #define preference_sensor_sr04_trigpin "sen_sr04trigpin"
@@ -66,7 +66,7 @@ std::vector<const char*> _keys =
         preference_sensor_temp_treshold, preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_sensor_i2c_sda, preference_sensor_i2c_scl,
-        preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
+        preference_sensor_i2c_on_off, preference_sensor_dht_data_pin, preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin,
         preference_sensor_sr04_max_dist, preference_sensor_sr501
 };
 
@@ -84,7 +84,7 @@ std::vector<const char*> _ints =
 {
         preference_rs485_txd, preference_rs485_rxd, preference_mqtt_server_port,  preference_query_interval_sensors, 
         preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
-        preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_vcc_pin, 
+        preference_sensor_i2c_sda, preference_sensor_i2c_scl, preference_sensor_i2c_on_off, preference_sensor_dht_data_pin, 
         preference_sensor_ds18x20_pin,  preference_sensor_sr04_trigpin, preference_sensor_sr04_echopin, preference_sensor_sr04_max_dist, preference_sensor_sr501
 };
 
@@ -176,7 +176,7 @@ class PreferenceHandler{
             preferences->putInt(preference_sensor_i2c_scl, I2C_SCL);
             preferences->putInt(preference_sensor_i2c_on_off, I2C_ON_OFF);
 
-            preferences->putInt(preference_sensor_dht_vcc_pin, DHT_VCC_PIN);
+            preferences->putInt(preference_sensor_dht_data_pin, DHTPIN);
             preferences->putInt(preference_sensor_ds18x20_pin, oneWireBus);
 
             preferences->putInt(preference_sensor_sr04_trigpin, SR04_TRIGPIN);
@@ -287,7 +287,7 @@ class PreferenceHandler{
         int i2c_sda = doc[preference_sensor_i2c_sda].as<int>();
         int i2c_scl = doc[preference_sensor_i2c_scl].as<int>();
         int i2c_on_off = doc[preference_sensor_i2c_on_off].as<int>();
-        int dht_vcc = doc[preference_sensor_dht_vcc_pin].as<int>();
+        int dht_data = doc[preference_sensor_dht_data_pin].as<int>();
         int ds18x20 = doc[preference_sensor_ds18x20_pin].as<int>();
         int sr04_trig = doc[preference_sensor_sr04_trigpin].as<int>();
         int sr04_echo = doc[preference_sensor_sr04_echopin].as<int>();
@@ -357,7 +357,7 @@ class PreferenceHandler{
             this->preferences->putInt(preference_sensor_i2c_scl, i2c_scl);
             this->preferences->putInt(preference_sensor_i2c_on_off, i2c_on_off);
 
-            this->preferences->putInt(preference_sensor_dht_vcc_pin, dht_vcc);
+            this->preferences->putInt(preference_sensor_dht_data_pin, dht_data);
             this->preferences->putInt(preference_sensor_ds18x20_pin, ds18x20);
 
             this->preferences->putInt(preference_sensor_sr04_trigpin, sr04_trig);
@@ -441,7 +441,7 @@ class PreferenceHandler{
         conf[preference_sensor_i2c_sda] = this->preferences->getInt(preference_sensor_i2c_sda);
         conf[preference_sensor_i2c_scl] = this->preferences->getInt(preference_sensor_i2c_scl);
         conf[preference_sensor_i2c_on_off] = this->preferences->getInt(preference_sensor_i2c_on_off);
-        conf[preference_sensor_dht_vcc_pin] = this->preferences->getInt(preference_sensor_dht_vcc_pin);
+        conf[preference_sensor_dht_data_pin] = this->preferences->getInt(preference_sensor_dht_data_pin);
         conf[preference_sensor_ds18x20_pin] = this->preferences->getInt(preference_sensor_ds18x20_pin);
         conf[preference_sensor_sr04_trigpin] = this->preferences->getInt(preference_sensor_sr04_trigpin);
         conf[preference_sensor_sr04_echopin] = this->preferences->getInt(preference_sensor_sr04_echopin);
