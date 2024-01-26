@@ -488,14 +488,16 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
-  doc["state_class"] = "measurement";
   if (key == "hum") {
+    doc["state_class"] = "measurement";
     doc["unit_of_measurement"] = "%";
     doc["device_class"] = "humidity";
   } else if (key == "temp") {
+    doc["state_class"] = "measurement";
     doc["unit_of_measurement"] = "°C";
     doc["device_class"] = "temperature";
   } else if (key == "pres") {
+    doc["state_class"] = "measurement";
     doc["unit_of_measurement"] = "hPa";
     doc["device_class"] = "pressure";
   }
