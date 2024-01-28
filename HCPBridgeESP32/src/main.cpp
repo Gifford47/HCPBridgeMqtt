@@ -82,7 +82,7 @@ AsyncWebServer server(80);
   float dht22_last_temp = -99.99;
   float dht22_hum = -99.99;
   float dht22_last_hum = -99.99;
-  int dht_vcc_pin = 0;
+  int dht_data_pin = 0;
 #endif
 
 #ifdef USE_HCSR501
@@ -488,6 +488,19 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
   doc["unique_id"] = uid;
+  if (key == "hum") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "%";
+    doc["device_class"] = "humidity";
+  } else if (key == "temp") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "°C";
+    doc["device_class"] = "temperature";
+  } else if (key == "pres") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "hPa";
+    doc["device_class"] = "pressure";
+  }
   doc["value_template"] = vtemp;
   doc["device"] = device;
   doc["device_class"] = device_class;
@@ -795,15 +808,13 @@ void SensorCheck(void *parameter){
         }
     #endif
     #ifdef USE_DHT22
-      pinMode(dht_vcc_pin, OUTPUT);
-      digitalWrite(dht_vcc_pin, HIGH);
-      dht->begin();
-
       dht22_temp = dht->readTemperature();
       dht22_hum = dht->readHumidity();
-
-      if (abs(dht22_temp) >= sensor_temp_thresh || abs(dht22_hum) >= sensor_hum_thresh){
+      if (!isnan(dht22_temp) && abs(dht22_temp) >= sensor_temp_thresh){
         dht22_last_temp = dht22_temp;
+        new_sensor_data = true;
+      }
+      if (!isnan(dht22_hum) && abs(dht22_hum) >= sensor_hum_thresh){
         dht22_last_hum = dht22_hum;
         new_sensor_data = true;
       }
@@ -1011,12 +1022,10 @@ void setup()
       hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
     #endif
     #ifdef USE_DHT22
-      dht_vcc_pin = localPrefs->getInt(preference_sensor_dht_vcc_pin);
-       static DHT static_dht(dht_vcc_pin, DHTTYPE);
+      dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
+       static DHT static_dht(dht_data_pin, DHTTYPE);
       // save its address.
       dht = &static_dht;
-      pinMode(dht_vcc_pin, OUTPUT);
-      digitalWrite(dht_vcc_pin, HIGH);
       dht->begin();
     #endif
 

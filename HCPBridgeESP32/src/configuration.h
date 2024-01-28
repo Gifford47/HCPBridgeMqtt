@@ -78,7 +78,7 @@
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // DHT22
-    #define DHT_VCC_PIN 27
+    #define DHTPIN 27
     #define DHTTYPE DHT22
 
     //HC-SR501
