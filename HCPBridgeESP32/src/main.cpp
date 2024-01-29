@@ -460,7 +460,7 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
   mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device)
+void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device, const char device_class[] = "", const char unit[] = "")
 {
 
   char full_topic[64];
@@ -503,6 +503,8 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   }
   doc["value_template"] = vtemp;
   doc["device"] = device;
+  doc["device_class"] = device_class;
+  doc["unit_of_measurement"] = unit;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -654,19 +656,19 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_position).c_str(), mqttStrings.state_topic, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device, "atmospheric_pressure", "hPa");
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
     #endif
     #if defined(USE_HCSR04)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device, "distance", "cm");
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_park_avail).c_str(), mqttStrings.sensor_topic, "free", HA_OFF, HA_ON, device);
     #endif
     #if defined(USE_DHT22)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
     #endif
     #if defined(USE_HCSR501)
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
