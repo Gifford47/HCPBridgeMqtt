@@ -1068,7 +1068,11 @@ void setup()
                 #ifdef USE_DS18X20
                   root["temp"] = ds18x20_temp;
                 #elif defined(USE_BME)
-                  root["temp"] = bme_temp;
+                  char buf[20];
+                  dtostrf(bme_temp,2,1,buf); 
+                  root["temp"] = buf;
+                  dtostrf(bme_hum,2,1,buf); 
+                  root["hum"] = buf;
                 #elif defined(USE_DHT22)
                   root["temp"] = dht22_temp;
                 #endif
