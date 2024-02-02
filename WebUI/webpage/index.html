@@ -42,6 +42,28 @@
 		border-radius: 50px;
 	}
 
+	.hbox {
+		display: none;
+		justify-content: space-around;
+	}
+
+	.badge {
+		background-color:#fff;
+		border:2px solid rgb(81, 0, 255);    
+		width:100px;
+		height:100px;
+		border-radius:50%;
+		-moz-border-radius:50%;
+		-webkit-border-radius:50%;
+		display: flex;
+		align-items: center;
+  		text-align: center;
+		padding: 5px 5px;
+		margin: 8px 8px;
+		visibility: hidden;
+	}
+
+
 	.btn-red {border-color: #ED5961;}
 	.btn-yellow {border-color: #fcca00;}
 	.btn-orange {border-color: #ffa500;}
@@ -104,7 +126,12 @@
 <body>
   <h2 id="collapse">Garage Door</h2>  
 	<canvas width="250px" height="250px" id="dc"></canvas>
-	<h3 id="status">Waiting connection.</h3>	
+	<h3 id="status">Waiting connection.</h3>
+	<div class="hbox" id="sensors">
+		<div class="badge" id="temp"></div>
+		<div class="badge" id="hum"></div>
+	</div>
+	
 	
 	<hr/>
 	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
@@ -113,7 +140,11 @@
 	<button class="btn btn-round btn-black" onclick="doCommand(2)">Stop</button>
 	<button class="btn btn-round btn-green" onclick="doCommand(0)">Down</button>
 	<hr/>
-	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+	<div class="hbox">
+		<div>
+			<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+		</div>
+	</div>
 	<hr>
 	<br>
 	<div class="flex justify-between">
@@ -484,6 +515,16 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
+				if (status.hasOwnProperty('temp')) {
+					document.getElementById("sensors").style.display = 'flex';
+					document.getElementById("temp").innerHTML = "T:"+status.temp;
+					document.getElementById("temp").style.visibility = 'visible';
+				}
+				if (status.hasOwnProperty('hum')) {
+					document.getElementById("sensors").style.display = 'flex';
+					document.getElementById("hum").innerHTML = "H:"+status.hum;
+					document.getElementById("hum").style.visibility = 'visible';
+				}
 				return;
 			  }
 			  isconnected= false;
