@@ -476,9 +476,6 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   } else {
     sprintf(vtemp, "{{ value_json.%s }}", key);
   }
-  
-  
-  
 
   JsonDocument doc;
 
@@ -487,7 +484,18 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
+  doc["value_template"] = vtemp;
+  doc["device"] = device;
+  
+  //Only set device class if set
+  if(device_class != "") {
+    doc["device_class"] = device_class;
+  }
+
+  doc["unit_of_measurement"] = unit;
   doc["unique_id"] = uid;
+  
+  // overwrite device class if special key
   if (key == "hum") {
     doc["state_class"] = "measurement";
     doc["unit_of_measurement"] = "%";
@@ -501,10 +509,6 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
     doc["unit_of_measurement"] = "hPa";
     doc["device_class"] = "pressure";
   }
-  doc["value_template"] = vtemp;
-  doc["device"] = device;
-  doc["device_class"] = device_class;
-  doc["unit_of_measurement"] = unit;
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -651,8 +655,8 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
   sendDiscoveryMessageForCover(localPrefs->getString(preference_gd_name).c_str(), "door", device);
 
-  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device);
-  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device);
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device, "enum");
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device, "enum");
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_position).c_str(), mqttStrings.state_topic, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
