@@ -6,8 +6,8 @@
 
     // Station -> set AP_ACTIF to false if you wanna use password from config file
     const bool AP_ACTIF = (bool)true;
-    const char* STA_SSID   = "";
-    const char* STA_PASSWD = "";
+    const char* STA_SSID   = "GarageDoor";
+    const char* STA_PASSWD = "garageadmin";
 
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
@@ -67,7 +67,6 @@
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
     //BME280                     
-    #define I2C_ON_OFF  4       // switches I2C On and Off: connect VDD to this GPIO! (due to interferences on i2c bus while door actions (UP/DOWN ...))
     #define I2C_SDA 21
     #define I2C_SCL 22
 
