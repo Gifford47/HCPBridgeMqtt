@@ -1006,7 +1006,6 @@ void setup()
       ds18x20->begin();
     #endif
     #ifdef USE_BME
-      i2c_onoffpin = localPrefs->getInt(preference_sensor_i2c_on_off);
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       pinMode(i2c_onoffpin, OUTPUT);
