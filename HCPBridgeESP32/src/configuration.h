@@ -6,8 +6,8 @@
 
     // Station -> set AP_ACTIF to false if you wanna use password from config file
     const bool AP_ACTIF = (bool)true;
-    const char* STA_SSID   = "GarageDoor";
-    const char* STA_PASSWD = "garageadmin";
+    const char* STA_SSID   = "";
+    const char* STA_PASSWD = "";
 
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
