@@ -43,26 +43,26 @@
 	}
 
 	.hbox {
-		display: none;
 		justify-content: space-around;
 	}
 
-	.badge {
+	.circle {
+		display: inline-table;
+		vertical-align: middle;
+		width: 60px;
+		height: 60px;
+		background-color: #bbb;
 		background-color:#fff;
 		border:2px solid rgb(81, 0, 255);    
-		width:100px;
-		height:100px;
 		border-radius:50%;
-		-moz-border-radius:50%;
-		-webkit-border-radius:50%;
-		display: flex;
-		align-items: center;
-  		text-align: center;
-		padding: 5px 5px;
-		margin: 8px 8px;
 		visibility: hidden;
 	}
 
+	.circle__cont {
+		display: table-cell;
+		vertical-align: middle;
+		text-align: center;
+	}
 
 	.btn-red {border-color: #ED5961;}
 	.btn-yellow {border-color: #fcca00;}
@@ -127,9 +127,13 @@
   <h2 id="collapse">Garage Door</h2>  
 	<canvas width="250px" height="250px" id="dc"></canvas>
 	<h3 id="status">Waiting connection.</h3>
-	<div class="hbox" id="sensors">
-		<div class="badge" id="temp"></div>
-		<div class="badge" id="hum"></div>
+	<div class="hbox" style="display: none;" id="sensors">
+		<div class="circle" id="temp">
+			<div class="circle__cont"></div>
+		</div>
+		<div class="circle" id="hum">
+			<div class="circle__cont"></div>
+		</div>
 	</div>
 	
 	
@@ -517,13 +521,15 @@
 				document.getElementById("light").checked = status.light & status.valid;
 				if (status.hasOwnProperty('temp')) {
 					document.getElementById("sensors").style.display = 'flex';
-					document.getElementById("temp").innerHTML = "T:"+status.temp;
-					document.getElementById("temp").style.visibility = 'visible';
+					div_temp = document.getElementById("temp");
+					div_temp.style.visibility = show;
+					div_temp.children[0].innerHTML = status.temp+" °C";
 				}
 				if (status.hasOwnProperty('hum')) {
 					document.getElementById("sensors").style.display = 'flex';
-					document.getElementById("hum").innerHTML = "H:"+status.hum;
-					document.getElementById("hum").style.visibility = 'visible';
+					div_temp = document.getElementById("hum");
+					div_temp.style.visibility = show;
+					div_temp.children[0].innerHTML = status.hum+" %";
 				}
 				return;
 			  }
