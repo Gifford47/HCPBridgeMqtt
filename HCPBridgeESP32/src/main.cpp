@@ -1008,7 +1008,6 @@ void setup()
       ds18x20->begin();
     #endif
     #ifdef USE_BME
-      i2c_onoffpin = localPrefs->getInt(preference_sensor_i2c_on_off);
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       pinMode(i2c_onoffpin, OUTPUT);
@@ -1071,7 +1070,11 @@ void setup()
                 #ifdef USE_DS18X20
                   root["temp"] = ds18x20_temp;
                 #elif defined(USE_BME)
-                  root["temp"] = bme_temp;
+                  char buf[20];
+                  dtostrf(bme_temp,2,1,buf); 
+                  root["temp"] = buf;
+                  dtostrf(bme_hum,2,1,buf); 
+                  root["hum"] = buf;
                 #elif defined(USE_DHT22)
                   root["temp"] = dht22_temp;
                 #endif
