@@ -303,6 +303,7 @@ void updateDoorStatus(bool forceUpate = false)
 }
 
 void updateSensors(bool forceUpate = false){
+  Serial.println("Updating sensors");
   #ifdef SENSORS
     if (millis()-sensor_last_update >= sensor_force_update_intervall) {
       forceUpate = true;
@@ -771,6 +772,7 @@ void SensorCheck(void *parameter){
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
+        new_sensor_data = true;
         if (bme_hum < 99.9){                   // I2C hung up ...
           if (abs(bme_temp-bme_last_temp) >= sensor_temp_thresh || abs(bme_hum-bme_last_hum) >= sensor_hum_thresh || abs(bme_pres-bme_last_pres) >= sensor_pres_thresh){
             bme_last_temp = bme_temp;
@@ -1011,7 +1013,7 @@ void setup()
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       pinMode(i2c_onoffpin, OUTPUT);
       I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
-      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+      bme_status = bme.begin(0x77, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
       //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
     #ifdef USE_HCSR04
