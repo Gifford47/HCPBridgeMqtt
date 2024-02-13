@@ -772,7 +772,7 @@ void SensorCheck(void *parameter){
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
-        new_sensor_data = true;
+        //new_sensor_data = true;
         if (bme_hum < 99.9){                   // I2C hung up ...
           if (abs(bme_temp-bme_last_temp) >= sensor_temp_thresh || abs(bme_hum-bme_last_hum) >= sensor_hum_thresh || abs(bme_pres-bme_last_pres) >= sensor_pres_thresh){
             bme_last_temp = bme_temp;
@@ -996,9 +996,9 @@ void setup()
 
   #ifdef SENSORS
     sensor_prox_tresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_temp_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_hum_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_pres_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_temp_thresh = localPrefs->getDouble(preference_sensor_temp_treshold);
+    sensor_hum_thresh = localPrefs->getInt(preference_sensor_hum_threshold);
+    sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
     #ifdef USE_DS18X20
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire oneWire(ds18x20_pin);
