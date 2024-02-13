@@ -757,7 +757,7 @@ void SensorCheck(void *parameter){
         digitalWrite(i2c_onoffpin, HIGH);   // activate sensor
         sleep(10);
         I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
-        bme_status = bme.begin(0x77, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+        bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
         //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
       }
       if (!bme_status) {
@@ -1010,7 +1010,7 @@ void setup()
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       pinMode(i2c_onoffpin, OUTPUT);
       I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
-      bme_status = bme.begin(0x77, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
       //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
     #endif
     #ifdef USE_HCSR04
