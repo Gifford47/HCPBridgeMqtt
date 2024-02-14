@@ -106,6 +106,15 @@
 		text-align: left;
 	}
 
+	.flex .form-label {
+		min-width: 12rem;
+		text-align: left;
+	}
+
+	.form-label small {
+		display: block;
+	}
+
 	.flex {
 		display: flex;
 		align-items:center;
@@ -281,19 +290,31 @@
 		<div class="subtitle">
 			<h5>Sensor Adjustments</h5>
 			<div class="flex">
-				<label for="sen_StInterval">Sensor Query interval</label>
+				<div class="form-label">
+					<label for="sen_StInterval">Sensor Query interval</label>
+					<small>Interval in seconds</small>
+				</div>
 				<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
 			</div>
 			<div class="flex">
-				<label for="sen_temp_thresh">Temperature threshold</label>
+				<div class="form-label">
+					<label for="sen_temp_thresh">Temperature threshold</label>
+					<small>in °C when to update mqtt</small>
+				</div>
 				<input type="number" step="0.1" id="sen_temp_thresh" name="sen_temp_thresh">
 			</div>
 			<div class="flex">
-				<label for="sen_hum_thresh">Humidity threshold</label>
+				<div class="form-label">
+					<label for="sen_hum_thresh">Humidity threshold</label>
+					<small>in % when to update mqtt</small>
+				</div>
 				<input type="number" id="sen_hum_thresh" name="sen_hum_thresh" step="1">
 			</div>
 			<div class="flex">
-				<label for="sen_pres_thresh">Preasure threshold</label>
+				<div class="form-label">
+					<label for="sen_pres_thresh">Preasure threshold</label>
+					<small>in mbar when to update mqtt</small>
+				</div>
 				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
 			</div>
 			<div class="flex">
