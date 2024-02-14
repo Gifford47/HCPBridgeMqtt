@@ -994,9 +994,9 @@ void setup()
 
   #ifdef SENSORS
     sensor_prox_tresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_temp_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_hum_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_pres_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_temp_thresh = localPrefs->getDouble(preference_sensor_temp_treshold);
+    sensor_hum_thresh = localPrefs->getInt(preference_sensor_hum_threshold);
+    sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
     #ifdef USE_DS18X20
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire oneWire(ds18x20_pin);
