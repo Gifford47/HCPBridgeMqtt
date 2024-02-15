@@ -758,16 +758,14 @@ void SensorCheck(void *parameter){
         sleep(10);
         I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
         bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-        //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
       }
       if (!bme_status) {
-        JsonDocument doc;    //2048 needed because of BME280 float values!
-        // char payload[1024];
-        // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        // serializeJson(doc, payload);
-        // mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
+      }
+      if (!bme_status) {
         digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
-      } else {
+      }
+      else {
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
