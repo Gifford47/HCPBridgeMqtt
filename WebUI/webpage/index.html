@@ -55,7 +55,6 @@
 		background-color:#fff;
 		border:2px solid rgb(81, 0, 255);    
 		border-radius:50%;
-		visibility: hidden;
 	}
 
 	.circle__cont {
@@ -137,12 +136,6 @@
 	<canvas width="250px" height="250px" id="dc"></canvas>
 	<h3 id="status">Waiting connection.</h3>
 	<div class="hbox" style="display: none;" id="sensors">
-		<div class="circle" id="temp">
-			<div class="circle__cont"></div>
-		</div>
-		<div class="circle" id="hum">
-			<div class="circle__cont"></div>
-		</div>
 	</div>
 	
 	
@@ -540,17 +533,25 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
-				if (status.hasOwnProperty('temp')) {
-					document.getElementById("sensors").style.display = 'flex';
-					div_temp = document.getElementById("temp");
-					div_temp.style.visibility = show;
-					div_temp.children[0].innerHTML = status.temp+" °C";
-				}
-				if (status.hasOwnProperty('hum')) {
-					document.getElementById("sensors").style.display = 'flex';
-					div_temp = document.getElementById("hum");
-					div_temp.style.visibility = show;
-					div_temp.children[0].innerHTML = status.hum+" %";
+				if (status.hasOwnProperty('sensors')) {
+					var sdiv = document.getElementById("sensors")
+					sdiv.style.display = 'flex';
+					Object.keys(status).forEach(function(key){
+						//console.log(key + ' - ' + status[key]);
+						var div = document.getElementById(key);
+						if (div === null){
+							var div1 = document.createElement('div');
+							div1.id = key;
+							div1.className = 'circle';
+							var div2 = document.createElement('div');
+							div2.className = 'circle__cont';
+							div2.innerHTML = status[key];
+							div1.appendChild(div2);
+							sdiv.appendChild(div1);
+						} else {
+							div.children[0].innerHTML = status[key];
+						}
+					});
 				}
 				return;
 			  }

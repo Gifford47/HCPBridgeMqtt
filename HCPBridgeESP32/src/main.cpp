@@ -1063,16 +1063,28 @@ void setup()
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
+                JsonObject sensors  = doc.createNestedObject("sensors");
                 #ifdef USE_DS18X20
-                  root["temp"] = ds18x20_temp;
+                  char buf[20];
+                  dtostrf(ds18x20_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
                 #elif defined(USE_BME)
                   char buf[20];
-                  dtostrf(bme_temp,2,1,buf); 
-                  root["temp"] = buf;
+                  dtostrf(bme_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
                   dtostrf(bme_hum,2,1,buf); 
-                  root["hum"] = buf;
+                  strcat(buf, " %");
+                  sensors["hum"] = buf;
+                  dtostrf(bme_pres,2,1,buf); 
+                  strcat(buf, " mbar");
+                  sensors["pres"] = buf;
                 #elif defined(USE_DHT22)
-                  root["temp"] = dht22_temp;
+                  char buf[20];
+                  dtostrf(dht22_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
