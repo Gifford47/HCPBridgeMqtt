@@ -924,6 +924,15 @@ void WiFiEvent(WiFiEvent_t event) {
     Serial.println(eventInfo);
 }
 
+// Function to generate a unique ID
+const char* generateUniqueID() {
+  static char uniqueID[ID_LENGTH + 1];
+  uint64_t chipid = ESP.getEfuseMac();
+  
+  // Format the MAC address into the uniqueID array
+  snprintf(uniqueID, sizeof(uniqueID), "ESP-%04X%08X", (uint16_t)(chipid >> 32), (uint32_t)chipid);
+   return uniqueID;
+}
 
 // setup mcu
 void setup()
@@ -965,12 +974,16 @@ void setup()
 
   WiFi.onEvent(WiFiEvent);
 
+  // generate unique ID as mqttclientid
+  const char *uniqueId = generateUniqueID();
+	
   setuptMqttStrings();
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
 
+  mqttClient.setClientId(uniqueId);
   mqttClient.setServer(prefHandler.getPreferencesCache()->mqtt_server, localPrefs->getInt(preference_mqtt_server_port));
   mqttClient.setCredentials(prefHandler.getPreferencesCache()->mqtt_user, prefHandler.getPreferencesCache()->mqtt_password);
   setWill();
