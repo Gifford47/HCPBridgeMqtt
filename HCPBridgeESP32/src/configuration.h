@@ -125,6 +125,6 @@
         const char *HA_ONLINE = "online";
         const char *HA_OFFLINE = "offline";
     #endif
-    const char *HA_VERSION = "0.0.6.1";
+    const char *HA_VERSION = "0.0.7.0";
 
 #endif
