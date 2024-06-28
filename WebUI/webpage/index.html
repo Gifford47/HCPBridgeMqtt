@@ -42,6 +42,27 @@
 		border-radius: 50px;
 	}
 
+	.hbox {
+		justify-content: space-around;
+	}
+
+	.circle {
+		display: inline-table;
+		vertical-align: middle;
+		width: 60px;
+		height: 60px;
+		background-color: #bbb;
+		background-color:#fff;
+		border:2px solid rgb(81, 0, 255);    
+		border-radius:50%;
+	}
+
+	.circle__cont {
+		display: table-cell;
+		vertical-align: middle;
+		text-align: center;
+	}
+
 	.btn-red {border-color: #ED5961;}
 	.btn-yellow {border-color: #fcca00;}
 	.btn-orange {border-color: #ffa500;}
@@ -84,6 +105,15 @@
 		text-align: left;
 	}
 
+	.flex .form-label {
+		min-width: 12rem;
+		text-align: left;
+	}
+
+	.form-label small {
+		display: block;
+	}
+
 	.flex {
 		display: flex;
 		align-items:center;
@@ -104,7 +134,10 @@
 <body>
   <h2 id="collapse">Garage Door</h2>  
 	<canvas width="250px" height="250px" id="dc"></canvas>
-	<h3 id="status">Waiting connection.</h3>	
+	<h3 id="status">Waiting connection.</h3>
+	<div class="hbox" style="display: none;" id="sensors">
+	</div>
+	
 	
 	<hr/>
 	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
@@ -113,7 +146,11 @@
 	<button class="btn btn-round btn-black" onclick="doCommand(2)">Stop</button>
 	<button class="btn btn-round btn-green" onclick="doCommand(0)">Down</button>
 	<hr/>
-	<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+	<div class="hbox">
+		<div>
+			<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+		</div>
+	</div>
 	<hr>
 	<br>
 	<div class="flex justify-between">
@@ -223,12 +260,8 @@
 				<input type="number" id="sen_i2c_scl" name="sen_i2c_scl" min="1" max="45" step="1">
 			</div>
 			<div class="flex">
-				<label for="sen_i2c_onoff">I2C on off</label>
-				<input type="number" id="sen_i2c_onoff" name="sen_i2c_onoff" min="1" max="45" step="1">
-			</div>
-			<div class="flex">
-				<label for="sen_dhtvccpin">DHT VCC</label>
-				<input type="number" id="sen_dhtvccpin" name="sen_dhtvccpin" min="1" max="45" step="1">
+				<label for="sen_dhtdatapin">DHT data</label>
+				<input type="number" id="sen_dhtdatapin" name="sen_dhtdatapin" min="1" max="45" step="1">
 			</div>
 			<div class="flex">
 				<label for="sen_ds18x20pin">DS18X20</label>
@@ -250,19 +283,31 @@
 		<div class="subtitle">
 			<h5>Sensor Adjustments</h5>
 			<div class="flex">
-				<label for="sen_StInterval">Sensor Query interval</label>
+				<div class="form-label">
+					<label for="sen_StInterval">Sensor Query interval</label>
+					<small>Interval in seconds</small>
+				</div>
 				<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
 			</div>
 			<div class="flex">
-				<label for="sen_temp_thresh">Temperature threshold</label>
+				<div class="form-label">
+					<label for="sen_temp_thresh">Temperature threshold</label>
+					<small>in °C when to update mqtt</small>
+				</div>
 				<input type="number" step="0.1" id="sen_temp_thresh" name="sen_temp_thresh">
 			</div>
 			<div class="flex">
-				<label for="sen_hum_thresh">Humidity threshold</label>
+				<div class="form-label">
+					<label for="sen_hum_thresh">Humidity threshold</label>
+					<small>in % when to update mqtt</small>
+				</div>
 				<input type="number" id="sen_hum_thresh" name="sen_hum_thresh" step="1">
 			</div>
 			<div class="flex">
-				<label for="sen_pres_thresh">Preasure threshold</label>
+				<div class="form-label">
+					<label for="sen_pres_thresh">Preasure threshold</label>
+					<small>in mbar when to update mqtt</small>
+				</div>
 				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
 			</div>
 			<div class="flex">
@@ -488,6 +533,26 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
+				if (status.hasOwnProperty('sensors')) {
+					var sdiv = document.getElementById("sensors")
+					sdiv.style.display = 'flex';
+					Object.keys(status).forEach(function(key){
+						//console.log(key + ' - ' + status[key]);
+						var div = document.getElementById(key);
+						if (div === null){
+							var div1 = document.createElement('div');
+							div1.id = key;
+							div1.className = 'circle';
+							var div2 = document.createElement('div');
+							div2.className = 'circle__cont';
+							div2.innerHTML = status[key];
+							div1.appendChild(div2);
+							sdiv.appendChild(div1);
+						} else {
+							div.children[0].innerHTML = status[key];
+						}
+					});
+				}
 				return;
 			  }
 			  isconnected= false;

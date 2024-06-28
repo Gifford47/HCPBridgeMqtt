@@ -82,7 +82,7 @@ AsyncWebServer server(80);
   float dht22_last_temp = -99.99;
   float dht22_hum = -99.99;
   float dht22_last_hum = -99.99;
-  int dht_vcc_pin = 0;
+  int dht_data_pin = 0;
 #endif
 
 #ifdef USE_HCSR501
@@ -460,7 +460,7 @@ void sendDiscoveryMessageForAVSensor(const JsonDocument& device)
   mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device)
+void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device, const char device_class[] = "", const char unit[] = "")
 {
 
   char full_topic[64];
@@ -476,9 +476,6 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   } else {
     sprintf(vtemp, "{{ value_json.%s }}", key);
   }
-  
-  
-  
 
   JsonDocument doc;
 
@@ -487,9 +484,31 @@ void sendDiscoveryMessageForSensor(const char name[], const char topic[], const 
   doc["availability_topic"] = mqttStrings.availability_topic;
   doc["payload_available"] = HA_ONLINE;
   doc["payload_not_available"] = HA_OFFLINE;
-  doc["unique_id"] = uid;
   doc["value_template"] = vtemp;
   doc["device"] = device;
+  
+  //Only set device class if set
+  if(device_class != "") {
+    doc["device_class"] = device_class;
+  }
+
+  doc["unit_of_measurement"] = unit;
+  doc["unique_id"] = uid;
+  
+  // overwrite device class if special key
+  if (key == "hum") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "%";
+    doc["device_class"] = "humidity";
+  } else if (key == "temp") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "°C";
+    doc["device_class"] = "temperature";
+  } else if (key == "pres") {
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "hPa";
+    doc["device_class"] = "pressure";
+  }
 
   char payload[1024];
   serializeJson(doc, payload);
@@ -636,24 +655,24 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
   sendDiscoveryMessageForCover(localPrefs->getString(preference_gd_name).c_str(), "door", device);
 
-  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device);
-  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device);
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device, "enum");
+  sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device, "enum");
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_position).c_str(), mqttStrings.state_topic, "doorposition", device);
   #ifdef SENSORS
     #if defined(USE_BME)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device, "atmospheric_pressure", "hPa");
     #elif defined(USE_DS18X20)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
     #endif
     #if defined(USE_HCSR04)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device, "distance", "cm");
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_park_avail).c_str(), mqttStrings.sensor_topic, "free", HA_OFF, HA_ON, device);
     #endif
     #if defined(USE_DHT22)
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device);
-      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device);
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
+      sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
     #endif
     #if defined(USE_HCSR501)
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
@@ -739,16 +758,14 @@ void SensorCheck(void *parameter){
         sleep(10);
         I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
         bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-        //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
       }
       if (!bme_status) {
-        JsonDocument doc;    //2048 needed because of BME280 float values!
-        // char payload[1024];
-        // doc["bme_status"] = "Could not find a valid BME280 sensor!";   // see: https://github.com/adafruit/Adafruit_BME280_Library/blob/master/examples/bme280test/bme280test.ino#L49
-        // serializeJson(doc, payload);
-        // mqttClient.publish(SENSOR_TOPIC, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
+        bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
+      }
+      if (!bme_status) {
         digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
-      } else {
+      }
+      else {
         bme_temp = bme.readTemperature();   // round float
         bme_hum = bme.readHumidity();
         bme_pres = bme.readPressure()/100;  // convert from pascal to mbar
@@ -793,15 +810,13 @@ void SensorCheck(void *parameter){
         }
     #endif
     #ifdef USE_DHT22
-      pinMode(dht_vcc_pin, OUTPUT);
-      digitalWrite(dht_vcc_pin, HIGH);
-      dht->begin();
-
       dht22_temp = dht->readTemperature();
       dht22_hum = dht->readHumidity();
-
-      if (abs(dht22_temp) >= sensor_temp_thresh || abs(dht22_hum) >= sensor_hum_thresh){
+      if (!isnan(dht22_temp) && abs(dht22_temp) >= sensor_temp_thresh){
         dht22_last_temp = dht22_temp;
+        new_sensor_data = true;
+      }
+      if (!isnan(dht22_hum) && abs(dht22_hum) >= sensor_hum_thresh){
         dht22_last_hum = dht22_hum;
         new_sensor_data = true;
       }
@@ -909,6 +924,15 @@ void WiFiEvent(WiFiEvent_t event) {
     Serial.println(eventInfo);
 }
 
+// Function to generate a unique ID
+const char* generateUniqueID() {
+  static char uniqueID[ID_LENGTH + 1];
+  uint64_t chipid = ESP.getEfuseMac();
+  
+  // Format the MAC address into the uniqueID array
+  snprintf(uniqueID, sizeof(uniqueID), "ESP-%04X%08X", (uint16_t)(chipid >> 32), (uint32_t)chipid);
+   return uniqueID;
+}
 
 // setup mcu
 void setup()
@@ -950,12 +974,16 @@ void setup()
 
   WiFi.onEvent(WiFiEvent);
 
+  // generate unique ID as mqttclientid
+  const char *uniqueId = generateUniqueID();
+	
   setuptMqttStrings();
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
 
+  mqttClient.setClientId(uniqueId);
   mqttClient.setServer(prefHandler.getPreferencesCache()->mqtt_server, localPrefs->getInt(preference_mqtt_server_port));
   mqttClient.setCredentials(prefHandler.getPreferencesCache()->mqtt_user, prefHandler.getPreferencesCache()->mqtt_password);
   setWill();
@@ -977,9 +1005,9 @@ void setup()
 
   #ifdef SENSORS
     sensor_prox_tresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_temp_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_hum_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
-    sensor_pres_thresh = localPrefs->getInt(preference_sensor_prox_treshold);
+    sensor_temp_thresh = localPrefs->getDouble(preference_sensor_temp_treshold);
+    sensor_hum_thresh = localPrefs->getInt(preference_sensor_hum_threshold);
+    sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
     #ifdef USE_DS18X20
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire oneWire(ds18x20_pin);
@@ -989,7 +1017,6 @@ void setup()
       ds18x20->begin();
     #endif
     #ifdef USE_BME
-      i2c_onoffpin = localPrefs->getInt(preference_sensor_i2c_on_off);
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       pinMode(i2c_onoffpin, OUTPUT);
@@ -1009,12 +1036,10 @@ void setup()
       hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
     #endif
     #ifdef USE_DHT22
-      dht_vcc_pin = localPrefs->getInt(preference_sensor_dht_vcc_pin);
-       static DHT static_dht(dht_vcc_pin, DHTTYPE);
+      dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
+       static DHT static_dht(dht_data_pin, DHTTYPE);
       // save its address.
       dht = &static_dht;
-      pinMode(dht_vcc_pin, OUTPUT);
-      digitalWrite(dht_vcc_pin, HIGH);
       dht->begin();
     #endif
 
@@ -1051,12 +1076,28 @@ void setup()
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
+                JsonObject sensors  = doc.createNestedObject("sensors");
                 #ifdef USE_DS18X20
-                  root["temp"] = ds18x20_temp;
+                  char buf[20];
+                  dtostrf(ds18x20_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
                 #elif defined(USE_BME)
-                  root["temp"] = bme_temp;
+                  char buf[20];
+                  dtostrf(bme_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
+                  dtostrf(bme_hum,2,1,buf); 
+                  strcat(buf, " %");
+                  sensors["hum"] = buf;
+                  dtostrf(bme_pres,2,1,buf); 
+                  strcat(buf, " mbar");
+                  sensors["pres"] = buf;
                 #elif defined(USE_DHT22)
-                  root["temp"] = dht22_temp;
+                  char buf[20];
+                  dtostrf(dht22_temp,2,1,buf);
+                  strcat(buf, " °C");
+                  sensors["temp"] = buf;
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
