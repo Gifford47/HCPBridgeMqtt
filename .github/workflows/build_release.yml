@@ -34,9 +34,9 @@ jobs:
         run: echo "Workspace:${{ github.workspace }}"
       - name: Install dependencies
         run: |
-          mkdir -p /home/runner/work/testing/WebUI/webpage
-          cp ./WebUI/webpage/compress.py /home/runner/work/testing/WebUI/webpage/compress.py
-          cp ./WebUI/webpage/index.html /home/runner/work/testing/WebUI/webpage/index.html
+          mkdir -p /home/runner/work/HCPBridgeMqtt/WebUI/webpage
+          cp ./WebUI/webpage/compress.py /home/runner/work/HCPBridgeMqtt/WebUI/webpage/compress.py
+          cp ./WebUI/webpage/index.html /home/runner/work/HCPBridgeMqtt/WebUI/webpage/index.html
       - name: Build PlatformIO Project
         run: pio run -d "./HCPBridgeESP32"
 
