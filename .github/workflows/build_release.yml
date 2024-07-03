@@ -1,0 +1,61 @@
+name: Build and release
+## https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
+
+on:
+  push:
+    branches: master
+    paths-ignore:
+    - '.github/**'        # Ignore changes towards the .github directory
+    - '**.md'             # Do no build if *.md files changes
+  #push:
+  #  tags:
+  #    - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build_firmware:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+      - name: Checkout Workspace DIR
+        run: echo "Workspace:${{ github.workspace }}"
+      - name: Install dependencies
+        run: |
+          mkdir -p /home/runner/work/testing/WebUI/webpage
+          cp ./WebUI/webpage/compress.py /home/runner/work/testing/WebUI/webpage/compress.py
+          cp ./WebUI/webpage/index.html /home/runner/work/testing/WebUI/webpage/index.html
+      - name: Build PlatformIO Project
+        run: pio run -d "./HCPBridgeESP32"
+
+      # upload Release:
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +%Y.%m.%d)" >> $GITHUB_OUTPUT
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        #if: startsWith(github.ref, 'refs/tags/')
+        with:
+          #body_path: ${{ github.workspace }}-CHANGELOG.txt
+          name: ${{ steps.date.outputs.DATE }}
+          tag_name: ${{ steps.date.outputs.DATE }}
+          #token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            ./HCPBridgeESP32/.pio/build/esp32/esp32.bin
+      #- name: Show dirs
+      #  run: |
+      #    find .
