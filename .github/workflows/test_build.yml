@@ -2,14 +2,6 @@ name: test Build
 ## https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
 
 on:
-  push:
-    branches: master
-    paths-ignore:
-    - '.github/**'        # Ignore changes towards the .github directory
-    - '**.md'             # Do no build if *.md files changes
-  #push:
-  #  tags:
-  #    - "v*.*.*"
   workflow_dispatch:
 
 jobs:
