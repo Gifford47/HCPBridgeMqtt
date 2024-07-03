@@ -1,14 +1,6 @@
 name: test new Release
 
 on:
-  push:
-    branches: master
-    paths-ignore:
-    - '.github/**'        # Ignore changes towards the .github directory
-    - '**.md'             # Do no build if *.md files changes
-  #push:
-  #  tags:
-  #    - "v*.*.*"
   workflow_dispatch:
 
 jobs:
