@@ -1,0 +1,40 @@
+name: test Build
+## https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
+
+on:
+  push:
+    branches: master
+    paths-ignore:
+    - '.github/**'        # Ignore changes towards the .github directory
+    - '**.md'             # Do no build if *.md files changes
+  #push:
+  #  tags:
+  #    - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build_firmware:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+      - name: Checkout Workspace DIR
+        run: echo "Workspace:${{ github.workspace }}"
+      - name: Install dependencies
+        run: |
+          mkdir -p /home/runner/work/HCPBridgeMqtt/WebUI/webpage
+          cp ./WebUI/webpage/compress.py /home/runner/work/HCPBridgeMqtt/WebUI/webpage/compress.py
+          cp ./WebUI/webpage/index.html /home/runner/work/HCPBridgeMqtt/WebUI/webpage/index.html
+      - name: Build PlatformIO Project
+        run: pio run -d "./HCPBridgeESP32"

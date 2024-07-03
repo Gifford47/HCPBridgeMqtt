@@ -1,0 +1,33 @@
+name: test new Release
+
+on:
+  push:
+    branches: master
+    paths-ignore:
+    - '.github/**'        # Ignore changes towards the .github directory
+    - '**.md'             # Do no build if *.md files changes
+  #push:
+  #  tags:
+  #    - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  Release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +%Y.%m.%d)" >> $GITHUB_OUTPUT
+      - name: Echo var
+        run: echo ${{ steps.date.outputs.DATE }}
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: ${{ steps.date.outputs.DATE }}
+          tag_name: ${{ steps.date.outputs.DATE }}
+          #token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          generate_release_notes: true
+          make_latest: true
