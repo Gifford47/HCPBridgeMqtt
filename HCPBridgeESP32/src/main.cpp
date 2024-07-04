@@ -12,7 +12,7 @@ extern "C" {
 
 #include "hoermann.h"
 #include "preferencesKeys.h"
-#include "../../WebUI/index_html.h"
+#include "../WebUI/index_html.h"
 
 #ifdef USE_DS18X20
   #include <OneWire.h>
@@ -1076,6 +1076,7 @@ void setup()
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
+                JsonDocument doc;
                 JsonObject sensors  = doc.createNestedObject("sensors");
                 #ifdef USE_DS18X20
                   char buf[20];
