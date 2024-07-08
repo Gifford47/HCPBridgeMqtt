@@ -536,7 +536,7 @@
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';
-					Object.keys(status).forEach(function(key){
+					Object.keys(status.sensors).forEach(function(key){
 						//console.log(key + ' - ' + status[key]);
 						var div = document.getElementById(key);
 						if (div === null){
@@ -545,11 +545,11 @@
 							div1.className = 'circle';
 							var div2 = document.createElement('div');
 							div2.className = 'circle__cont';
-							div2.innerHTML = status[key];
+							div2.innerHTML = status.sensors[key];
 							div1.appendChild(div2);
 							sdiv.appendChild(div1);
 						} else {
-							div.children[0].innerHTML = status[key];
+							div.children[0].innerHTML = status.sensors[key];
 						}
 					});
 				}
