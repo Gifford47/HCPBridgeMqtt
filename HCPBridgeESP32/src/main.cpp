@@ -1076,8 +1076,7 @@ void setup()
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
-                JsonDocument doc;
-                JsonObject sensors  = doc.createNestedObject("sensors");
+                JsonObject sensors  = root.createNestedObject("sensors");
                 #ifdef USE_DS18X20
                   char buf[20];
                   dtostrf(ds18x20_temp,2,1,buf);
