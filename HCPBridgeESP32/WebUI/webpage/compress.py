@@ -25,7 +25,7 @@ except ImportError:
     from jsmin import jsmin
 
 content = ""
-with open('../WebUI/webpage/index.html','rt',encoding="utf-8") as f:
+with open('./WebUI/webpage/index.html','rt',encoding="utf-8") as f:
     content=f.read()
 
 
@@ -43,7 +43,7 @@ for c in zlib.compress(content.encode("UTF-8"),9):
           result=result + ","
 
 
-with open('../WebUI/index_html.h',"wt") as f:
+with open('./WebUI/index_html.h',"wt") as f:
 	f.write("const uint8_t index_html[] PROGMEM = {");
 	f.write(result.strip(","))
 	f.write("};");
