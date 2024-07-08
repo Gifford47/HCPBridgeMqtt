@@ -1077,13 +1077,13 @@ void setup()
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               #ifdef SENSORS
                 JsonObject sensors  = root.createNestedObject("sensors");
-                #ifdef USE_DS18X20
                   char buf[20];
+                #ifdef USE_DS18X20
                   dtostrf(ds18x20_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
-                #elif defined(USE_BME)
-                  char buf[20];
+                #endif
+                #ifdef USE_BME
                   dtostrf(bme_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
@@ -1093,11 +1093,16 @@ void setup()
                   dtostrf(bme_pres,2,1,buf); 
                   strcat(buf, " mbar");
                   sensors["pres"] = buf;
-                #elif defined(USE_DHT22)
-                  char buf[20];
+                #endif
+                #ifdef USE_DHT22
                   dtostrf(dht22_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
+                #endif
+                #ifdef USE_HCSR04
+                  dtostrf(hcsr04_distanceCm,2,0,buf);
+                  strcat(buf, " cm");
+                  sensors["dist"] = buf;
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
