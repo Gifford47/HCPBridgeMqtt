@@ -9,6 +9,7 @@ def post_program_action(source, target, env):
     #src = target[0].get_abspath()
     #dest = os.path.join(env["PROJECT_DIR"], "$BUILD_DIR/${PROGNAME}.bin")
 
+    os.makedirs(os.path.dirname(os.path.join(env["PROJECT_DIR"], "fw")), exist_ok=True)
     fw_path = os.path.join(env["PROJECT_DIR"], "fw", env["PROGNAME"]+".bin")
     src = os.path.join(env["PROJECT_DIR"], ".pio", "build", env["PROGNAME"], env["PROGNAME"]+".bin")
     shutil.copy(src, fw_path)
