@@ -37,7 +37,7 @@ It is **not** compatible with E**3** series motors. Previous generations have di
 
 ***http://[deviceip]***
 
-![alt text](Images/webinterface.png)
+![alt text](docs/Images/webinterface.png)
 
 ## Configuration
 At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there.
@@ -121,7 +121,7 @@ URL: **http://[deviceip]/update**
 
 ## Wiring
 
-![min wiring](Images/esp32.png)
+![min wiring](docs/Images/esp32.png)
 
 ESP32 powering requires a Step Down Module such as LM2596S DC-DC, but any 24VDC ==> 5VDC will do, even the tiny ones with 3 pin.
 Please note that the suggested serial pins for serial interfacing, on ESP32, are 16 RXD and 17 TXD.
@@ -132,8 +132,8 @@ Please note that the suggested serial pins for serial interfacing, on ESP32, are
 
 <br>
 
-![alt text](Images/esp32_protoboard.jpg)
-![alt text](Images/esp32_protoboard2.jpg)
+![alt text](docs/Images/esp32_protoboard.jpg)
+![alt text](docs/Images/esp32_protoboard2.jpg)
 </details>
 
 <details>
@@ -150,7 +150,7 @@ Note the pinout on this cheap but widespread ESP32 module is a bit different. Th
 <summary>Pinout RS485 Plug</summary>
 <br>
 
-![alt text](Images/plug-min.png)
+![alt text](docs/Images/plug-min.png)
 
 > 📌 **Pinout**
 > 1. GND (Blue)<br>
@@ -163,7 +163,7 @@ Note the pinout on this cheap but widespread ESP32 module is a bit different. Th
 </details>
 
 ### RS485 Adapter
-![alt text](Images/rs485_raw.jpg)
+![alt text](docs/Images/rs485_raw.jpg)
 > [!NOTE]<br>
 > Pins A+ (Red) and B- (Green) need a 120 Ohm resistor between them for BUS termination. Some RS485 adapters provide termination pad to be soldered.
 
@@ -175,7 +175,7 @@ To use additional sensors, you have also to build and upload the according firmw
 <details>
 <summary>DS18X20 Temperature Sensor</summary>
 
-![DS18X20](Images/ds18x20.jpg) <br/>
+![DS18X20](docs/Images/ds18x20.jpg) <br/>
 DS18X20 connected to GPIO4.
 <br>
 
@@ -196,7 +196,7 @@ Digital out connected to GPIO27.
 <details>
 <summary>BME280 Temperature and humudity Sensor</summary>
 
-![DS18X20](Images/bme280.jpg) <br/>
+![DS18X20](docs/Images/bme280.jpg) <br/>
 SDA connected to  GPIO21<br>
 SCL/SCK connected to GPIO22<br>
 <br>
@@ -227,7 +227,7 @@ BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS p
 ### New Hardware version 
 With newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
 
-![alt text](Images/antrieb-min.png)
+![alt text](docs/Images/antrieb-min.png)
 
 ## Set the ventilation position 
 
@@ -241,6 +241,6 @@ The switch for the venting position works with a small hack. Based on the analys
 
 <br>
 
-![Homeassistant card1](Images/ha_shuttercard.png)
-![Homeassistant card2](Images/ha.png)
+![Homeassistant card1](docs/Images/ha_shuttercard.png)
+![Homeassistant card2](docs/Images/ha.png)
 </details>
