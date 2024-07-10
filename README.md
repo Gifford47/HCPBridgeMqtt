@@ -37,197 +37,221 @@ It is **not** compatible with E**3** series motors. Previous generations have di
 
 ***http://[deviceip]***
 
-![alt text](docs/Images/webinterface.png)
+<img src="docs/Images/webinterface.png" width="400">
 
-## Configuration
-At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there.
-After first boot you can change your settings directly in the Web interface without the need to create a new build. 
 
-With the default configuration it will open a Wifi Hotspot you can connect to. When connected to it you can use the url http://192.168.4.1 in a webbrowser to access the Web Interface and configure the device.
+# Buy a ready to use kit [here](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83) :rocket:
 
-Use the Basic Configuration section to set your wifi and MQTT credentials, after hitting the Save button your device will reboot.
-The Password fields are redacted if there are set with a *. If you don't want to change it just leave the * as it will be interpretet as no change.
+## ... or ...
 
-![image](https://github.com/Gifford47/HCPBridgeMqtt/assets/13482963/0081e0bc-ec8e-4cec-a537-c7b0c5758035)
-
-The preferences will stay even after a OTA update.
-When the memory of your ESP get's deleted your ESP will again load the settings from the configuration.h file.
-
-You can reset all preferences by pressing the BOOT button on the ESP for longer then 5 Seconds and releasing it.
-This will reset all preferences to the default values from configuration.h in the flashed firmware build.
-
-## Web Services
+# Build it yourself! 🔨
 
 <details>
-<summary>Send commands</summary>
+ <summary>Step 1: Wiring</summary>
 
-URL: **http://[deviceip]/command?action=[id]**
-<br>
-
-| id | Function | Other Parameters
-|--------|--------------|--------------|
-| 0 | Close | |
-| 1 | Open | |
-| 2 | Stop | |
-| 3 | Ventilation | |
-| 4 | Half Open | |
-| 5 | Light toggle | |
-| 6 | Restart | |
-| 7 | Set Position | position=[0-100] |
-
-</details>
-
-<details>
-<summary>Status report</summary>
-
-URL: **http://[deviceip]/status**
-<br>
-
-Response:
-```
-{
-"valid": true,
-"doorstate": 64,
-"doorposition": 0,
-"doortarget": 0,
-"lamp": false,
-"temp": 19.94000053,
-"lastresponse": 0,
-"looptime": 1037,
-"lastCommandTopic": "hormann/garage_door/command/door",
-"lastCommandPayload": "close"
-}
-```
-</details>
-
-<details>
-<summary>Wifi status</summary>
-
-URL: **http://[deviceip]/sysinfo**
-<br>
-</details>
-
-<details>
-<summary>OTA Firmware update</summary>
-
-URL: **http://[deviceip]/update**
-<br>
-
-![image](https://user-images.githubusercontent.com/14005124/215216505-8c5abe46-5d40-402b-963a-e3825c63d417.png)
+  ## Wiring
+ 
+ ![min wiring](docs/Images/esp32.png)
+ 
+ ESP32 powering requires a Step Down Module such as LM2596S DC-DC, but any 24VDC ==> 5VDC will do, even the tiny ones with 3 pin.
+ Please note that the suggested serial pins for serial interfacing, on ESP32, are 16 RXD and 17 TXD.
+ 
+ 
+ <details>
+ <summary>It is possible to implement it with protoboard and underside soldering:</summary>
+ 
+ <br>
+ 
+ ![alt text](docs/Images/esp32_protoboard.jpg)
+ ![alt text](docs/Images/esp32_protoboard2.jpg)
+ </details>
+ 
+ <details>
+ <summary>Details specific to Az-delivery ESP32 (ESP32-WROOM-32)</summary>
+ Note the pinout on this cheap but widespread ESP32 module is a bit different. The GND on the bottom left must not be used (it is actually wrongly labeled, it should be CMD). Use the top right instead. Moreover use the pin 16 as RXD and pin 17 as TXD to match the code on this repository (using UART2, not UART0).
+  
+ ![image](https://github.com/Gifford47/HCPBridgeMqtt/assets/248961/1ad1c298-cf27-48cc-bf30-7667c27c3304)
+ 
+ </details>
+ 
+ ## RS485
+ 
+ <details open>
+ <summary>Pinout RS485 Plug</summary>
+ <br>
+ 
+ ![alt text](docs/Images/plug-min.png)
+ 
+ > 📌 **Pinout**
+ > 1. GND (Blue)<br>
+ > 2. GND (Yellow)<br>
+ > 3. B- (Green)<br>
+ > 4. A+ (Red)<br>
+ > 5. \+24V (Black)<br>
+ > 6. \+24V (White)<br>
+ 
+ </details>
+ 
+ ### RS485 Adapter
+ ![alt text](docs/Images/rs485_raw.jpg)
+ > [!NOTE]<br>
+ > Pins A+ (Red) and B- (Green) need a 120 Ohm resistor between them for BUS termination. Some RS485 adapters provide termination pad to be soldered.
 
 </details><br>
 
-# Let`s build it! 🔨
-
-## Wiring
-
-![min wiring](docs/Images/esp32.png)
-
-ESP32 powering requires a Step Down Module such as LM2596S DC-DC, but any 24VDC ==> 5VDC will do, even the tiny ones with 3 pin.
-Please note that the suggested serial pins for serial interfacing, on ESP32, are 16 RXD and 17 TXD.
-
-
 <details>
-<summary>It is possible to implement it with protoboard and underside soldering:</summary>
-
-<br>
-
-![alt text](docs/Images/esp32_protoboard.jpg)
-![alt text](docs/Images/esp32_protoboard2.jpg)
-</details>
-
-<details>
-<summary>Details specific to Az-delivery ESP32 (ESP32-WROOM-32)</summary>
-Note the pinout on this cheap but widespread ESP32 module is a bit different. The GND on the bottom left must not be used (it is actually wrongly labeled, it should be CMD). Use the top right instead. Moreover use the pin 16 as RXD and pin 17 as TXD to match the code on this repository (using UART2, not UART0).
+ <summary>Step 2: Firmware upload</summary>
  
-![image](https://github.com/Gifford47/HCPBridgeMqtt/assets/248961/1ad1c298-cf27-48cc-bf30-7667c27c3304)
-
-</details>
-
-## RS485
-
-<details open>
-<summary>Pinout RS485 Plug</summary>
-<br>
-
-![alt text](docs/Images/plug-min.png)
-
-> 📌 **Pinout**
-> 1. GND (Blue)<br>
-> 2. GND (Yellow)<br>
-> 3. B- (Green)<br>
-> 4. A+ (Red)<br>
-> 5. \+24V (Black)<br>
-> 6. \+24V (White)<br>
-
-</details>
-
-### RS485 Adapter
-![alt text](docs/Images/rs485_raw.jpg)
-> [!NOTE]<br>
-> Pins A+ (Red) and B- (Green) need a 120 Ohm resistor between them for BUS termination. Some RS485 adapters provide termination pad to be soldered.
-
-## Upload the firmware
-To use the board without any additional sensors (f.e. as showed in section [wiring](#wiring)) you only need to upload the standard firmware binary.
-### Sensors
-
-To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](docs/flashing_instructions.md) for further info.
-<details>
-<summary>DS18X20 Temperature Sensor</summary>
-
-![DS18X20](docs/Images/ds18x20.jpg) <br/>
-DS18X20 connected to GPIO4.
-<br>
-
-</details>
-
-<details>
-<summary>HC-SR501 PIR Motion sensor</summary>
-Digital out connected to GPIO23.
-<br>
-</details>
-
-<details>
-<summary>DHT22 Temperature and humudity Sensor</summary>
-Digital out connected to GPIO27.
-<br>
-</details>
+ ## Upload the firmware
+ To use the board without any additional sensors (f.e. as showed in section [wiring](#wiring)) you only need to upload the standard firmware binary.
+ ### Sensors
+ 
+ To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](docs/flashing_instructions.md) for further info.
+ <details>
+ <summary>DS18X20 Temperature Sensor</summary>
+ 
+ ![DS18X20](docs/Images/ds18x20.jpg) <br/>
+ DS18X20 connected to GPIO4.
+ <br>
+ 
+ </details>
+ 
+ <details>
+ <summary>HC-SR501 PIR Motion sensor</summary>
+ Digital out connected to GPIO23.
+ <br>
+ </details>
+ 
+ <details>
+ <summary>DHT22 Temperature and humudity Sensor</summary>
+ Digital out connected to GPIO27.
+ <br>
+ </details>
+ 
+ <details>
+ <summary>BME280 Temperature and humudity Sensor</summary>
+ 
+ ![DS18X20](docs/Images/bme280.jpg) <br/>
+ SDA connected to  GPIO21<br>
+ SCL/SCK connected to GPIO22<br>
+ <br>
+ </details>
+ 
+ <details>
+ <summary>HC-SR04 Ultra sonic proximity sensor</summary>
+ 
+ <br>
+ Use the project task for HC-SR04.
+ The wiring pins are:<br>
+ SR04 Trigger pin is connected to GPIO5<br>
+ SR04 ECHO pin is connected to GPIO18<br><br>
+ 
+ It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is defined with 150cm in configuration.h. This setting might not work for everyone. Change it to your needs.
+ 
+ </details>
+</details><br>
 
 <details>
-<summary>BME280 Temperature and humudity Sensor</summary>
+  <summary>Step 3: Configuration</summary>
 
-![DS18X20](docs/Images/bme280.jpg) <br/>
-SDA connected to  GPIO21<br>
-SCL/SCK connected to GPIO22<br>
-<br>
-</details>
-
-<details>
-<summary>HC-SR04 Ultra sonic proximity sensor</summary>
-
-<br>
-Use the project task for HC-SR04.
-The wiring pins are:<br>
-SR04 Trigger pin is connected to GPIO5<br>
-SR04 ECHO pin is connected to GPIO18<br><br>
-
-It will send an mqtt discovery for two sensor one for the distance in cm available below the sensor and the other informing if the car park is available. It compare if the distance below is less than the maximal measured distance then car park is not available. The hcsr04_maxdistanceCm is defined with 150cm in configuration.h. This setting might not work for everyone. Change it to your needs.
-
-</details>
-
-## Installation
-
-* Connect the board to the BUS
-* Run a BUS scan (differs on the following hardware version): 
-
-### Old Hardware version
-
-BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS power  (+24v) is removed when no devices are detected. In case of issues, you may find useful to "jump start" the device using the +24V provision of other connectors of the motor control board.
+  ## Configuration
+  At first boot the settings from the configuration.h file are taken over as user preferences. If you choose to make your own build you can setup your settings there.
+  After first boot you can change your settings directly in the Web interface without the need to create a new build. 
   
-### New Hardware version 
-With newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
+  With the default configuration it will open a Wifi Hotspot you can connect to. When connected to it you can use the url http://192.168.4.1 in a webbrowser to access the Web Interface and configure the device.
+  
+  Use the Basic Configuration section to set your wifi and MQTT credentials, after hitting the Save button your device will reboot.
+  The Password fields are redacted if there are set with a *. If you don't want to change it just leave the * as it will be interpretet as no change.
+  
+  <img src="https://github.com/Gifford47/HCPBridgeMqtt/assets/13482963/0081e0bc-ec8e-4cec-a537-c7b0c5758035" width="400">
+  
+  The preferences will stay even after a OTA update.
+  When the memory of your ESP get's deleted your ESP will again load the settings from the configuration.h file.
+  
+  You can reset all preferences by pressing the BOOT button on the ESP for longer then 5 Seconds and releasing it.
+  This will reset all preferences to the default values from configuration.h in the flashed firmware build.
+  
+  ## Web Services
+  
+  <details>
+  <summary>Send commands</summary>
+  
+  URL: **http://[deviceip]/command?action=[id]**
+  <br>
+  
+  | id | Function | Other Parameters
+  |--------|--------------|--------------|
+  | 0 | Close | |
+  | 1 | Open | |
+  | 2 | Stop | |
+  | 3 | Ventilation | |
+  | 4 | Half Open | |
+  | 5 | Light toggle | |
+  | 6 | Restart | |
+  | 7 | Set Position | position=[0-100] |
+  
+  </details>
+  
+  <details>
+  <summary>Status report</summary>
+  
+  URL: **http://[deviceip]/status**
+  <br>
+  
+  Response:
+  ```
+  {
+  "valid": true,
+  "doorstate": 64,
+  "doorposition": 0,
+  "doortarget": 0,
+  "lamp": false,
+  "temp": 19.94000053,
+  "lastresponse": 0,
+  "looptime": 1037,
+  "lastCommandTopic": "hormann/garage_door/command/door",
+  "lastCommandPayload": "close"
+  }
+  ```
+  </details>
+  
+  <details>
+  <summary>Wifi status</summary>
+  
+  URL: **http://[deviceip]/sysinfo**
+  <br>
+  </details>
+  
+  <details>
+  <summary>OTA Firmware update</summary>
+  
+  URL: **http://[deviceip]/update**
+  <br>
+  
+  <img src="https://user-images.githubusercontent.com/14005124/215216505-8c5abe46-5d40-402b-963a-e3825c63d417.png" width="400">
+  
+  </details><br>
+  
+  </details><br>
 
-![alt text](docs/Images/antrieb-min.png)
+
+<details>
+  <summary>Step 4: Installation and Bus Scan</summary>
+ 
+  ## Installation
+  
+  * Connect the board to the BUS
+  * Run a BUS scan (differs on the following hardware version): 
+  
+  ### Old Hardware version
+  
+  BUS scan is started through flipping (ON - OFF) last dip switch. Note that BUS power  (+24v) is removed when no devices are detected. In case of issues, you may find useful to "jump start" the device using the +24V provision of other connectors of the motor control board.
+    
+  ### New Hardware version 
+  With newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
+  
+  ![alt text](docs/Images/antrieb-min.png)
+</details><br>
 
 ## Set the ventilation position 
 
