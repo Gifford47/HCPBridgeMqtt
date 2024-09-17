@@ -7,7 +7,7 @@
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
     h2 {font-size: 3.0rem;}
-    p {font-size: 3.0rem;}
+    p {font-size: 1rem;}
     body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
     .switch {position: relative; display: inline-block; width: 80px; height: 48px} 
     .switch input {display: none}
@@ -360,6 +360,7 @@
 		<a class="link-gray" href="status" target="_blank">Door status</a>
 	</div>
 
+	<p id="swversion"></p>
 		
 	<script>
 	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
@@ -533,6 +534,7 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
+				document.getElementById("swversion").innerHTML = status.swversion;
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';
