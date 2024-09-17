@@ -1075,6 +1075,7 @@ void setup()
               root["state"] = hoermannEngine->state->state;
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
+              root["swversion"] = HA_VERSION;
               #ifdef SENSORS
                 JsonObject sensors  = root.createNestedObject("sensors");
                   char buf[20];
