@@ -47,17 +47,18 @@ jobs:
       #- name: Get current date
       #  id: name
       #  run: echo "DATE=$(date +%Y.%m.%d)" >> $GITHUB_OUTPUT
-      - name: Get current name
+      - name: Get current release version
         id: name
         run: |
-          import re
+          import os, re
           with open(r'./HCPBridgeESP32/src/configuration.h') as f:
             cont = f.read()
             if 'HA_VERSION' in cont:
               a = re.search(r'HA_VERSION = "(.*)"', cont)
               res = a.group(1)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-            print(f'{NAME}={res}', file=fh)
+            print(f'NAME={res}', file=fh)
+        shell: python
       - name: Release
         uses: softprops/action-gh-release@v2
         #if: startsWith(github.ref, 'refs/tags/')
