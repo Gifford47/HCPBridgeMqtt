@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Esp.h>
-#include <AsyncElegantOTA.h>
+#include <ElegantOTA.h>
 #include <ESPAsyncWebServer.h>
 #include "AsyncJson.h"
 #include <AsyncMqttClient.h>
@@ -1075,6 +1075,7 @@ void setup()
               root["state"] = hoermannEngine->state->state;
               root["busResponseAge"] = hoermannEngine->state->responseAge();
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
+              root["swversion"] = HA_VERSION;
               #ifdef SENSORS
                 JsonObject sensors  = root.createNestedObject("sensors");
                   char buf[20];
@@ -1170,6 +1171,7 @@ void setup()
               root["wifistatus"] = WiFi.status();
               root["mqttstatus"] = mqttClient.connected();
               root["resetreason"] = esp_reset_reason();
+              root["swversion"] = HA_VERSION;
               serializeJson(root, *response);
 
               request->send(response); });
@@ -1206,11 +1208,14 @@ void setup()
           prefHandler.resetPreferences();
           });
 
-  AsyncElegantOTA.begin(&server, OTA_USERNAME, OTA_PASSWD);
+  ElegantOTA.begin(&server);
+  ElegantOTA.setAutoReboot(true);
+  ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
 }
 
 // mainloop
 void loop(){
+  ElegantOTA.loop();
 }

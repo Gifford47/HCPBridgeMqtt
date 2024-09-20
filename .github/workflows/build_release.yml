@@ -44,15 +44,27 @@ jobs:
       #    find . -type d -name fw
 
       # upload Release:
-      - name: Get current date
-        id: date
-        run: echo "DATE=$(date +%Y.%m.%d)" >> $GITHUB_OUTPUT
+      #- name: Get current date
+      #  id: name
+      #  run: echo "DATE=$(date +%Y.%m.%d)" >> $GITHUB_OUTPUT
+      - name: Get current release version
+        id: name
+        run: |
+          import os, re
+          with open(r'./HCPBridgeESP32/src/configuration.h') as f:
+            cont = f.read()
+            if 'HA_VERSION' in cont:
+              a = re.search(r'HA_VERSION = "(.*)"', cont)
+              res = a.group(1)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+            print(f'NAME={res}', file=fh)
+        shell: python
       - name: Release
         uses: softprops/action-gh-release@v2
         #if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: ${{ steps.date.outputs.DATE }}
-          tag_name: ${{ steps.date.outputs.DATE }}
+          name: ${{ steps.name.outputs.NAME }}
+          tag_name: ${{ steps.name.outputs.NAME }}
           #token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           generate_release_notes: true
           make_latest: true
