@@ -26,6 +26,7 @@
 #define preference_gd_avail "gd_availability"
 #define preference_gd_light "gd_light"
 #define preference_gd_vent "gd_vent"
+#define preference_gd_half "gd_half"
 #define preference_gd_status "gd_status"
 #define preference_gd_det_status "gd_det_status"
 #define preference_gd_position "gd_position"
@@ -60,7 +61,7 @@ std::vector<const char*> _keys =
         preference_started_before, preference_rs485_txd, preference_rs485_rxd, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_gd_id, 
         preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
         preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
-        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_status, preference_gd_det_status,
         preference_gd_position, preference_gd_debug, preference_gd_debug_restart, 
         preference_sensor_temp_treshold, preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_gs_temp, preference_gs_hum,
@@ -74,7 +75,7 @@ std::vector<const char*> _strings =
         preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password,
         preference_gd_id, preference_gd_name, preference_mqtt_server,
         preference_mqtt_user, preference_mqtt_password, preference_hostname, 
-        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_status, preference_gd_det_status,
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_status, preference_gd_det_status,
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail,
 };
@@ -155,6 +156,7 @@ class PreferenceHandler{
             preferences->putString(preference_gd_avail, GD_AVAIL);
             preferences->putString(preference_gd_light, GD_LIGHT);
             preferences->putString(preference_gd_vent, GD_VENT);
+            preferences->putString(preference_gd_half, GD_HALF);
             preferences->putString(preference_gd_status, GD_STATUS);
             preferences->putString(preference_gd_det_status, GD_DET_STATUS);
             preferences->putString(preference_gd_position, GD_POSITIOM);
@@ -263,6 +265,7 @@ class PreferenceHandler{
         String gd_avail = doc[preference_gd_avail].as<String>();
         String gd_light = doc[preference_gd_light].as<String>();
         String gd_vent = doc[preference_gd_vent].as<String>();
+        String gd_half = doc[preference_gd_half].as<String>();
         String gd_status = doc[preference_gd_status].as<String>();
         String gd_det_status = doc[preference_gd_det_status].as<String>();
         String gd_position = doc[preference_gd_position].as<String>();
@@ -331,6 +334,7 @@ class PreferenceHandler{
             this->preferences->putString(preference_gd_avail, gd_avail);
             this->preferences->putString(preference_gd_light, gd_light);
             this->preferences->putString(preference_gd_vent, gd_vent);
+            this->preferences->putString(preference_gd_half, gd_half);
             this->preferences->putString(preference_gd_status, gd_status);
             this->preferences->putString(preference_gd_det_status, gd_det_status);
             this->preferences->putString(preference_gd_position, gd_position);
@@ -376,6 +380,7 @@ class PreferenceHandler{
         char gd_avail[64];
         char gd_light[64];
         char gd_vent[64];
+        char gd_half[64];
         char gd_status[64];
         char gd_det_status[64];
         char gd_position[64];
@@ -395,6 +400,7 @@ class PreferenceHandler{
         strcpy(gd_avail, preferences->getString(preference_gd_avail).c_str());
         strcpy(gd_light, preferences->getString(preference_gd_light).c_str());
         strcpy(gd_vent, preferences->getString(preference_gd_vent).c_str());
+        strcpy(gd_half, preferences->getString(preference_gd_half).c_str());
         strcpy(gd_status, preferences->getString(preference_gd_status).c_str());
         strcpy(gd_det_status, preferences->getString(preference_gd_det_status).c_str());
         strcpy(gd_position, preferences->getString(preference_gd_position).c_str());
@@ -419,6 +425,7 @@ class PreferenceHandler{
         conf[preference_gd_avail] = gd_avail;
         conf[preference_gd_light] = gd_light;
         conf[preference_gd_vent] = gd_vent;
+        conf[preference_gd_half] = gd_half;
         conf[preference_gd_status] = gd_status;
         conf[preference_gd_det_status] = gd_det_status;
         conf[preference_gd_position] = gd_position;
