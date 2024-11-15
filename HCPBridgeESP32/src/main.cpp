@@ -178,6 +178,7 @@ void setuptMqttStrings(){
   strcpy(mqttStrings.sensor_topic, mqttStrings.st_sensor_topic.c_str());
   strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
+
 void IRAM_ATTR reset_button_change(){
   if (digitalRead(0) == 0)
   {
@@ -947,6 +948,11 @@ void setup()
   } 
 */  
 
+  #ifdef HCP_Giffordv2
+    pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
+    digitalWrite(LED1, HIGH);
+  #endif
+
   // setup preferences
   prefHandler.initPreferences();
   localPrefs = prefHandler.getPreferences();
@@ -1145,7 +1151,7 @@ void setup()
                 case 6:
                   Serial.println("restart...");
                   setWill();
-                  ESP.restart();
+                  //ESP.restart();
                   break;
                 case 7:
                   if (request->hasParam("position"))
@@ -1213,6 +1219,10 @@ void setup()
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
+  #ifdef HCP_Giffordv2
+    pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
+    digitalWrite(LED1, LOW);
+  #endif
 }
 
 // mainloop
