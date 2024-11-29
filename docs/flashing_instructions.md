@@ -13,7 +13,7 @@ Extract the Zip File and remember where you put it on your Computer.
 Go to VSCode, click the PlatformIO Symbol at the bottom to switch to the Plugin UI.
 Click the Open Folder button and select the HCPBridgeESp32 Folder inside the extracted Firmware.
 
-![image](../Images/project.png)
+![image](Images/project.png)
 
 
 ## Configuration
@@ -25,7 +25,7 @@ Before you can flash the Firmware you will need to change the Configuration in t
 
 You need to set your WIFi Name/SSID and Password as well as the Connection Details to your MQTT Server if you want to use that Feature.
 
-![image](../Images/configuration.png)
+![image](Images/configuration.png)
 
 
 ## Build and Flash
@@ -34,7 +34,7 @@ Go back to the Platform IO UI and click on the ESP Model you got under "Project 
 ESP32 for older Boards and ESP32S3 for newer Boards (for example all PCBs with a Tynet logo)
 Open the General Tasks of the Board you got and click Build.
 
-![image](../Images/upload.png)
+![image](Images/upload.png)
 
 This should prepare the Firmware for your Board including your Configuration, if all goes well the Terminal will show a green success message.
 
