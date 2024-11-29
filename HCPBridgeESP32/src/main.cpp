@@ -200,7 +200,7 @@ void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
   Serial.println("Resetting config...");
-  prefHandler.resetPreferences();
+  //prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
@@ -960,7 +960,7 @@ void setup()
   hoermannEngine->setup(localPrefs);
 
   //Add interrupts for Factoryreset over Boot button
-  pinMode(0, INPUT_PULLUP);
+  //pinMode(0, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(0), reset_button_change, CHANGE);
   resetTimer = xTimerCreate("resetTimer", pdMS_TO_TICKS(10), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(resetPreferences));
 
@@ -1105,6 +1105,9 @@ void setup()
                   dtostrf(dht22_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
+                  dtostrf(dht22_hum,2,1,buf); 
+                  strcat(buf, " %");
+                  sensors["hum"] = buf;
                 #endif
                 #ifdef USE_HCSR04
                   dtostrf(hcsr04_distanceCm,2,0,buf);
@@ -1151,7 +1154,7 @@ void setup()
                 case 6:
                   Serial.println("restart...");
                   setWill();
-                  //ESP.restart();
+                  ESP.restart();
                   break;
                 case 7:
                   if (request->hasParam("position"))
