@@ -3,6 +3,8 @@
 If you bought a prebuild PCB from either Tynet.eu or someone else you can follow this setp by step guide to setup your HCP-Bridge with your Hörmann Garage Door.
 These instructions focus on the tynet.eu PCB version, but it will be really similar with all PCBs.
 
+You want to connect temperature sensors or something else? See our guide: [Connecting sensors on tynet boards](connecting_sensors_prebuild_pcbs.md)
+
 ## What you need
 
 * Prebuild PCB with HCPBridge Firmware installed (installed out of the box on tynet.eu PCBs)
@@ -14,11 +16,15 @@ These instructions focus on the tynet.eu PCB version, but it will be really simi
 ### 2. Search and connect to the WIFI Network called "HCPBRIDGE" the PCB creates with a phone or pc.
 ### 3. When connected, open a webbrowser and go to the WEBUI under the following url : http://192.168.4.1
 
-![Initial WebUI](/Images/webui_initial_ui.png)
+![Initial WebUI](Images/webui_initial_ui.png)
 
 ### 4. Open the "Basic Configuration" tab and enter your WIFI and MQTT credentials, then click save.
 
-![basic config](/Images/webui_basic_config.png)
+> Note: The wifi password has to be ASCII chars between ASCII 32-126.
+
+> Tip: To disable the wifi AP just uncheck the "Enable wifi AP" checkbox and save
+
+![basic config](Images/webui_basic_config.png)
 
 ### 5. The PCB should now be connected to your wifi. You can now check if it is reachable from your home network and if it connected to your MQTT Server.
 
@@ -26,7 +32,7 @@ These instructions focus on the tynet.eu PCB version, but it will be really simi
 
 ### 1. connect the PCB with a RJ12 cable to the BUS port on your Hörmann garage door motor (image below, see green arrow).
 
-![Garage Motor](/Images/antrieb-min.png)
+![Garage Motor](Images/antrieb-min.png)
    
 ### 2. Figure out how to execute a bus scan on your model, see info below or have a look in your motors ueer manual.
 
@@ -41,4 +47,4 @@ Use the Buttons to navigate to the menu 37 and excecute the Bus Scan, see here: 
 ### 3. execute a bus scan on your garage door motor, this should make the PCB light up (3V3) and blink rapidly (RS485 module)
 ### 4. if the bus scan was succesfully you can connect to the WEBUI and control your garage door motor, it should look like in the image below.
 
-![Installation done](/Images/webui_ready_and_installed.png)
+![Installation done](Images/webui_ready_and_installed.png)
