@@ -12,6 +12,10 @@
     const char* STA_SSID   = "";
     const char* STA_PASSWD = "";
 
+    //OTA Update
+    const char* OTA_USERNAME = "admin";
+    const char* OTA_PASSWD = "admin";
+
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
         #ifdef M5STACK
@@ -52,10 +56,6 @@
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab
 
-    //OTA Update
-    const char* OTA_USERNAME = "admin";
-    const char* OTA_PASSWD = "admin";
-    
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
 

@@ -14,26 +14,18 @@ extern "C" {
 #include "preferencesKeys.h"
 #include "../WebUI/index_html.h"
 
-#ifdef USE_DS18X20
+#ifdef SENSORS
+//USE_DS18X20
   #include <OneWire.h>
   #include <DallasTemperature.h>
-#endif
-
-#ifdef USE_BME
+//USE_BME
   #include <Wire.h>
   #include <Adafruit_Sensor.h>
   #include <Adafruit_BME280.h>
-#endif
-
-#ifdef USE_DHT22
+//USE_DHT22
   #include <Adafruit_Sensor.h>
   #include <DHT.h>
-#endif
 
-// webserver on port 80
-AsyncWebServer server(80);
-
-#ifdef SENSORS
   int     sensor_prox_tresh   = 0;
   float  sensor_temp_thresh  = 0;
   int     sensor_hum_thresh   = 0;
@@ -42,15 +34,20 @@ AsyncWebServer server(80);
   int     sensor_force_update_intervall = 7200000;    // force sending sensor updates after amount of time since last update
 #endif
 
+// webserver on port 80
+AsyncWebServer server(80);
 
-#ifdef USE_DS18X20
+#ifdef SENSORS
+//USE_DS18X20
   // Setup a oneWire instance to communicate with any OneWire devices
+  bool use_ds18x20 = true;
   DallasTemperature *ds18x20 = nullptr;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
   int ds18x20_pin = 0;
-#endif
-#ifdef USE_BME
+
+//USE_BME
+  bool use_bme = true;
   TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
   unsigned bme_status;
@@ -60,12 +57,11 @@ AsyncWebServer server(80);
   float bme_last_hum = -99.99;
   float bme_pres = -99.99;
   float bme_last_pres = -99.99;
-  int i2c_onoffpin = 0;
   int i2c_sdapin = 0;
   int i2c_sclpin = 0;
-#endif
 
-#ifdef USE_HCSR04
+//USE_HCSR04
+  bool use_hcsr04 = true;
   long hcsr04_duration = -99.99;
   int hcsr04_distanceCm = 0;
   int hcsr04_lastdistanceCm = 0;
@@ -74,20 +70,21 @@ AsyncWebServer server(80);
   bool hcsr04_lastpark_available = false;
   int hcsr04_tgpin = 0;
   int hscr04_ecpin = 0;
-#endif
 
-#ifdef USE_DHT22
+//USE_DHT22
+  bool use_dht22 = true;
   DHT *dht = nullptr;
   float dht22_temp = -99.99;
   float dht22_last_temp = -99.99;
   float dht22_hum = -99.99;
   float dht22_last_hum = -99.99;
   int dht_data_pin = 0;
-#endif
 
-#ifdef USE_HCSR501
+//USE_HCSR501
+  bool use_hcsr501 = true;
   int hcsr501stat = 0;
   bool hcsr501_laststat = false;
+
 #endif
 
 // sensors
@@ -200,7 +197,7 @@ void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
   Serial.println("Resetting config...");
-  //prefHandler.resetPreferences();
+  prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
@@ -314,12 +311,12 @@ void updateSensors(bool forceUpate = false){
       JsonDocument doc;    //2048 needed because of BME280 float values!
       char payload[1024];
       char buf[20];
-      #ifdef USE_DS18X20
+      if (use_ds18x20) {
         dtostrf(ds18x20_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
-      #endif
-      #ifdef USE_BME
+      }
+      if (use_bme) {
         dtostrf(bme_temp,2,1,buf);    // convert to string
         //Serial.println("Temp: "+ (String)buf);
         doc["temp"] = buf;
@@ -329,18 +326,18 @@ void updateSensors(bool forceUpate = false){
         dtostrf(bme_pres,2,1,buf);    // convert to string
         //Serial.println("Pres: "+ (String)buf);
         doc["pres"] = buf;
-      #endif
-      #ifdef USE_HCSR04
+      }
+      if (use_hcsr04) {
         sprintf(buf, "%d", hcsr04_distanceCm);
         doc["dist"] = buf;
         doc["free"] = ToHA(hcsr04_park_available);
-      #endif
-      #ifdef USE_DHT22
+      }
+      if (use_dht22) {
         dtostrf(dht22_temp,2,2,buf);
         doc["temp"] = buf;
         dtostrf(dht22_hum,2,2,buf);
         doc["hum"] = buf;
-      #endif
+      }
       serializeJson(doc, payload);
       mqttClient.publish(mqttStrings.sensor_topic, 0, false, payload);  //uint16_t publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0)
       sensor_last_update = millis();
@@ -660,24 +657,25 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_det_status).c_str(), mqttStrings.state_topic, "detailedState", device, "enum");
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_position).c_str(), mqttStrings.state_topic, "doorposition", device);
   #ifdef SENSORS
-    #if defined(USE_BME)
+    if (use_bme) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_pres).c_str(), mqttStrings.sensor_topic, "pres", device, "atmospheric_pressure", "hPa");
-    #elif defined(USE_DS18X20)
+    }
+    if (use_ds18x20) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
-    #endif
-    #if defined(USE_HCSR04)
+    }
+    if (use_hcsr04) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_free_dist).c_str(), mqttStrings.sensor_topic, "dist", device, "distance", "cm");
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_park_avail).c_str(), mqttStrings.sensor_topic, "free", HA_OFF, HA_ON, device);
-    #endif
-    #if defined(USE_DHT22)
+    }
+    if (use_dht22) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
-    #endif
-    #if defined(USE_HCSR501)
+    }
+    if (use_hcsr501) {
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
-    #endif
+    }
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug).c_str(), "debug", device);
@@ -747,24 +745,24 @@ void SensorCheck(void *parameter){
       }
     #endif
     #ifdef USE_DS18X20
+    if (use_ds18x20) {
       ds18x20_temp = ds18x20->getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= sensor_temp_thresh){
         ds18x20_last_temp = ds18x20_temp;
         new_sensor_data = true;
       }
+    }
     #endif
     #ifdef USE_BME
-      if (digitalRead(i2c_onoffpin) == LOW) {
-        digitalWrite(i2c_onoffpin, HIGH);   // activate sensor
-        sleep(10);
+      if (use_bme) {
         I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
         bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+        if (!bme_status) {
+          bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
+        }
       }
       if (!bme_status) {
-        bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
-      }
-      if (!bme_status) {
-        digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
+        use_bme = false;
       }
       else {
         bme_temp = bme.readTemperature();   // round float
@@ -777,13 +775,11 @@ void SensorCheck(void *parameter){
             bme_last_pres = bme_pres;
             new_sensor_data = true;
           }
-        } else {
-          digitalWrite(i2c_onoffpin, LOW);      // deactivate sensor
         }
       }
     #endif
     #ifdef USE_HCSR04
-
+      if (use_hcsr04) {
         // Clears the trigPin
         digitalWrite(hcsr04_tgpin, LOW);
         delayMicroseconds(2);
@@ -809,8 +805,10 @@ void SensorCheck(void *parameter){
           hcsr04_lastpark_available = hcsr04_park_available;
           new_sensor_data = true;
         }
+      }
     #endif
     #ifdef USE_DHT22
+    if (use_dht22) {
       dht22_temp = dht->readTemperature();
       dht22_hum = dht->readHumidity();
       if (!isnan(dht22_temp) && abs(dht22_temp) >= sensor_temp_thresh){
@@ -821,6 +819,7 @@ void SensorCheck(void *parameter){
         dht22_last_hum = dht22_hum;
         new_sensor_data = true;
       }
+    }
     #endif
     vTaskDelay(localPrefs->getInt(preference_query_interval_sensors)*1000);     // delay task xxx ms if statemachine had nothing to do
     //vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
@@ -960,7 +959,7 @@ void setup()
   hoermannEngine->setup(localPrefs);
 
   //Add interrupts for Factoryreset over Boot button
-  //pinMode(0, INPUT_PULLUP);
+  pinMode(0, INPUT);
   attachInterrupt(digitalPinToInterrupt(0), reset_button_change, CHANGE);
   resetTimer = xTimerCreate("resetTimer", pdMS_TO_TICKS(10), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(resetPreferences));
 
@@ -1014,40 +1013,74 @@ void setup()
     sensor_temp_thresh = localPrefs->getDouble(preference_sensor_temp_treshold);
     sensor_hum_thresh = localPrefs->getInt(preference_sensor_hum_threshold);
     sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
-    #ifdef USE_DS18X20
+    if (use_ds18x20) {
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire oneWire(ds18x20_pin);
       static DallasTemperature static_ds18x20(&oneWire);
       // save its address.
       ds18x20 = &static_ds18x20;
       ds18x20->begin();
-    #endif
-    #ifdef USE_BME
+      //sensor-check routine
+      float test = ds18x20_temp = ds18x20->getTempCByIndex(0);
+      if (test <= -20 || test == 85.00) {
+        use_ds18x20 = false;
+      }
+    }
+    if (use_bme) {
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
-      pinMode(i2c_onoffpin, OUTPUT);
       I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
       bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
-      //bme_status = bme.begin();  // check sensor. adreess can be 0x76 or 0x77
-    #endif
-    #ifdef USE_HCSR04
+      if (!bme_status) {
+        bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
+      }
+      //sensor-check routine
+      float test = bme.readTemperature();
+      if (!bme_status || test <= -20 || test >= 60) {
+        use_bme = false;
+      }
+    }
+    if (use_hcsr04) {
       hcsr04_tgpin = localPrefs->getInt(preference_sensor_sr04_trigpin);
       hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
       hcsr04_maxdistanceCm = localPrefs->getInt(preference_sensor_sr04_max_dist);
       pinMode(hcsr04_tgpin, OUTPUT); // Sets the trigPin as an Output
       pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
-    #endif
-    #ifdef USE_HCSR501
+
+      //sensor-check routine
+      // Clears the trigPin
+      digitalWrite(hcsr04_tgpin, LOW);
+      delayMicroseconds(2);
+      // Sets the trigPin on HIGH state for 10 micro seconds
+      digitalWrite(hcsr04_tgpin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(hcsr04_tgpin, LOW);
+      // Reads the echoPin, returns the sound wave travel time in microseconds
+      hcsr04_duration = pulseIn(hscr04_ecpin, HIGH);
+      // Calculate the distance
+      hcsr04_distanceCm = hcsr04_duration * SOUND_SPEED/2;
+      if (hcsr04_distanceCm >= 400 && hcsr04_distanceCm < 2) {
+        use_hcsr04 = false;
+      }
+    }
+    if (use_hcsr501) {
       pinMode(SR501PIN, INPUT); // Sets the trigPin as an Output
       hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
-    #endif
-    #ifdef USE_DHT22
+      //sensor-check routine
+      //Here is no check possible, because sensor could be LOW or HIGH
+      //Leave it Flag=true anytime
+    }
+    if (use_dht22) {
       dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
        static DHT static_dht(dht_data_pin, DHTTYPE);
       // save its address.
       dht = &static_dht;
       dht->begin();
-    #endif
+      //sensor-check routine
+      if (isnan(dht->readTemperature()) || isnan(dht->readHumidity())) {
+        use_dht22 = false;
+      }
+    }
 
     xTaskCreatePinnedToCore(
       SensorCheck, /* Function to implement the task */
@@ -1086,11 +1119,14 @@ void setup()
                 JsonObject sensors  = root.createNestedObject("sensors");
                   char buf[20];
                 #ifdef USE_DS18X20
+                if (use_ds18x20) {
                   dtostrf(ds18x20_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
+                }
                 #endif
                 #ifdef USE_BME
+                if (use_bme) {
                   dtostrf(bme_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
@@ -1100,19 +1136,24 @@ void setup()
                   dtostrf(bme_pres,2,1,buf); 
                   strcat(buf, " mbar");
                   sensors["pres"] = buf;
+                }
                 #endif
                 #ifdef USE_DHT22
+                if (use_dht22) {
                   dtostrf(dht22_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
                   dtostrf(dht22_hum,2,1,buf); 
                   strcat(buf, " %");
                   sensors["hum"] = buf;
+                }
                 #endif
                 #ifdef USE_HCSR04
+                if (use_hcsr04) {
                   dtostrf(hcsr04_distanceCm,2,0,buf);
                   strcat(buf, " cm");
                   sensors["dist"] = buf;
+                }
                 #endif
               #endif
               //root["debug"] = doorstate.reserved;
