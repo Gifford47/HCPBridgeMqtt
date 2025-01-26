@@ -1021,8 +1021,12 @@ void setup()
       ds18x20 = &static_ds18x20;
       ds18x20->begin();
       //sensor-check routine
-      float test = ds18x20_temp = ds18x20->getTempCByIndex(0);
-      if (test <= -20 || test == 85.00) {
+      if (ds18x20->getDeviceCount() > 0) {
+        float test = ds18x20_temp = ds18x20->getTempCByIndex(0);
+        if (test <= -20 || test == 85.00) {
+          use_ds18x20 = false;
+        }
+      } else {
         use_ds18x20 = false;
       }
     }
@@ -1072,7 +1076,7 @@ void setup()
     }
     if (use_dht22) {
       dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
-       static DHT static_dht(dht_data_pin, DHTTYPE);
+      static DHT static_dht(dht_data_pin, DHTTYPE);
       // save its address.
       dht = &static_dht;
       dht->begin();
