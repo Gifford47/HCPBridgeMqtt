@@ -2,7 +2,7 @@
     #define CONFIGURATION_H_
     
     // Please change on every new firmware builds!
-    const char *HA_VERSION = "0.0.7.2";
+    const char *HA_VERSION = "0.0.7.3";
 
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
