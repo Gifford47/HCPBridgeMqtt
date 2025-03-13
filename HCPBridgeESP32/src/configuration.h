@@ -41,12 +41,12 @@
     const char GD_STATUS[] = "Garage Door Status";
     const char GD_DET_STATUS[] = "Garage Door detailed Status";
     const char GD_POSITIOM[] = "Garage Door Position";
-    const char GD_MOTION[] = "Garage Door Motion";
     const char GS_TEMP[] = "Garage Temperature";
     const char GS_HUM[] = "Garage Humidity";
     const char GS_PRES[] = "Garage ambient pressure";
     const char GS_FREE_DIST[] = "Garage Free distance";
     const char GS_PARK_AVAIL[] = "Garage park available";
+    const char GS_MOTION[] = "Garage Door Motion";
     const char GD_DEBUG[] = "Garage Door Debug";
     const char GD_DEBUG_RESTART[] = "Garage Restart Reason";
 
