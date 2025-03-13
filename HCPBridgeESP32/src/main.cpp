@@ -203,7 +203,7 @@ void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
   Serial.println("Resetting config...");
-  //prefHandler.resetPreferences();
+  prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
