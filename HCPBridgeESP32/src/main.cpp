@@ -686,7 +686,7 @@ void sendDiscoveryMessage()
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
     #endif
     #if defined(USE_HCSR501)
-      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
+      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_motion).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
     #endif
   #endif
   #ifdef DEBUG
