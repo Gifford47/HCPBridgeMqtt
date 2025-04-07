@@ -683,10 +683,10 @@ void sendDiscoveryMessage()
     if (use_dht22) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
-    #endif
-    #if defined(USE_HCSR501)
+    }
+    if (use_hcsr501) {
       sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_motion).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
-    #endif
+    }
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug).c_str(), "debug", device);
@@ -694,8 +694,7 @@ void sendDiscoveryMessage()
   #endif
 }
 
-void onMqttConnect(bool sessionPresent)
-{
+void onMqttConnect(bool sessionPresent) {
   Serial.println("Function on mqtt connect.");
   mqttConnected = true;
   xTimerStop(mqttReconnectTimer, 0); // stop timer as we are connected to Mqtt again
@@ -715,8 +714,7 @@ void onMqttConnect(bool sessionPresent)
   #endif
 }
 
-void mqttTaskFunc(void *parameter)
-{
+void mqttTaskFunc(void *parameter) {
   while (true)
   {
     if (mqttConnected){
@@ -735,7 +733,7 @@ void mqttTaskFunc(void *parameter)
 
 TaskHandle_t mqttTask;
 
-void SensorCheck(void *parameter){
+void SensorCheck(void *parameter) {
   while(true){
     // handle motion sensor at first and send state immediately. Do not 
     // use updateSensors to avoid unneccessary polling of the other sensors
@@ -1024,14 +1022,14 @@ void setup()
     sensor_temp_thresh = localPrefs->getDouble(preference_sensor_temp_treshold);
     sensor_hum_thresh = localPrefs->getInt(preference_sensor_hum_threshold);
     sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
+    
+    // DS18x20 initialization using dynamic allocation
     if (use_ds18x20) {
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
-      OneWire oneWire(ds18x20_pin);
-      static DallasTemperature static_ds18x20(&oneWire);
-      // save its address.
-      ds18x20 = &static_ds18x20;
+      OneWire* oneWirePtr = new OneWire(ds18x20_pin);
+      ds18x20 = new DallasTemperature(oneWirePtr);
       ds18x20->begin();
-      //sensor-check routine
+      // sensor-check routine
       if (ds18x20->getDeviceCount() > 0) {
         float test = ds18x20_temp = ds18x20->getTempCByIndex(0);
         if (test <= -20 || test == 85.00) {
@@ -1041,20 +1039,22 @@ void setup()
         use_ds18x20 = false;
       }
     }
+    
     if (use_bme) {
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
-      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
+      bme_status = bme.begin(0x76, &I2CBME);  // check sensor. address can be 0x76 or 0x77
       if (!bme_status) {
         bme_status = bme.begin(0x77, &I2CBME);  // check sensor. address can be 0x76 or 0x77
       }
-      //sensor-check routine
+      // sensor-check routine
       float test = bme.readTemperature();
       if (!bme_status || test <= -20 || test >= 60) {
         use_bme = false;
       }
     }
+    
     if (use_hcsr04) {
       hcsr04_tgpin = localPrefs->getInt(preference_sensor_sr04_trigpin);
       hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
@@ -1062,7 +1062,7 @@ void setup()
       pinMode(hcsr04_tgpin, OUTPUT); // Sets the trigPin as an Output
       pinMode(hscr04_ecpin, INPUT); // Sets the echoPin as an Input
 
-      //sensor-check routine
+      // sensor-check routine
       // Clears the trigPin
       digitalWrite(hcsr04_tgpin, LOW);
       delayMicroseconds(2);
@@ -1078,20 +1078,19 @@ void setup()
         use_hcsr04 = false;
       }
     }
+    
     if (use_hcsr501) {
       pinMode(SR501PIN, INPUT); // Sets the trigPin as an Output
       hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
-      //sensor-check routine
-      //Here is no check possible, because sensor could be LOW or HIGH
-      //Leave it Flag=true anytime
+      // sensor-check routine: kein Check möglich, da Sensor beide Zustände liefern kann
     }
+    
+    // DHT22 initialization using dynamic allocation
     if (use_dht22) {
       dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
-      static DHT static_dht(dht_data_pin, DHTTYPE);
-      // save its address.
-      dht = &static_dht;
+      dht = new DHT(dht_data_pin, DHTTYPE);
       dht->begin();
-      //sensor-check routine
+      // sensor-check routine
       if (isnan(dht->readTemperature()) || isnan(dht->readHumidity())) {
         use_dht22 = false;
       }
