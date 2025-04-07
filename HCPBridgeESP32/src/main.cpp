@@ -112,6 +112,7 @@ class MqttStrings {
     char lamp_topic [64];
     char door_topic [64];
     char vent_topic [64];
+    char half_topic [64];
     char sensor_topic [64];
     char debug_topic [64];
     String st_availability_topic;
@@ -124,6 +125,7 @@ class MqttStrings {
     String st_lamp_topic;
     String st_door_topic;
     String st_vent_topic;
+    String st_half_topic;
     String st_sensor_topic;
     String st_debug_topic;   
 };
@@ -161,6 +163,7 @@ void setuptMqttStrings(){
   mqttStrings.st_lamp_topic = mqttStrings.st_cmd_topic  + "/lamp";
   mqttStrings.st_door_topic = mqttStrings.st_cmd_topic  + "/door";
   mqttStrings.st_vent_topic = mqttStrings.st_cmd_topic  + "/vent";
+  mqttStrings.st_half_topic = mqttStrings.st_cmd_topic  + "/half";
   mqttStrings.st_sensor_topic = ftopic + "/sensor";
   mqttStrings.st_debug_topic = ftopic + "/debug";
 
@@ -172,6 +175,7 @@ void setuptMqttStrings(){
   strcpy(mqttStrings.lamp_topic, mqttStrings.st_lamp_topic.c_str());
   strcpy(mqttStrings.door_topic, mqttStrings.st_door_topic.c_str());
   strcpy(mqttStrings.vent_topic, mqttStrings.st_vent_topic.c_str());
+  strcpy(mqttStrings.half_topic, mqttStrings.st_half_topic.c_str());
   strcpy(mqttStrings.sensor_topic, mqttStrings.st_sensor_topic.c_str());
   strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
@@ -281,6 +285,7 @@ void updateDoorStatus(bool forceUpate = false)
     JsonDocument doc;
     char payload[1024];
     const char *venting = HA_CLOSE;
+    const char *half = HA_CLOSE;
 
     doc["valid"] = hoermannEngine->state->valid;
     doc["doorposition"] = (int)(hoermannEngine->state->currentPosition * 100);
@@ -291,6 +296,11 @@ void updateDoorStatus(bool forceUpate = false)
       venting = HA_VENT;
     }
     doc["vent"] = venting;
+    
+    if (hoermannEngine->state->translatedState == HA_HALFOPEN){
+      half = HA_HALF;
+    }
+    doc["half"] = half;
 
     serializeJson(doc, payload);
     mqttClient.publish(mqttStrings.state_topic, 1, true, payload);
@@ -364,7 +374,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       hoermannEngine->toogleLight();
     }
   }
-  else if (strcmp(mqttStrings.door_topic, topic) == 0 || strcmp(mqttStrings.vent_topic, topic) == 0){
+  else if (strcmp(mqttStrings.door_topic, topic) == 0 || strcmp(mqttStrings.vent_topic, topic) == 0 || strcmp(mqttStrings.half_topic, topic) == 0){
     if (strncmp(payload, HA_OPEN, len) == 0){
       hoermannEngine->openDoor();
     }
@@ -651,6 +661,7 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_light).c_str(), HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
   sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gd_light).c_str(), mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+  sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_half).c_str(), HA_DISCOVERY_SWITCH, "half", HA_CLOSE, HA_HALF, "mdi:air-filter", device);
   sendDiscoveryMessageForCover(localPrefs->getString(preference_gd_name).c_str(), "door", device);
 
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device, "enum");
@@ -672,10 +683,10 @@ void sendDiscoveryMessage()
     if (use_dht22) {
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_temp).c_str(), mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
       sendDiscoveryMessageForSensor(localPrefs->getString(preference_gs_hum).c_str(), mqttStrings.sensor_topic, "hum", device, "humidity", "%");
-    }
-    if (use_hcsr501) {
-      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_sensor_sr501).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
-    }
+    #endif
+    #if defined(USE_HCSR501)
+      sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gs_motion).c_str(), mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
+    #endif
   #endif
   #ifdef DEBUG
     sendDiscoveryMessageForDebug(localPrefs->getString(preference_gd_debug).c_str(), "debug", device);

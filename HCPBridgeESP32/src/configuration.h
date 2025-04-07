@@ -2,7 +2,7 @@
     #define CONFIGURATION_H_
     
     // Please change on every new firmware builds!
-    const char *HA_VERSION = "0.0.7.2";
+    const char *HA_VERSION = "0.0.7.3";
 
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
@@ -41,15 +41,16 @@
     const char GD_AVAIL[]= "Garage Door Available";
     const char GD_LIGHT[] = "Garage Door Light";
     const char GD_VENT[] = "Garage Door Vent";
+    const char GD_HALF[] = "Garage Door Half";
     const char GD_STATUS[] = "Garage Door Status";
     const char GD_DET_STATUS[] = "Garage Door detailed Status";
     const char GD_POSITIOM[] = "Garage Door Position";
-    const char GD_MOTION[] = "Garage Door Motion";
     const char GS_TEMP[] = "Garage Temperature";
     const char GS_HUM[] = "Garage Humidity";
     const char GS_PRES[] = "Garage ambient pressure";
     const char GS_FREE_DIST[] = "Garage Free distance";
     const char GS_PARK_AVAIL[] = "Garage park available";
+    const char GS_MOTION[] = "Garage Door Motion";
     const char GD_DEBUG[] = "Garage Door Debug";
     const char GD_DEBUG_RESTART[] = "Garage Restart Reason";
 
@@ -131,6 +132,7 @@
         const char *HA_OPEN = "open";
         const char *HA_CLOSE = "close";
         const char *HA_HALF = "half";
+        const char *HA_HALFOPEN = "open h";
         const char *HA_VENT = "venting";
         const char *HA_STOP = "stop";
         const char *HA_OPENING = "opening";
