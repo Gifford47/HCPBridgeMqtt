@@ -40,14 +40,14 @@ AsyncWebServer server(80);
 #ifdef SENSORS
 //USE_DS18X20
   // Setup a oneWire instance to communicate with any OneWire devices
-  bool use_ds18x20 = true;
+  bool use_ds18x20 = false;
   DallasTemperature *ds18x20 = nullptr;
   float ds18x20_temp = -99.99;
   float ds18x20_last_temp = -99.99;
   int ds18x20_pin = 0;
 
 //USE_BME
-  bool use_bme = true;
+  bool use_bme = false;
   TwoWire I2CBME = TwoWire(0);
   Adafruit_BME280 bme;
   unsigned bme_status;
@@ -61,7 +61,7 @@ AsyncWebServer server(80);
   int i2c_sclpin = 0;
 
 //USE_HCSR04
-  bool use_hcsr04 = true;
+  bool use_hcsr04 = false;
   long hcsr04_duration = -99.99;
   int hcsr04_distanceCm = 0;
   int hcsr04_lastdistanceCm = 0;
@@ -72,7 +72,7 @@ AsyncWebServer server(80);
   int hscr04_ecpin = 0;
 
 //USE_DHT22
-  bool use_dht22 = true;
+  bool use_dht22 = false;
   DHT *dht = nullptr;
   float dht22_temp = -99.99;
   float dht22_last_temp = -99.99;
@@ -81,7 +81,7 @@ AsyncWebServer server(80);
   int dht_data_pin = 0;
 
 //USE_HCSR501
-  bool use_hcsr501 = true;
+  bool use_hcsr501 = false;
   int hcsr501stat = 0;
   bool hcsr501_laststat = false;
 
@@ -737,7 +737,6 @@ void SensorCheck(void *parameter) {
   while(true){
     // handle motion sensor at first and send state immediately. Do not 
     // use updateSensors to avoid unneccessary polling of the other sensors
-    #ifdef USE_HCSR501
       hcsr501stat = digitalRead(SR501PIN);
       if (hcsr501stat != hcsr501_laststat) {
         hcsr501_laststat = hcsr501stat;
@@ -752,8 +751,6 @@ void SensorCheck(void *parameter) {
         serializeJson(doc, payload);
         mqttClient.publish(mqttStrings.sensor_topic, 1, true, payload);
       }
-    #endif
-    #ifdef USE_DS18X20
     if (use_ds18x20) {
       ds18x20_temp = ds18x20->getTempCByIndex(0);
       if (abs(ds18x20_temp-ds18x20_last_temp) >= sensor_temp_thresh){
@@ -761,8 +758,6 @@ void SensorCheck(void *parameter) {
         new_sensor_data = true;
       }
     }
-    #endif
-    #ifdef USE_BME
       if (use_bme) {
         I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
         bme_status = bme.begin(0x76, &I2CBME);  // check sensor. adreess can be 0x76 or 0x77
@@ -786,8 +781,6 @@ void SensorCheck(void *parameter) {
           }
         }
       }
-    #endif
-    #ifdef USE_HCSR04
       if (use_hcsr04) {
         // Clears the trigPin
         digitalWrite(hcsr04_tgpin, LOW);
@@ -815,8 +808,6 @@ void SensorCheck(void *parameter) {
           new_sensor_data = true;
         }
       }
-    #endif
-    #ifdef USE_DHT22
     if (use_dht22) {
       dht22_temp = dht->readTemperature();
       dht22_hum = dht->readHumidity();
@@ -829,7 +820,6 @@ void SensorCheck(void *parameter) {
         new_sensor_data = true;
       }
     }
-    #endif
     vTaskDelay(localPrefs->getInt(preference_query_interval_sensors)*1000);     // delay task xxx ms if statemachine had nothing to do
     //vTaskDelay(SENSE_PERIOD);     // TODO take from Preferences
   }
@@ -1024,7 +1014,7 @@ void setup()
     sensor_pres_thresh = localPrefs->getInt(preference_sensor_pres_threshold);
     
     // DS18x20 initialization using dynamic allocation
-    if (use_ds18x20) {
+    if (!use_ds18x20) {
       ds18x20_pin = localPrefs->getInt(preference_sensor_ds18x20_pin);
       OneWire* oneWirePtr = new OneWire(ds18x20_pin);
       ds18x20 = new DallasTemperature(oneWirePtr);
@@ -1040,7 +1030,7 @@ void setup()
       }
     }
     
-    if (use_bme) {
+    if (!use_bme) {
       i2c_sdapin = localPrefs->getInt(preference_sensor_i2c_sda);
       i2c_sclpin = localPrefs->getInt(preference_sensor_i2c_scl);
       I2CBME.begin(i2c_sdapin, i2c_sclpin);   // https://randomnerdtutorials.com/esp32-i2c-communication-arduino-ide/
@@ -1055,7 +1045,7 @@ void setup()
       }
     }
     
-    if (use_hcsr04) {
+    if (!use_hcsr04) {
       hcsr04_tgpin = localPrefs->getInt(preference_sensor_sr04_trigpin);
       hscr04_ecpin = localPrefs->getInt(preference_sensor_sr04_echopin);
       hcsr04_maxdistanceCm = localPrefs->getInt(preference_sensor_sr04_max_dist);
@@ -1079,14 +1069,14 @@ void setup()
       }
     }
     
-    if (use_hcsr501) {
+    if (!use_hcsr501) {
       pinMode(SR501PIN, INPUT); // Sets the trigPin as an Output
       hcsr501_laststat = digitalRead(SR501PIN); // read first state of sensor
       // sensor-check routine: kein Check möglich, da Sensor beide Zustände liefern kann
     }
     
     // DHT22 initialization using dynamic allocation
-    if (use_dht22) {
+    if (!use_dht22) {
       dht_data_pin = localPrefs->getInt(preference_sensor_dht_data_pin);
       dht = new DHT(dht_data_pin, DHTTYPE);
       dht->begin();
@@ -1131,15 +1121,12 @@ void setup()
               root["swversion"] = HA_VERSION;
               #ifdef SENSORS
                 JsonObject sensors  = root.createNestedObject("sensors");
-                  char buf[20];
-                #ifdef USE_DS18X20
+                char buf[20];
                 if (use_ds18x20) {
                   dtostrf(ds18x20_temp,2,1,buf);
                   strcat(buf, " °C");
                   sensors["temp"] = buf;
                 }
-                #endif
-                #ifdef USE_BME
                 if (use_bme) {
                   dtostrf(bme_temp,2,1,buf);
                   strcat(buf, " °C");
@@ -1151,8 +1138,6 @@ void setup()
                   strcat(buf, " mbar");
                   sensors["pres"] = buf;
                 }
-                #endif
-                #ifdef USE_DHT22
                 if (use_dht22) {
                   dtostrf(dht22_temp,2,1,buf);
                   strcat(buf, " °C");
@@ -1161,14 +1146,11 @@ void setup()
                   strcat(buf, " %");
                   sensors["hum"] = buf;
                 }
-                #endif
-                #ifdef USE_HCSR04
                 if (use_hcsr04) {
                   dtostrf(hcsr04_distanceCm,2,0,buf);
                   strcat(buf, " cm");
                   sensors["dist"] = buf;
                 }
-                #endif
               #endif
               //root["debug"] = doorstate.reserved;
               root["lastCommandTopic"] = lastCommandTopic;
@@ -1278,7 +1260,6 @@ void setup()
 
   server.begin();
   #ifdef HCP_Giffordv2
-    pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
     digitalWrite(LED1, LOW);
   #endif
 }
