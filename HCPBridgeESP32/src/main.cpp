@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <WiFi.h>
 #include <Esp.h>
 #include <ElegantOTA.h>
 #include <ESPAsyncWebServer.h>
@@ -1060,13 +1061,13 @@ void setup()
 
 
   // setup http server
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/", HTTP_GET, [=](AsyncWebServerRequest *request)
             {
-              AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html, sizeof(index_html));
+              AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html, sizeof(index_html));
               response->addHeader("Content-Encoding", "deflate");
               request->send(response); });
 
-  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/status", HTTP_GET, [=](AsyncWebServerRequest *request){
               //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               JsonDocument root;
@@ -1081,7 +1082,8 @@ void setup()
               root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
               root["swversion"] = HA_VERSION;
               #ifdef SENSORS
-                JsonObject sensors  = root.createNestedObject("sensors");
+                // JsonObject sensors  = root.createNestedObject("sensors");
+                JsonObject sensors = root["sensors"].to<JsonObject>();
                   char buf[20];
                 #ifdef USE_DS18X20
                   dtostrf(ds18x20_temp,2,1,buf);
@@ -1119,12 +1121,12 @@ void setup()
               serializeJson(root, *response);
               request->send(response); });
 
-  server.on("/statush", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/statush", HTTP_GET, [=](AsyncWebServerRequest *request){
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               response->print(hoermannEngine->state->toStatusJson());
               request->send(response); });
 
-  server.on("/command", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/command", HTTP_GET, [=](AsyncWebServerRequest *request)
             {
               if (request->hasParam("action"))
               {
@@ -1167,7 +1169,7 @@ void setup()
               //onStatusChanged(doorstate);
               });
 
-  server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/sysinfo", HTTP_GET, [=](AsyncWebServerRequest *request)
             {
               Serial.println("GET SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
@@ -1183,7 +1185,7 @@ void setup()
 
               request->send(response); });
   
-  server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/config", HTTP_GET, [=](AsyncWebServerRequest *request)
             {
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
@@ -1193,7 +1195,7 @@ void setup()
               request->send(response); });
 
   // load requestbody for json Post requests
-  server.onRequestBody([](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
+  server.onRequestBody([=](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
           {
           // Handle setting config request
           if (request->url() == "/config")
@@ -1204,7 +1206,7 @@ void setup()
 
             request->send(200, "text/plain", "OK");
           } });
-  server.on("/reset", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/reset", HTTP_GET, [=](AsyncWebServerRequest *request)
         {
           Serial.println("GET reset");
           AsyncResponseStream *response = request->beginResponseStream("application/json");
