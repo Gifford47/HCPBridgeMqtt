@@ -134,8 +134,18 @@ class MqttStrings {
 };
 MqttStrings mqttStrings;
 
-unsigned long resetButtonTimePressed = 0l;
+////////// RESET
+//unsigned long resetButtonTimePressed = 0l;
 TimerHandle_t resetTimer;
+
+#define RESET_PIN 0
+#define RESET_PRESS_COUNT 5
+#define RESET_TIME_WINDOW 6000  // 5 Sekunden Zeitfenster für die 5 Drücke
+
+volatile int pressCount = 0;
+volatile unsigned long firstPressTime = 0;
+
+
 
 #ifdef DEBUG
   bool boot_Flag = true;
@@ -183,20 +193,46 @@ void setuptMqttStrings(){
   strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
 
-void IRAM_ATTR reset_button_change(){
-  if (digitalRead(0) == 0)
-  {
-    // Pressed
-    resetButtonTimePressed = millis();
+// void IRAM_ATTR reset_button_change(){
+//   if (digitalRead(0) == 0)
+//   {
+//     // Pressed
+//     resetButtonTimePressed = millis();
+//   } else {
+//     // unpressed
+//     unsigned long timeNow = millis();
+//     int timeInSecs = (timeNow - resetButtonTimePressed) / 1000;
+//     if (timeInSecs > 5)
+//     {
+//       xTimerStart(resetTimer, 0);
+//     }
+//     resetButtonTimePressed = 0;
+//   }
+// }
+
+void IRAM_ATTR reset_button_change() {
+  unsigned long now = millis();
+
+  // Erste Betätigung registrieren
+  if (pressCount == 0) {
+    firstPressTime = now;
+    pressCount = 1;
   } else {
-    // unpressed
-    unsigned long timeNow = millis();
-    int timeInSecs = (timeNow - resetButtonTimePressed) / 1000;
-    if (timeInSecs > 5)
-    {
-      xTimerStart(resetTimer, 0);
+    // Prüfen, ob das Zeitfenster überschritten ist
+    if (now - firstPressTime <= RESET_TIME_WINDOW) {
+      pressCount++;
+    } else {
+      // Zeitfenster abgelaufen -> Zähler zurücksetzen
+      firstPressTime = now;
+      pressCount = 1;
     }
-    resetButtonTimePressed = 0;
+  }
+
+  // Wenn genug Drücke erfolgt sind -> Timer starten
+  if (pressCount >= RESET_PRESS_COUNT) {
+    xTimerStartFromISR(resetTimer, NULL);
+    pressCount = 0;
+    firstPressTime = 0;
   }
 }
 
@@ -204,7 +240,7 @@ void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
   Serial.println("Resetting config...");
-  prefHandler.resetPreferences();
+  //prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
@@ -960,9 +996,19 @@ void setup()
   hoermannEngine->setup(localPrefs);
 
   //Add interrupts for Factoryreset over Boot button
-  pinMode(0, INPUT);
-  attachInterrupt(digitalPinToInterrupt(0), reset_button_change, CHANGE);
-  resetTimer = xTimerCreate("resetTimer", pdMS_TO_TICKS(10), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(resetPreferences));
+  // pinMode(0, INPUT);
+  // attachInterrupt(digitalPinToInterrupt(0), reset_button_change, CHANGE);
+  // resetTimer = xTimerCreate("resetTimer", pdMS_TO_TICKS(10), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(resetPreferences));
+  pinMode(RESET_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(RESET_PIN), reset_button_change, FALLING);
+  resetTimer = xTimerCreate(
+      "resetTimer",
+      pdMS_TO_TICKS(10),
+      pdFALSE,
+      (void*)0,
+      reinterpret_cast<TimerCallbackFunction_t>(resetPreferences)
+  );
+
 
   // setup wifi
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
