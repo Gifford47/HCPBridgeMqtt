@@ -694,6 +694,8 @@ void sendDiscoveryMessage()
   device["sw_version"] = HA_VERSION;
   device["model"] = "Garage Door";
   device["manufacturer"] = "Hörmann";
+  String configUrl = "http://" + WiFi.localIP().toString();
+  device["configuration_url"] = configUrl;
   
   sendDiscoveryMessageForAVSensor(device);
   //not able to get it working sending the discovery message for light.

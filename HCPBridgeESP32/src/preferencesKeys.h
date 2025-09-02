@@ -34,7 +34,7 @@
 #define preference_gd_debug_restart "gd_dg_rst_reas"
 #define preference_gs_temp "sensor_temp"
 #define preference_gs_hum "sensor_humidity"
-#define preference_gs_pres "sensor_atmpreas"
+#define preference_gs_pres "sensor_atmpress"
 #define preference_gs_free_dist "sensor_freedist"
 #define preference_gs_park_avail "sen_park_avail"
 #define preference_gs_motion "sen_motion"
