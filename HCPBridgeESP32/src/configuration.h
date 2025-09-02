@@ -34,21 +34,21 @@
     const int MQTTPORT = 1883;
     const char MQTTUSER[] = "mqtt";
     const char MQTTPASSWORD[] = "password";
-    const char GD_AVAIL[]= "Garage Door Available";
-    const char GD_LIGHT[] = "Garage Door Light";
-    const char GD_VENT[] = "Garage Door Vent";
-    const char GD_HALF[] = "Garage Door Half";
-    const char GD_STATUS[] = "Garage Door Status";
-    const char GD_DET_STATUS[] = "Garage Door detailed Status";
-    const char GD_POSITIOM[] = "Garage Door Position";
-    const char GS_TEMP[] = "Garage Temperature";
-    const char GS_HUM[] = "Garage Humidity";
-    const char GS_PRES[] = "Garage ambient pressure";
-    const char GS_FREE_DIST[] = "Garage Free distance";
-    const char GS_PARK_AVAIL[] = "Garage park available";
-    const char GS_MOTION[] = "Garage Door Motion";
-    const char GD_DEBUG[] = "Garage Door Debug";
-    const char GD_DEBUG_RESTART[] = "Garage Restart Reason";
+    const char GD_AVAIL[]= "Available";
+    const char GD_LIGHT[] = "Light";
+    const char GD_VENT[] = "Vent";
+    const char GD_HALF[] = "Half Open";
+    const char GD_STATUS[] = "Status";
+    const char GD_DET_STATUS[] = "Detailed Status";
+    const char GD_POSITIOM[] = "Position";
+    const char GS_TEMP[] = "Temperature";
+    const char GS_HUM[] = "Humidity";
+    const char GS_PRES[] = "Ambient pressure";
+    const char GS_FREE_DIST[] = "Free distance";
+    const char GS_PARK_AVAIL[] = "Park available";
+    const char GS_MOTION[] = "Motion";
+    const char GD_DEBUG[] = "Debug";
+    const char GD_DEBUG_RESTART[] = "Restart Reason";
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab
