@@ -456,10 +456,14 @@
                 setCommand(this->state->state == HoermannState::State::CLOSING || this->state->state == HoermannState::State::OPENING, &HoermannCommand::STARTSTOPDOOR);
             }
             void closeDoor() {
-                setCommand(true, &HoermannCommand::STARTCLOSEDOOR);
+                if (this->state->state != HoermannState::State::CLOSING) {
+                    setCommand(true, &HoermannCommand::STARTCLOSEDOOR);
+                }
             }
             void openDoor() {
-                setCommand(true, &HoermannCommand::STARTOPENDOOR);
+                if (this->state->state != HoermannState::State::OPENING) {
+                    setCommand(true, &HoermannCommand::STARTOPENDOOR);
+                }
             }
             void toogleDoor() {
                 setCommand(this->state->currentPosition < 1, &HoermannCommand::STARTOPENDOOR);
