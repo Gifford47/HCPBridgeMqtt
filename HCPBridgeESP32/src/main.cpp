@@ -377,6 +377,9 @@ void updateSensors(bool forceUpate = false){
         doc["dist"] = buf;
         doc["free"] = ToHA(hcsr04_park_available);
       #endif
+      #ifdef USE_HCSR501
+        doc["motion"] = hcsr501stat ? HA_ON : HA_OFF;
+      #endif
       #ifdef USE_DHT22
         dtostrf(dht22_temp,2,2,buf);
         doc["temp"] = buf;
