@@ -64,8 +64,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 ## Installation
 
 ### Hardware
-1. ESP32 → RS485 converter → HCP BUS (observe polarity and RS485 termination if needed).  
-2. Ensure BUS +24V is present (some HW versions remove bus power when no devices detected).
+1. Just plug-in the provided RJ12 cable (see [Screenshots](#screenshots))
 
 ### BUS Scan / First Run
 - **Old hardware**: trigger BUS scan by flipping the last DIP switch (ON → OFF). Note: BUS power (+24V) may be removed when no devices detected — you can "jump start" using +24V from motor connectors if necessary.  
