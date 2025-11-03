@@ -102,6 +102,8 @@ TimerHandle_t wifiReconnectTimer;
 char lastCommandTopic[64];
 char lastCommandPayload[64];
 
+HoermannState::State lastDoorState;
+
 PreferenceHandler prefHandler;
 Preferences *localPrefs = nullptr;
 
@@ -116,6 +118,7 @@ class MqttStrings {
     char door_topic [64];
     char vent_topic [64];
     char half_topic [64];
+    char step_topic [64];
     char sensor_topic [64];
     char debug_topic [64];
     String st_availability_topic;
@@ -129,6 +132,7 @@ class MqttStrings {
     String st_door_topic;
     String st_vent_topic;
     String st_half_topic;
+    String st_step_topic;
     String st_sensor_topic;
     String st_debug_topic;   
 };
@@ -177,6 +181,7 @@ void setuptMqttStrings(){
   mqttStrings.st_door_topic = mqttStrings.st_cmd_topic  + "/door";
   mqttStrings.st_vent_topic = mqttStrings.st_cmd_topic  + "/vent";
   mqttStrings.st_half_topic = mqttStrings.st_cmd_topic  + "/half";
+  mqttStrings.st_step_topic = mqttStrings.st_cmd_topic  + "/step";
   mqttStrings.st_sensor_topic = ftopic + "/sensor";
   mqttStrings.st_debug_topic = ftopic + "/debug";
 
@@ -189,6 +194,7 @@ void setuptMqttStrings(){
   strcpy(mqttStrings.door_topic, mqttStrings.st_door_topic.c_str());
   strcpy(mqttStrings.vent_topic, mqttStrings.st_vent_topic.c_str());
   strcpy(mqttStrings.half_topic, mqttStrings.st_half_topic.c_str());
+  strcpy(mqttStrings.step_topic, mqttStrings.st_step_topic.c_str());
   strcpy(mqttStrings.sensor_topic, mqttStrings.st_sensor_topic.c_str());
   strcpy(mqttStrings.debug_topic, mqttStrings.st_debug_topic.c_str());
 }
@@ -248,24 +254,14 @@ void switchLamp(bool on){
 }
 
 void connectToWifi() {
-  /*if (localPrefs->getBool(preference_wifi_ap_mode))
-  {
-    Serial.println("WIFI AP mode enabled, set Hostname");
-    WiFi.softAP(prefHandler.getPreferencesCache()->hostname);
-    return;
-  }*/
   if (localPrefs->getString(preference_wifi_ssid) != "")
   {
     Serial.println("Connecting to Wi-Fi...");
-    WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str());
+    WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str(), 0, nullptr, true);
   } else
   {
     Serial.println("No WiFi Client enabled");
   }
-
-  //Serial.println("Connecting to Wi-Fi...");
-  //this disocnnect should not be necessary as we restart the esp after changing form AP mode to Station mode.
-  //WiFi.softAPdisconnect(true);  //stop AP, we now work as a wifi client
 
 }
 void connectToMqtt()
@@ -413,7 +409,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       hoermannEngine->toogleLight();
     }
   }
-  else if (strcmp(mqttStrings.door_topic, topic) == 0 || strcmp(mqttStrings.vent_topic, topic) == 0 || strcmp(mqttStrings.half_topic, topic) == 0){
+  else if (strcmp(mqttStrings.door_topic, topic) == 0 || strcmp(mqttStrings.vent_topic, topic) == 0 || strcmp(mqttStrings.half_topic, topic) == 0 || strcmp(mqttStrings.step_topic, topic) == 0){
     if (strncmp(payload, HA_OPEN, len) == 0){
       hoermannEngine->openDoor();
     }
@@ -428,6 +424,26 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     }
     else if (strncmp(payload, HA_VENT, len) == 0){
       hoermannEngine->ventilationPositionDoor();
+    }
+    else if (strncmp(payload, HA_STEP, len) == 0){
+      Serial.println("STEPPING...");
+      HoermannState::State currState = hoermannEngine->state->state;
+      Serial.println(currState);
+      // Step between open/stop/close
+      if(currState == HoermannState::State::CLOSED) {
+        hoermannEngine->openDoor();
+      }
+      else if(currState == HoermannState::State::OPEN) {
+        hoermannEngine->closeDoor();
+      }
+      else if(currState == HoermannState::State::CLOSING || currState == HoermannState::State::OPENING) {
+        lastDoorState = currState;
+        hoermannEngine->stopDoor();
+      } else if(currState == HoermannState::State::STOPPED  && lastDoorState  == HoermannState::State::OPENING) {
+        hoermannEngine->closeDoor();
+      } else if(currState == HoermannState::State::STOPPED  && lastDoorState  == HoermannState::State::CLOSING) {
+        hoermannEngine->openDoor();
+      }
     }
   }
   else if (strcmp(mqttStrings.setpos_topic, topic) == 0){
@@ -662,6 +678,7 @@ void sendDiscoveryMessageForCover(const char name[], const char topic[], const J
   doc["payload_open"] = HA_OPEN;
   doc["payload_close"] = HA_CLOSE;
   doc["payload_stop"] = HA_STOP;
+  doc["payload_step"] = HA_STEP;
   #ifdef AlignToOpenHab
     doc["value_template"] = "{{ value_json.doorposition }}";
   #else
@@ -703,6 +720,7 @@ void sendDiscoveryMessage()
   sendDiscoveryMessageForBinarySensor(localPrefs->getString(preference_gd_light).c_str(), mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
   sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_half).c_str(), HA_DISCOVERY_SWITCH, "half", HA_CLOSE, HA_HALF, "mdi:air-filter", device);
+  sendDiscoveryMessageForSwitch(localPrefs->getString(preference_gd_step).c_str(), HA_DISCOVERY_SWITCH, "step", HA_STEP, HA_STEP, "mdi:remote", device);
   sendDiscoveryMessageForCover(localPrefs->getString(preference_gd_name).c_str(), "door", device);
 
   sendDiscoveryMessageForSensor(localPrefs->getString(preference_gd_status).c_str(), mqttStrings.state_topic, "doorstate", device, "enum");
@@ -973,18 +991,22 @@ const char* generateUniqueID() {
    return uniqueID;
 }
 
+bool requireAuth(AsyncWebServerRequest* request) {
+  String webpass = localPrefs->getString(preference_www_password);
+  if(webpass != "") {
+    if (request->authenticate(WWW_USER, webpass.c_str())) return true;
+    request->requestAuthentication();   // send 401 + WWW-Authenticate Header
+    return false;
+  } else {
+    return true;
+  }
+}
+
 // setup mcu
 void setup()
 {
   // Serial
   Serial.begin(9600);
-
-/*
-  while (Serial.available()==0){
-    //only continues if an input get received from serial.
-    ;
-  } 
-*/  
 
   #ifdef HCP_Giffordv2
     pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
@@ -1019,7 +1041,8 @@ void setup()
   if (localPrefs->getBool(preference_wifi_ap_mode)){
     Serial.println("WIFI AP enabled");
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP(prefHandler.getPreferencesCache()->hostname);
+    // WiFi.softAP(prefHandler.getPreferencesCache()->hostname);    //OLD
+    WiFi.softAP(prefHandler.getPreferencesCache()->hostname, localPrefs->getString(preference_wifi_ap_password).c_str());
     }
   else{
     WiFi.mode(WIFI_STA);  
@@ -1109,13 +1132,15 @@ void setup()
 
 
   // setup http server
-  server.on("/", HTTP_GET, [=](AsyncWebServerRequest *request)
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html, sizeof(index_html));
+              if (!requireAuth(request)) return;
+              AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html, sizeof(index_html));
               response->addHeader("Content-Encoding", "deflate");
               request->send(response); });
 
   server.on("/status", HTTP_GET, [=](AsyncWebServerRequest *request){
+              if (!requireAuth(request)) return;
               //const SHCIState &doorstate = emulator.getState();
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               JsonDocument root;
@@ -1170,12 +1195,13 @@ void setup()
               request->send(response); });
 
   server.on("/statush", HTTP_GET, [=](AsyncWebServerRequest *request){
+              if (!requireAuth(request)) return;
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               response->print(hoermannEngine->state->toStatusJson());
               request->send(response); });
 
-  server.on("/command", HTTP_GET, [=](AsyncWebServerRequest *request)
-            {
+  server.on("/command", HTTP_GET, [=](AsyncWebServerRequest *request){
+              if (!requireAuth(request)) return;
               if (request->hasParam("action"))
               {
                 int actionid = request->getParam("action")->value().toInt();
@@ -1217,8 +1243,8 @@ void setup()
               //onStatusChanged(doorstate);
               });
 
-  server.on("/sysinfo", HTTP_GET, [=](AsyncWebServerRequest *request)
-            {
+  server.on("/sysinfo", HTTP_GET, [=](AsyncWebServerRequest *request){
+              if (!requireAuth(request)) return;
               Serial.println("GET SYSINFO");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               JsonDocument root;
@@ -1233,8 +1259,8 @@ void setup()
 
               request->send(response); });
   
-  server.on("/config", HTTP_GET, [=](AsyncWebServerRequest *request)
-            {
+  server.on("/config", HTTP_GET, [=](AsyncWebServerRequest *request){
+              if (!requireAuth(request)) return;
               Serial.println("GET CONFIG");
               AsyncResponseStream *response = request->beginResponseStream("application/json");
               JsonDocument conf;
@@ -1243,8 +1269,8 @@ void setup()
               request->send(response); });
 
   // load requestbody for json Post requests
-  server.onRequestBody([=](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total)
-          {
+  server.onRequestBody([=](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total){
+          if (!requireAuth(request)) return;
           // Handle setting config request
           if (request->url() == "/config")
           {
@@ -1254,8 +1280,8 @@ void setup()
 
             request->send(200, "text/plain", "OK");
           } });
-  server.on("/reset", HTTP_GET, [=](AsyncWebServerRequest *request)
-        {
+  server.on("/reset", HTTP_GET, [=](AsyncWebServerRequest *request){
+          if (!requireAuth(request)) return;
           Serial.println("GET reset");
           AsyncResponseStream *response = request->beginResponseStream("application/json");
           JsonDocument root;

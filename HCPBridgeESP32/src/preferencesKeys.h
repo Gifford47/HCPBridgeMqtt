@@ -21,12 +21,15 @@
 #define preference_wifi_ap_mode "wifi_ap_enabled"
 #define preference_wifi_ssid "wifi_ssid"
 #define preference_wifi_password "wifi_pass"
+#define preference_www_password "www_pass"
+#define preference_wifi_ap_password "wifi_ap_pass"
 #define preference_hostname "hostname"  //todo needs to be added in the Webui
 
 #define preference_gd_avail "gd_availability"
 #define preference_gd_light "gd_light"
 #define preference_gd_vent "gd_vent"
 #define preference_gd_half "gd_half"
+#define preference_gd_step "gd_step"
 #define preference_gd_status "gd_status"
 #define preference_gd_det_status "gd_det_status"
 #define preference_gd_position "gd_position"
@@ -59,10 +62,11 @@
 
 std::vector<const char*> _keys =
 {
-        preference_started_before, preference_rs485_txd, preference_rs485_rxd, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_gd_id, 
-        preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
+        preference_started_before, preference_rs485_txd, preference_rs485_rxd, preference_wifi_ap_mode, preference_wifi_ssid,
+        preference_wifi_password, preference_www_password, preference_wifi_ap_password,
+        preference_gd_id, preference_gd_name, preference_mqtt_server, preference_mqtt_server_port,
         preference_mqtt_user, preference_mqtt_password, preference_query_interval_sensors, preference_hostname,
-        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_status, preference_gd_det_status,
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_step, preference_gd_status, preference_gd_det_status,
         preference_gd_position, preference_gd_debug, preference_gd_debug_restart, 
         preference_sensor_temp_treshold, preference_sensor_hum_threshold, preference_sensor_pres_threshold, preference_sensor_prox_treshold,
         preference_gs_temp, preference_gs_hum,
@@ -73,10 +77,10 @@ std::vector<const char*> _keys =
 
 std::vector<const char*> _strings =
 {
-        preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password,
-        preference_gd_id, preference_gd_name, preference_mqtt_server,
+        preference_started_before, preference_wifi_ap_mode, preference_wifi_ssid, preference_wifi_password, preference_www_password,
+        preference_wifi_ap_password, preference_gd_id, preference_gd_name, preference_mqtt_server,
         preference_mqtt_user, preference_mqtt_password, preference_hostname, 
-        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_status, preference_gd_det_status,
+        preference_gd_avail, preference_gd_light, preference_gd_vent, preference_gd_half, preference_gd_step, preference_gd_status, preference_gd_det_status,
         preference_gd_position,preference_gd_debug, preference_gd_debug_restart, preference_gs_temp, preference_gs_hum,
         preference_gs_pres, preference_gs_free_dist, preference_gs_park_avail, preference_gs_motion
 };
@@ -91,7 +95,7 @@ std::vector<const char*> _ints =
 
 std::vector<const char*> _redact =
 {
-    preference_wifi_password, preference_mqtt_user, preference_mqtt_password,
+    preference_wifi_password, preference_www_password, preference_mqtt_user, preference_mqtt_password,
 };
 std::vector<const char*> _boolPrefs =
 {
@@ -138,6 +142,8 @@ class PreferenceHandler{
         this->preferences->begin("hcpbridgeesp32", false);
         this->firstStart = !preferences->getBool(preference_started_before);
 
+        preferences->putString(preference_wifi_ap_password, AP_PASSWD);
+
         if(this->firstStart){
             preferences->putBool(preference_started_before, true);
             preferences->putInt(preference_rs485_txd, PIN_TXD);
@@ -149,6 +155,7 @@ class PreferenceHandler{
             preferences->putBool(preference_wifi_ap_mode, AP_ACTIF);
             preferences->putString(preference_wifi_ssid, STA_SSID);
             preferences->putString(preference_wifi_password, STA_PASSWD);
+            preferences->putString(preference_www_password, WWW_PASSWD);
             preferences->putString(preference_mqtt_password, MQTTPASSWORD);
             preferences->putString(preference_mqtt_server, MQTTSERVER);
             preferences->putString(preference_mqtt_user, MQTTUSER);
@@ -158,6 +165,7 @@ class PreferenceHandler{
             preferences->putString(preference_gd_light, GD_LIGHT);
             preferences->putString(preference_gd_vent, GD_VENT);
             preferences->putString(preference_gd_half, GD_HALF);
+            preferences->putString(preference_gd_step, GD_STEP);
             preferences->putString(preference_gd_status, GD_STATUS);
             preferences->putString(preference_gd_det_status, GD_DET_STATUS);
             preferences->putString(preference_gd_position, GD_POSITIOM);
@@ -211,44 +219,6 @@ class PreferenceHandler{
         preferences->clear();
         ESP.restart();
     }
-    /*
-    void setPreferencesJson(const JsonDocument& preferences){
-        //check if If we can access to preferences array like this.
-        JsonArray arr = preferences.as<JsonArray>();
-
-        for (auto value : arr) {
-            JsonObject root = value.as<JsonObject>();
-            for (JsonPair kv : root) {
-                if (this->isKey(kv.key().c_str())){
-                    //this should be optmised to as it's quite ugly written this way.
-                    if(this->isRedacted(kv.key().c_str())){
-                        //redacted value coming as "*" haven't been changed and therefore didn't get updated
-                        if (!(kv.value().as<const char*>() == "*")){
-                            this->preferences->putString(kv.key().c_str(), kv.value().as<const char*>());
-                            return;
-                        }
-                    }
-                    if(this->isString(kv.key().c_str())){
-                        this->preferences->putString(kv.key().c_str(), kv.value().as<const char*>());
-                        return;
-                    }
-                    if(this->isInt(kv.key().c_str())){
-                        //does better way exit to cast to int?
-                        this->preferences->putInt(kv.key().c_str(), atoi(kv.value().as<const char*>()));
-                        return;
-                    }
-                    if(this->isBool(kv.key().c_str())){
-                        this->preferences->putBool(kv.key().c_str(), kv.value().as<bool>());
-                        return;
-                    }   
-                } 
-            }
-        }
-    }
-    JsonDocument getPreferencesJson(){
-        //see debugpreferences to see how the full preferences can been retrived.      
-    }
-    */
 
     // handle Preferences
     void saveConf(JsonDocument& doc) {
@@ -258,6 +228,9 @@ class PreferenceHandler{
         String apactif = doc[preference_wifi_ap_mode].as<String>();
         String ssid = doc[preference_wifi_ssid].as<String>();
         String pass = doc[preference_wifi_password].as<String>();
+        String ap_pass = doc[preference_wifi_ap_password].as<String>();
+        String www_pass = doc[preference_www_password].as<String>();
+        String hostname = doc[preference_hostname].as<String>();
         String mqtt_server = doc[preference_mqtt_server].as<String>();
         int mqtt_port = doc[preference_mqtt_server_port].as<int>();
         String mqtt_user = doc[preference_mqtt_user].as<String>();
@@ -313,6 +286,16 @@ class PreferenceHandler{
                 this->preferences->putString(preference_wifi_password, pass);
             }
 
+            if(ap_pass != "*"){
+                //* stands for password not changed
+                this->preferences->putString(preference_wifi_ap_password, ap_pass);
+            }
+
+             if(www_pass != "*"){
+                //* stands for password not changed
+                this->preferences->putString(preference_www_password, www_pass);
+            }
+
             if (mqtt_pass != "*"){
                 this->preferences->putString(preference_mqtt_password, mqtt_pass);
             }
@@ -325,6 +308,7 @@ class PreferenceHandler{
             this->preferences->putString(preference_gd_id, gd_id);
             this->preferences->putString(preference_gd_name, gd_name);
             this->preferences->putString(preference_wifi_ssid, ssid);
+            this->preferences->putString(preference_hostname, hostname);
             this->preferences->putString(preference_mqtt_server, mqtt_server);
             this->preferences->putInt(preference_mqtt_server_port, mqtt_port);
             this->preferences->putString(preference_mqtt_user, mqtt_user);
@@ -381,10 +365,12 @@ class PreferenceHandler{
         char mqtt_server[64];
         char mqtt_user[64];
         char wifi_ssid[64];
+        char hostname[64];
         char gd_avail[64];
         char gd_light[64];
         char gd_vent[64];
         char gd_half[64];
+        char gd_step[64];
         char gd_status[64];
         char gd_det_status[64];
         char gd_position[64];
@@ -402,10 +388,12 @@ class PreferenceHandler{
         strcpy(mqtt_server, preferences->getString(preference_mqtt_server).c_str());
         strcpy(mqtt_user, preferences->getString(preference_mqtt_user).c_str());
         strcpy(wifi_ssid, preferences->getString(preference_wifi_ssid).c_str());
+        strcpy(hostname, preferences->getString(preference_hostname).c_str());
         strcpy(gd_avail, preferences->getString(preference_gd_avail).c_str());
         strcpy(gd_light, preferences->getString(preference_gd_light).c_str());
         strcpy(gd_vent, preferences->getString(preference_gd_vent).c_str());
         strcpy(gd_half, preferences->getString(preference_gd_half).c_str());
+        strcpy(gd_step, preferences->getString(preference_gd_step).c_str());
         strcpy(gd_status, preferences->getString(preference_gd_status).c_str());
         strcpy(gd_det_status, preferences->getString(preference_gd_det_status).c_str());
         strcpy(gd_position, preferences->getString(preference_gd_position).c_str());
@@ -422,6 +410,7 @@ class PreferenceHandler{
         conf[preference_gd_name] = gd_name;
         conf[preference_wifi_ap_mode] = this->preferences->getBool(preference_wifi_ap_mode);
         conf[preference_wifi_ssid] = wifi_ssid;
+        conf[preference_hostname] = hostname;
         conf[preference_mqtt_server] = mqtt_server;
         conf[preference_mqtt_user] = mqtt_user;
         conf[preference_mqtt_server_port] = this->preferences->getInt(preference_mqtt_server_port);
@@ -432,6 +421,7 @@ class PreferenceHandler{
         conf[preference_gd_light] = gd_light;
         conf[preference_gd_vent] = gd_vent;
         conf[preference_gd_half] = gd_half;
+        conf[preference_gd_step] = gd_step;
         conf[preference_gd_status] = gd_status;
         conf[preference_gd_det_status] = gd_det_status;
         conf[preference_gd_position] = gd_position;
@@ -465,6 +455,18 @@ class PreferenceHandler{
             conf[preference_wifi_password] = "*";
         }else{
             conf[preference_wifi_password] = "";
+        }
+        if (this->preferences->getString(preference_wifi_ap_password).length() != 0){
+            //if preferences have been set then return *
+            conf[preference_wifi_ap_password] = "*";
+        }else{
+            conf[preference_wifi_ap_password] = "";
+        }
+        if (this->preferences->getString(preference_www_password).length() != 0){
+            //if preferences have been set then return *
+            conf[preference_www_password] = "*";
+        }else{
+            conf[preference_www_password] = "";
         }
         if (this->preferences->getString(preference_mqtt_password).length() != 0){
             //if preferences have been set then return *

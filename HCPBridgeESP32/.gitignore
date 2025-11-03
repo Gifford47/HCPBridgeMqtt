@@ -1,6 +1,8 @@
 /.pio
 /.vscode
 .pio
+/.idea
+.idea
 .vscode/.browse.c_cpp.db*
 .vscode/extensions.json
 clean.bat
