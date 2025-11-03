@@ -557,7 +557,7 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
-				document.getElementById("swversion").innerHTML = status.swversion;
+				document.getElementById("swversion").innerHTML = "v" + status.swversion;
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';
