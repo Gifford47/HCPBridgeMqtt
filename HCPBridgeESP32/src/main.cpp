@@ -810,7 +810,7 @@ void SensorCheck(void *parameter){
           doc["motion"] = HA_OFF;
         }
         serializeJson(doc, payload);
-        mqttClient.publish(mqttStrings.sensor_topic, 1, true, payload);
+        mqttClient.publish(mqttStrings.sensor_topic, 0, true, payload);
       }
     #endif
     #ifdef USE_DS18X20
@@ -1135,7 +1135,7 @@ void setup()
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               if (!requireAuth(request)) return;
-              AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html, sizeof(index_html));
+              AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html, sizeof(index_html));
               response->addHeader("Content-Encoding", "deflate");
               request->send(response); });
 
