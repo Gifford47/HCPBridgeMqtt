@@ -74,7 +74,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 
 ## Web Interface
 To access the web interface, first connect to the device’s automatic Wi-Fi hotspot.  
-By default, the hotspot is named **`hormann`** and secured with the password **`gifford47`**.  
+By default, the hotspot is named **`HCPBRIDGE`** and secured with the password **`gifford47`**.  
 
 Once connected, open a web browser and go to:  
 **http://[deviceip]**  
@@ -98,9 +98,9 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 ## MQTT & Home Assistant
 
 ### MQTT topics (example)
-hormann/<device_id>/state -> JSON with state/position/light/temperature
-hormann/<device_id>/command -> payloads: OPEN, CLOSE, STOP, LIGHT_TOGGLE, SET_POSITION:50
-hormann/<device_id>/sensor/<name>
+hormann/<device_id>/state -> JSON with state/position/light/temperature  
+hormann/<device_id>/command -> payloads: OPEN, CLOSE, STOP, LIGHT_TOGGLE, SET_POSITION:50  
+hormann/<device_id>/sensor/<name>  
 
 
 ### Home Assistant (MQTT Auto Discovery)
@@ -109,7 +109,7 @@ The project publishes Home Assistant discovery messages for:
 - binary_sensor for light / door open  
 - sensors for temperature / humidity (if present)
 
-Example `configuration.yaml` is not required when discovery is enabled. md`.
+Example `configuration.yaml` is not required when discovery is enabled.
 
 ---
 
