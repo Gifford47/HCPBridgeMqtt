@@ -1,5 +1,6 @@
 # :rocket: Buy a ready to use kit [here](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)
-[Discussion & orders](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)
+[Discussion & orders](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)  
+[Getting started prebuild PCBs](docs/getting_started_prebuild_pcbs.md)  
 
 # Hörmann hormann — MQTT + Home Assistant
 ![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
@@ -64,11 +65,14 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 ## Installation
 
 ### Hardware
-1. Just plug-in the provided RJ12 cable (see [Screenshots](#screenshots))
+1. Just plug-in the provided RJ12 cable (see [Screenshots](#screenshots))  
+See also: [Getting started prebuild PCBs](docs/getting_started_prebuild_pcbs.md)  
 
 ### BUS Scan / First Run
 - **Old hardware**: trigger BUS scan by flipping the last DIP switch (ON → OFF). Note: BUS power (+24V) may be removed when no devices detected — you can "jump start" using +24V from motor connectors if necessary.  
-- **New hardware**: BUS scan via the LC display in menu `37`. See: [Supramatic 4 Busscan guide](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
+- **New hardware**: BUS scan via the LC display in menu `37`. See:
+  - [Supramatic 4 Busscan guide EN](docs/bus_scan_EN.md)
+  - [Supramatic 4 Busscan guide DE](docs/bus_scan_DE.md)
 
 ---
 
@@ -173,6 +177,3 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 
 ## More docs
 - [Rollmatic v2 notes](docs/rollmatic_v2.md)  
-- [Home Assistant examples](docs/homeassistant.md)  
-- [Config examples](docs/config_examples/)
-

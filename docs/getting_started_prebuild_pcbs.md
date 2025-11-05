@@ -1,18 +1,34 @@
-# Getting started with prebuild PCBs
+# Getting started with prebuilt PCBs
 
-If you bought a prebuild PCB from either Tynet.eu or someone else you can follow this setp by step guide to setup your HCP-Bridge with your Hörmann Garage Door.
-These instructions focus on the tynet.eu PCB version, but it will be really similar with all PCBs.
+If you bought a prebuilt PCB, you can follow this step-by-step guide to set up your HCP-Bridge with your Hörmann garage door.  
+These instructions focus on the **Gifford47 PCB** version, but the process is very similar for all other board versions.
 
-You want to connect temperature sensors or something else? See our guide: [Connecting sensors on tynet boards](connecting_sensors_prebuild_pcbs.md)
+---
+
+## 🔌 Installing Sensors
+
+If you want to connect **temperature sensors** or any other sensors, follow these steps carefully:
+
+1. **Solder pin headers** to the dedicated sensor pads on the **Gifford47 PCB**.  
+   Make sure the pins are properly aligned and the solder joints are clean and solid.
+2. **Attach the sensors** to the corresponding pin headers according to the pinout.
+3. **Reinstall the PCB** into your **SupraMatic** unit.
+4. **Upload the correct firmware** to your board:
+
+   - Without sensors → `HCP_Giffordv2a.bin` or `HCP_Giffordv3a.bin`  
+   - With sensors (any type) → `HCP_Giffordv2b.bin` or `HCP_Giffordv3b.bin`
+
+⚠️ **Note:** The “b” firmware variant is required whenever sensors are present — even if only one is connected.
 
 ## What you need
 
-* Prebuild PCB with HCPBridge Firmware installed (installed out of the box on tynet.eu PCBs)
-* USB-C power supply
+* Prebuild PCB with HCPBridge Firmware installed (installed out of the box on gifford PCBs)
+* USB-C power supply (PCB-Revision >=3)
+* 3.3V power Supply (min. 300mA)
 
 ## Initial configuration
 
-### 1. Connect the PCB to power via the USB-C connector and wait a few seconds. the 3V3 LED will be lit.
+### 1. Connect the PCB to power via the USB-C connector/ 3.3V power supply and wait a few seconds. the LED will be lit.
 ### 2. Search and connect to the WIFI Network called "HCPBRIDGE" the PCB creates with a phone or pc.
 ### 3. When connected, open a webbrowser and go to the WEBUI under the following url : http://192.168.4.1
 
