@@ -169,8 +169,9 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 ---
 
 ## Screenshots
-<img src="docs/Images/webinterface.png" width="420" alt="Web UI">
 <img src="docs/Images/antrieb-min.png" width="420" alt="Motor connection">
+<img src="docs/Images/webinterface.png" width="420" alt="Web UI">
+<img src="docs/Images/hass_ov.png" width="420" alt="Hass">
 <img src="docs/Images/ha_shuttercard.png" width="420" alt="HA shutter card">
 
 ---
