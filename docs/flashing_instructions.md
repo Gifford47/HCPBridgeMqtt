@@ -31,7 +31,7 @@ You need to set your WIFi Name/SSID and Password as well as the Connection Detai
 ## Build and Flash
 
 Go back to the Platform IO UI and click on the ESP Model you got under "Project Tasks".
-ESP32 for older Boards and ESP32S3 for newer Boards (for example all PCBs with a Tynet logo)
+ESP32 for older Boards and ESP32S3 for newer Boards
 Open the General Tasks of the Board you got and click Build.
 
 ![image](Images/upload.png)

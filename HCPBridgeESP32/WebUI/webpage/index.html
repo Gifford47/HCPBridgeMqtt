@@ -172,6 +172,14 @@
 				<label for="wifi_pass">WIFI Password</label>
 				<input type="text" id="wifi_pass" name="wifi_pass">
 			</div>
+			<div class="flex">
+				<label for="wifi_ap_pass">WIFI AP Password</label>
+				<input type="text" id="wifi_ap_pass" name="wifi_ap_pass">
+			</div>
+			<div class="flex">
+				<label for="hostname">Hostname</label>
+				<input type="text" id="hostname" name="hostname">
+			</div>
 		</div>
 		<div class="subtitle">
 			<h5>MQTT</h5>
@@ -198,6 +206,13 @@
 			<div class="flex">
 				<label for="device_name">Device Name</label>
 				<input type="text" id="device_name" name="device_name">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>WEB UI</h5>
+			<div class="flex">
+				<label for="www_pass">Web Password</label>
+				<input type="text" id="www_pass" name="www_pass">
 			</div>
 		</div>
 		<br>
@@ -342,8 +357,8 @@
 				<input type="text" id="sensor_humidity" name="sensor_humidity">
 			</div>
 			<div class="flex">
-				<label for="sensor_atmpreas">Pressure</label>
-				<input type="text" id="sensor_atmpreas" name="sensor_atmpreas">
+				<label for="sensor_atmpress">Pressure</label>
+				<input type="text" id="sensor_atmpress" name="sensor_atmpress">
 			</div>
 			<div class="flex">
 				<label for="sensor_freedist">Free distance</label>
@@ -542,7 +557,7 @@
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
 				document.getElementById("light").checked = status.light & status.valid;
-				document.getElementById("swversion").innerHTML = status.swversion;
+				document.getElementById("swversion").innerHTML = "v" + status.swversion;
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';

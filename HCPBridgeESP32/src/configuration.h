@@ -2,7 +2,7 @@
     #define CONFIGURATION_H_
     
     // Please change on every new firmware builds!
-    const char *HA_VERSION = "0.0.7.3";
+    const char *HA_VERSION = "0.9";
 
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
@@ -11,6 +11,13 @@
     const bool AP_ACTIF = (bool)true;
     const char* STA_SSID   = "";
     const char* STA_PASSWD = "";
+    const char* AP_PASSWD = "gifford47";
+    const char* WWW_USER = "admin";
+    const char* WWW_PASSWD = "";
+
+    //OTA Update
+    const char* OTA_USERNAME = "admin";
+    const char* OTA_PASSWD = "admin";
 
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
@@ -38,6 +45,7 @@
     const char GD_LIGHT[] = "Light";
     const char GD_VENT[] = "Vent";
     const char GD_HALF[] = "Half Open";
+    const char GD_STEP[] = "Step";
     const char GD_STATUS[] = "Status";
     const char GD_DET_STATUS[] = "Detailed Status";
     const char GD_POSITIOM[] = "Position";
@@ -52,10 +60,6 @@
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab
-
-    //OTA Update
-    const char* OTA_USERNAME = "admin";
-    const char* OTA_PASSWD = "admin";
     
     // MQTT
     const int READ_DELAY = 2000;           // intervall (ms) to update status on mqtt
@@ -131,6 +135,7 @@
         const char *HA_OFF = "false";
         const char *HA_OPEN = "open";
         const char *HA_CLOSE = "close";
+        const char *HA_STEP = "step";
         const char *HA_HALF = "half";
         const char *HA_HALFOPEN = "open h";
         const char *HA_VENT = "venting";
@@ -146,6 +151,7 @@
         const char *HA_OFF = "false";
         const char *HA_OPEN = "open";
         const char *HA_CLOSE = "close";
+        const char *HA_STEP = "step";
         const char *HA_HALF = "half";
         const char *HA_VENT = "venting";
         const char *HA_STOP = "STOP";
