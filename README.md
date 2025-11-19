@@ -2,6 +2,12 @@
 [Discussion & orders](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)  
 [Getting started prebuild PCBs](docs/getting_started_prebuild_pcbs.md)  
 
+## Support this project
+
+If you like HCPBridge and want to support its development, consider sponsoring me! Your contribution helps cover development, testing and bug-fixing.
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-181717?logo=GitHub)](https://github.com/sponsors/gifford47)
+
 # Hörmann hormann — MQTT + Home Assistant
 ![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
