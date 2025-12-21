@@ -1011,7 +1011,7 @@ void setup()
   // Serial
   Serial.begin(9600);
 
-  #ifdef HCP_Giffordv2
+  #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
     pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
     digitalWrite(LED1, HIGH);
   #endif
@@ -1041,11 +1041,16 @@ void setup()
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   WiFi.setHostname(prefHandler.getPreferencesCache()->hostname);
-  if (localPrefs->getBool(preference_wifi_ap_mode)){
+  if (localPrefs->getBool(preference_wifi_ap_mode)){  
+    String apPass = localPrefs->getString(preference_wifi_ap_password);
+    if (apPass.length() < 8) {
+      apPass = AP_PASSWD;
+    }
+    WiFi.disconnect(true);
+    delay(300);
     Serial.println("WIFI AP enabled");
     WiFi.mode(WIFI_AP_STA);
-    // WiFi.softAP(prefHandler.getPreferencesCache()->hostname);    //OLD
-    WiFi.softAP(prefHandler.getPreferencesCache()->hostname, localPrefs->getString(preference_wifi_ap_password).c_str());
+    WiFi.softAP(prefHandler.getPreferencesCache()->hostname, apPass.c_str(), 1, false, 4);
     }
   else{
     WiFi.mode(WIFI_STA);  
@@ -1299,7 +1304,7 @@ void setup()
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
-  #ifdef HCP_Giffordv2
+  #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
     pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
     digitalWrite(LED1, LOW);
   #endif
