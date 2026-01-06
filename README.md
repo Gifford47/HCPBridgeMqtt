@@ -2,6 +2,12 @@
 [Discussion & orders](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)  
 [Getting started prebuild PCBs](docs/getting_started_prebuild_pcbs.md)  
 
+## Support this project
+
+If you like HCPBridge and want to support its development, consider sponsoring me! Your contribution helps cover development, testing and bug-fixing.
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-181717?logo=GitHub)](https://github.com/sponsors/gifford47)
+
 # Hörmann hormann — MQTT + Home Assistant
 ![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
@@ -96,6 +102,19 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 - **Password:** `admin`
 
 <img src="docs/Images/webinterface.png" width="400">
+
+---
+
+## Factory Reset
+If you need to reset the device to factory defaults (clearing all Wi-Fi and MQTT configuration), you can trigger a factory reset using the Boot button (GPIO 0):
+
+**How to perform a factory reset:**
+1. Press the Boot button **5 times** within **6 seconds**
+2. On HCP_Gifford boards, the LED will blink to confirm
+3. The device will reset all preferences and restart
+4. After restart, the device will create its default hotspot again
+
+> **Note:** This feature includes debounce protection to prevent accidental resets. Each button press must be at least 200ms apart to be counted.
 
 ---
 

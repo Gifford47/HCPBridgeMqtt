@@ -1,0 +1,189 @@
+# Variables to change the name of the entities
+substitutions:
+  name: "hcpbridge"
+  friendly_name: "Garage Door"
+  connection_state: "${name} Connected"
+  relay_name: "${friendly_name} Relay state"
+  light: "${friendly_name} Light"
+  btn_vent: "${friendly_name} Vent" 
+  btn_half: "${friendly_name} Half" 
+  btn_impulse: "${friendly_name} Impulse" 
+  sen_txt: "${friendly_name} State" 
+  sw_vent: "${friendly_name} Venting" 
+  sw_half: "${friendly_name} Open Half" 
+  sen_pos: "${friendly_name} Position" 
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "gifford47.hcpbridge"
+    version: "1.0.0"
+  libraries:
+    - emelianov/modbus-esp8266
+  platformio_options:
+    board_build.f_cpu: 240000000L
+    board_build.arduino.memory_type: qio_qspi
+    board_build.flash_mode: qio
+    board_build.psram_type: qio
+    board_upload.maximum_size: 4194304
+    board_build.extra_flags: -DBOARD_HAS_PSRAM
+
+external_components:
+  - source: github://Gifford47/esphome-hcpbridge
+    refresh: 0s
+  - source: github://esphome/esphome@2025.9.3
+    refresh: 0s
+    components: [uart]
+
+esp32:
+  board: esp32-s3-devkitc-1 #set your board
+  flash_size: 4MB
+  framework:
+    type: arduino
+
+i2c:
+  sda: GPIO06
+  scl: GPIO05
+  scan: false
+
+hcpbridge:
+  id: hcpbridge_id
+  rx_pin: 18 # optional, default=18
+  tx_pin: 17 # optional, default=17
+  #rts_pin : 1 # optional RTS pin to use if hardware automatic control flow is not available.
+
+cover:
+  - platform: hcpbridge
+    name: ${friendly_name}
+    device_class: garage
+    id: garagedoor_cover
+
+binary_sensor:
+  - platform: hcpbridge
+    is_connected:
+      name: "${connection_state}"
+      id: sensor_connected
+    relay_state:
+      name: "${relay_name}"
+      id: sensor_relay
+      #on_state:
+      #create your automation based on Garage Door Relay state
+
+output:
+  - platform: hcpbridge
+    id: output_light
+
+light:
+  - platform: hcpbridge
+    id: gd_light
+    output: output_light
+    name: ${light}
+
+button:
+  - platform: hcpbridge
+    vent_button:
+      id: button_vent
+      name: "${btn_vent}"
+    impulse_button:
+      id: button_impulse
+      name: "${btn_impulse}"
+    half_button:
+      id: button_half
+      name: "${btn_half}"
+
+text_sensor:
+  - platform: hcpbridge
+    id: sensor_templ_state
+    name: "${sen_txt}"
+#    filters:
+#      - substitute:
+#        - "Opening -> your text"
+#        - "Move venting -> your text"
+#        - "Move half -> your text"
+#        - "Closing -> your text"
+#        - "Open -> your text"
+#        - "Closed -> your text"
+#        - "Stopped -> your text"
+#        - "Half open -> your text"
+#        - "Venting -> your text"
+#        - "Unknown -> your text"
+
+switch:
+  - platform: hcpbridge
+    vent_switch:
+      id: switch_vent
+      name: "${sw_vent}"
+      restore_mode: disabled
+    half_switch:
+      id: half_switch
+      name: "${sw_half}"
+      restore_mode: disabled
+
+sensor:
+  - platform: hcpbridge
+    id: sensor_position
+    name: ${sen_pos}
+  - platform: bme280_i2c
+    temperature:
+      name: "BME280 Temperature"
+    pressure:
+      name: "BME280 Pressure"
+    humidity:
+      name: "BME280 Humidity"
+    address: 0x76 # can be 0x77 as well
+    update_interval: 30s
+  - platform: dht
+    pin: GPIO04
+    temperature:
+      name: "DHT Temperature"
+    humidity:
+      name: "DHT Humidity"
+    update_interval: 30s
+
+api:
+  encryption:
+    key: !secret api_key
+  services:
+    - service: go_to_open
+      then:
+        - lambda: |-
+            id(garagedoor_cover).on_go_to_open();
+    - service: go_to_close
+      then:
+        - lambda: |-
+            id(garagedoor_cover).on_go_to_close();
+    - service: go_to_half
+      then:
+        - lambda: |-
+            id(garagedoor_cover).on_go_to_half();
+    - service: go_to_vent
+      then:
+        - lambda: |-
+            id(garagedoor_cover).on_go_to_vent();
+    - service: toggle
+      then:
+        - cover.toggle: garagedoor_cover
+
+web_server:
+  port: 80
+  version: 3
+  auth:
+    username: !secret web_username
+    password: !secret web_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+captive_portal:
+
+improv_serial:
+
+# Enable logging
+logger:
+  level: WARN
+
+# Example configuration entry
+ota:
+  - platform: esphome

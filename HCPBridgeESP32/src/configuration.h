@@ -2,7 +2,7 @@
     #define CONFIGURATION_H_
     
     // Please change on every new firmware builds!
-    const char *HA_VERSION = "0.9";
+    const char *HA_VERSION = "0.9.1";
 
     // WIFI Hostname
     const char HOSTNAME[]   = "HCPBRIDGE";
@@ -19,6 +19,10 @@
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
 
+    #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
+    #define IS_HCP_BOARD
+    #endif
+
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
         #ifdef M5STACK
@@ -28,6 +32,11 @@
             #define PIN_TXD 17
             #define PIN_RXD 18
         #endif
+    #elif defined(HCP_Giffordv3)
+        #define PIN_TXD 19
+        #define PIN_RXD 18
+        // #define PIN_TXD 16
+        // #define PIN_RXD 17
     #else
         #define PIN_TXD 17 // UART 2 TXT - G17
         #define PIN_RXD 16 // UART 2 RXD - G16
@@ -76,7 +85,10 @@
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
     //BME280
-    #ifdef HCP_Giffordv2
+    #if defined(HCP_Giffordv2)
+        #define I2C_SDA 21
+        #define I2C_SCL 33
+    #elif defined(HCP_Giffordv3)
         #define I2C_SDA 21
         #define I2C_SCL 33
     #else
@@ -85,9 +97,12 @@
     #endif
 
     //HC-SR04
-    #ifdef HCP_Giffordv2
+    #if defined(HCP_Giffordv2)
         #define SR04_TRIGPIN 5
         #define SR04_ECHOPIN 48
+    #elif defined(HCP_Giffordv3)
+        #define SR04_TRIGPIN 5
+        #define SR04_ECHOPIN 27
     #else
         #define SR04_TRIGPIN 5
         #define SR04_ECHOPIN 18
@@ -96,24 +111,39 @@
     #define SOUND_SPEED 0.034   //define sound speed in cm/uS
 
     // DHT22
-    #define DHTPIN 27
+    #if defined(HCP_Giffordv3)
+        #define DHTPIN 26
+    #else
+        #define DHTPIN 27
+    #endif
     #define DHTTYPE DHT22
 
     //HC-SR501
-    #ifdef HCP_Giffordv2
-        #define SR501PIN 23
+    #if defined(HCP_Giffordv2)
+    #define SR501PIN 23
+    #elif defined(HCP_Giffordv3)
+        #define SR501PIN 32
     #else
         #define SR501PIN 34
     #endif
 
     //digital in- and outputs
-    #ifdef HCP_Giffordv2
+    #if defined(HCP_Giffordv2)
         #define LED1 13
         #define INPUT1 12
         #define INPUT2 14
         #define OUTPUT1 37
         #define OUTPUT2 35
         #define MQ2_ANALOG 36
+        #define MQ2_DIG 15
+
+    #elif defined(HCP_Giffordv3)
+        #define LED1 13
+        #define INPUT1 12
+        #define INPUT2 14
+        #define OUTPUT1 25
+        #define OUTPUT2 22
+        #define MQ2_ANALOG 2
         #define MQ2_DIG 15
     #endif
 
