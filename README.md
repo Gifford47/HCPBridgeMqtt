@@ -105,6 +105,19 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 
 ---
 
+## Factory Reset
+If you need to reset the device to factory defaults (clearing all Wi-Fi and MQTT configuration), you can trigger a factory reset using the Boot button (GPIO 0):
+
+**How to perform a factory reset:**
+1. Press the Boot button **5 times** within **6 seconds**
+2. On HCP_Gifford boards, the LED will blink to confirm
+3. The device will reset all preferences and restart
+4. After restart, the device will create its default hotspot again
+
+> **Note:** This feature includes debounce protection to prevent accidental resets. Each button press must be at least 200ms apart to be counted.
+
+---
+
 ## MQTT & Home Assistant
 
 ### MQTT topics (example)

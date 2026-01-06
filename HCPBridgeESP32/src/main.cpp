@@ -144,11 +144,13 @@ TimerHandle_t resetTimer;
 
 #define RESET_PIN 0
 #define RESET_PRESS_COUNT 5
-#define RESET_TIME_WINDOW 6000  // 5 Sekunden Zeitfenster für die 5 Drücke
+#define RESET_TIME_WINDOW 6000  // 6 Sekunden Zeitfenster für die 5 Drücke
+#define DEBOUNCE_DELAY 200      // 200ms Entprellung
 
 volatile int pressCount = 0;
 volatile unsigned long firstPressTime = 0;
-
+volatile unsigned long lastPressTime = 0;
+volatile bool resetTriggered = false;  // Flag für LED-Feedback
 
 
 #ifdef DEBUG
@@ -218,27 +220,31 @@ void setuptMqttStrings(){
 
 void IRAM_ATTR reset_button_change() {
   unsigned long now = millis();
+  
+  // Debouncing: Ignore pressures within 200 ms
+  if (now - lastPressTime < DEBOUNCE_DELAY) {
+    return;
+  }
+  lastPressTime = now;
 
-  // Erste Betätigung registrieren
   if (pressCount == 0) {
     firstPressTime = now;
     pressCount = 1;
   } else {
-    // Prüfen, ob das Zeitfenster überschritten ist
     if (now - firstPressTime <= RESET_TIME_WINDOW) {
       pressCount++;
     } else {
-      // Zeitfenster abgelaufen -> Zähler zurücksetzen
       firstPressTime = now;
       pressCount = 1;
     }
   }
 
-  // Wenn genug Drücke erfolgt sind -> Timer starten
   if (pressCount >= RESET_PRESS_COUNT) {
     xTimerStartFromISR(resetTimer, NULL);
+    resetTriggered = true;
     pressCount = 0;
     firstPressTime = 0;
+    lastPressTime = 0;
   }
 }
 
@@ -246,7 +252,7 @@ void resetPreferences()
 {
   xTimerStop(resetTimer, 0);
   Serial.println("Resetting config...");
-  //prefHandler.resetPreferences();
+  prefHandler.resetPreferences();
 }
 
 void switchLamp(bool on){
@@ -1011,8 +1017,8 @@ void setup()
   // Serial
   Serial.begin(9600);
 
-  #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
-    pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
+  #ifdef IS_HCP_BOARD
+    pinMode(LED1, OUTPUT);
     digitalWrite(LED1, HIGH);
   #endif
 
@@ -1304,8 +1310,7 @@ void setup()
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWD);
 
   server.begin();
-  #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
-    pinMode(LED1, OUTPUT); // Sets the trigPin as an Output
+  #ifdef IS_HCP_BOARD
     digitalWrite(LED1, LOW);
   #endif
 }
@@ -1313,4 +1318,14 @@ void setup()
 // mainloop
 void loop(){
   ElegantOTA.loop();
+
+  if (resetTriggered) {
+    resetTriggered = false;
+    #ifdef IS_HCP_BOARD
+      for(int i = 0; i < 10; i++) {
+        digitalWrite(LED1, !digitalRead(LED1));
+        delay(100);
+      }
+    #endif
+  }
 }

@@ -19,6 +19,10 @@
     const char* OTA_USERNAME = "admin";
     const char* OTA_PASSWD = "admin";
 
+    #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
+    #define IS_HCP_BOARD
+    #endif
+
     //RS485 pins
     #ifdef CONFIG_IDF_TARGET_ESP32S3
         #ifdef M5STACK
@@ -29,8 +33,10 @@
             #define PIN_RXD 18
         #endif
     #elif defined(HCP_Giffordv3)
-        #define PIN_TXD 16  // Richtige Pins für HCP_Giffordv3?
-        #define PIN_RXD 17
+        #define PIN_TXD 19
+        #define PIN_RXD 18
+        // #define PIN_TXD 16
+        // #define PIN_RXD 17
     #else
         #define PIN_TXD 17 // UART 2 TXT - G17
         #define PIN_RXD 16 // UART 2 RXD - G16
