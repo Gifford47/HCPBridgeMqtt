@@ -1248,6 +1248,9 @@ void setup()
                   if (request->hasParam("position"))
                     hoermannEngine->setPosition(request->getParam("position")->value().toInt());
                   break;
+                case 8:
+                  hoermannEngine->toogleDoor();
+                  break;
                 default:
                   break;
                 }
