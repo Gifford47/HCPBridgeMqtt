@@ -7,7 +7,7 @@
         #include "ArduinoJson.h"
         #include "ModbusRTU.h"
         
-        #include "preferencesKeys.h"
+        #include "preferences_handler.h"
         #define SLAVE_ID 2
         #define SIMULATEKEYPRESSDELAYMS 100
         #define DEADREPORTTIMEOUT 60000
@@ -20,10 +20,10 @@
 
         static const char *TAG_HCI = "HCI-BUS";
 
-        int rs485_pin_txd = 0;
-        int rs485_pin_rxd = 0;
+        inline int rs485_pin_txd = 0;
+        inline int rs485_pin_rxd = 0;
 
-        TaskHandle_t modBusTask;
+        inline TaskHandle_t modBusTask;
         void modbusServeTask(void *parameter);
 
         class HoermannCommand {
@@ -57,13 +57,13 @@
 
         // arg1,arg4> command start value
         // arg2,arg5> command end   value
-        const HoermannCommand HoermannCommand::STARTOPENDOOR = HoermannCommand(0x0210, 0x0110, 0x0000, 0x0000);  // Typo 0201
-        const HoermannCommand HoermannCommand::STARTCLOSEDOOR = HoermannCommand(0x0220, 0x0120, 0x0000, 0x0000);
-        const HoermannCommand HoermannCommand::STARTSTOPDOOR = HoermannCommand(0x0240, 0x0140, 0x0000, 0x0000);
-        const HoermannCommand HoermannCommand::STARTOPENDOORHALF = HoermannCommand(0x0200, 0x0100, 0x0400, 0x0400);
-        const HoermannCommand HoermannCommand::STARTVENTPOSITION = HoermannCommand(0x0200, 0x0100, 0x4000, 0x4000);
-        const HoermannCommand HoermannCommand::STARTTOGGLELAMP = HoermannCommand(0x0100, 0x0800, 0x0200, 0x0200);
-        const HoermannCommand HoermannCommand::WAITING = HoermannCommand(0x0000, 0x0000, 0x0000, 0x0000);
+        inline const HoermannCommand HoermannCommand::STARTOPENDOOR = HoermannCommand(0x0210, 0x0110, 0x0000, 0x0000);  // Typo 0201
+        inline const HoermannCommand HoermannCommand::STARTCLOSEDOOR = HoermannCommand(0x0220, 0x0120, 0x0000, 0x0000);
+        inline const HoermannCommand HoermannCommand::STARTSTOPDOOR = HoermannCommand(0x0240, 0x0140, 0x0000, 0x0000);
+        inline const HoermannCommand HoermannCommand::STARTOPENDOORHALF = HoermannCommand(0x0200, 0x0100, 0x0400, 0x0400);
+        inline const HoermannCommand HoermannCommand::STARTVENTPOSITION = HoermannCommand(0x0200, 0x0100, 0x4000, 0x4000);
+        inline const HoermannCommand HoermannCommand::STARTTOGGLELAMP = HoermannCommand(0x0100, 0x0800, 0x0200, 0x0200);
+        inline const HoermannCommand HoermannCommand::WAITING = HoermannCommand(0x0000, 0x0000, 0x0000, 0x0000);
 
         class HoermannState {
         public:
@@ -500,13 +500,13 @@
             unsigned long commandWrittenOn = 0;            // When was last command written (wait 100ms before end of command is transmitted)
         };
 
-        HoermannGarageEngine *hoermannEngine = new HoermannGarageEngine();
+        inline HoermannGarageEngine *hoermannEngine = new HoermannGarageEngine();
 
-        void DelayHandler(void) {
+        inline void DelayHandler(void) {
             hoermannEngine->handleModbus();
         }
 
-        void modbusServeTask(void *parameter) {
+        inline void modbusServeTask(void *parameter) {
             while (true) {
                 hoermannEngine->handleModbus();
                 vTaskDelay(1);
