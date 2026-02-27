@@ -407,17 +407,32 @@
 		<h4>System information</h4>
 		<button id="toogle_sysinfo" class="btn">show</button>
 	</div>
-	<div id="sysinfo_links" class="collapsible" style="display: none">
-		<a class="link-gray" href="update" target="_blank">OTA Update</a>
-		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
-		<a class="link-gray" href="status" target="_blank">Door status</a>
-		<a class="link-gray" href="reset" target="_blank">Factory reset</a>
+	<div id="sysinfo_panel" style="display: none; text-align: left; padding: 0 1rem;">
+		<table id="sysinfo_table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+			<tr><td style="padding:4px 8px; color:#666;">Version</td><td id="si_version" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Build</td><td id="si_buildenv" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Hostname</td><td id="si_hostname" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">IP</td><td id="si_ip" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">WiFi</td><td id="si_wifi" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">MQTT</td><td id="si_mqtt" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Free Memory</td><td id="si_mem" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Reset Reason</td><td id="si_reset" style="padding:4px 8px;"></td></tr>
+		</table>
+		<h5 style="margin:12px 0 4px 0;">Sensors</h5>
+		<table id="si_sensors" style="width:100%; border-collapse:collapse; font-size:0.9rem;"></table>
+		<div style="margin-top:12px;">
+			<a class="link-gray" href="update" target="_blank">OTA Update</a>
+			<a class="link-gray" href="reset" target="_blank">Factory Reset</a>
+		</div>
 	</div>
 
 	<p id="swversion"></p>
 		
 	<script>
-	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
+	document.getElementById("toogle_sysinfo").onclick = function() {
+		collapse('sysinfo_panel');
+		loadSysinfo();
+	};
 	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
 	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
@@ -428,9 +443,42 @@
 		} else {
 		x.style.display = "none";
 		}
-		
 	}
-	
+
+	function loadSysinfo() {
+		var xhr = new XMLHttpRequest();
+		xhr.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				var info = JSON.parse(this.responseText);
+				document.getElementById("si_version").textContent = "v" + (info.swversion || "?");
+				document.getElementById("si_buildenv").textContent = info.buildenv || "?";
+				document.getElementById("si_hostname").textContent = info.hostname || "?";
+				document.getElementById("si_ip").textContent = info.ip || "?";
+				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
+				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
+				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
+				document.getElementById("si_reset").textContent = info.resetreason || "?";
+				var tbl = document.getElementById("si_sensors");
+				tbl.innerHTML = "";
+				var hasActive = false;
+				if (info.sensors) {
+					for (var name in info.sensors) {
+						var st = info.sensors[name];
+						if (st !== "off") hasActive = true;
+						var color = st === "active" ? "#48bd81" : (st === "disabled" ? "#ED5961" : "#999");
+						var label = st === "active" ? "Active" : (st === "disabled" ? "Disabled" : "Off");
+						tbl.innerHTML += "<tr><td style='padding:2px 8px;'>" + name + "</td><td style='padding:2px 8px;color:" + color + ";font-weight:bold;'>" + label + "</td></tr>";
+					}
+				}
+				if (!hasActive) {
+					tbl.innerHTML = "<tr><td style='padding:4px 8px;color:#999;' colspan='2'>No sensors detected.</td></tr>";
+				}
+			}
+		};
+		xhr.open("GET", "/sysinfo", true);
+		xhr.send();
+	}
+
 	doorpos = 10;
 	dir = -1;
 	isconnected = false;

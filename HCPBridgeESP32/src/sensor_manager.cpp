@@ -636,6 +636,24 @@ bool SensorManager::hasAnySensor() const {
            hasDistanceSensor() || hasMotionSensor() || hasGasSensor();
 }
 
+static const char* sensorStatusStr(SensorStatus s) {
+    switch (s) {
+        case SensorStatus::ACTIVE:          return "active";
+        case SensorStatus::FAILED_DISABLED: return "disabled";
+        case SensorStatus::NOT_CONFIGURED:  return "off";
+        default:                            return "off";
+    }
+}
+
+void SensorManager::toDetectionJson(JsonObject& sensors) const {
+    sensors["BME280"]  = sensorStatusStr(_bmeStatus);
+    sensors["DS18X20"] = sensorStatusStr(_ds18x20Status);
+    sensors["DHT22"]   = sensorStatusStr(_dht22Status);
+    sensors["HC-SR04"] = sensorStatusStr(_hcsr04Status);
+    sensors["HC-SR501"]= sensorStatusStr(_hcsr501Status);
+    sensors["MQ4"]     = sensorStatusStr(_mq4Status);
+}
+
 void SensorManager::toJson(JsonDocument& doc) {
     char buf[20];
 

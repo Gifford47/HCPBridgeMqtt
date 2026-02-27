@@ -374,6 +374,13 @@ void setup() {
         root["mqttstatus"] = mqttHandler.getClient().connected();
         root["resetreason"] = esp_reset_reason();
         root["swversion"] = HA_VERSION;
+        #ifdef BUILD_ENV
+        root["buildenv"] = BUILD_ENV;
+        #else
+        root["buildenv"] = "unknown";
+        #endif
+        JsonObject sensors = root["sensors"].to<JsonObject>();
+        sensorManager.toDetectionJson(sensors);
         serializeJson(root, *response);
         request->send(response);
     });

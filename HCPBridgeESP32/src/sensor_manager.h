@@ -70,6 +70,9 @@ public:
     // Check if any sensor is active
     bool hasAnySensor() const;
 
+    // Build JSON with sensor detection status for /sysinfo
+    void toDetectionJson(JsonObject& sensors) const;
+
     // Thresholds (loaded from preferences)
     float tempThreshold = 0;
     int humThreshold = 0;
