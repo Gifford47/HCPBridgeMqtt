@@ -152,10 +152,10 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
     bool saveBasic = (gd_id != "null");
     bool saveExpert = (gd_avail != "null");
 
-    // Special handling for wifi_ap_mode (comes as "on"/"off" string from WebUI)
-    if (saveBasic && !doc[preference_wifi_ap_mode].isNull()) {
-        String apactif = doc[preference_wifi_ap_mode].as<String>();
-        preferences->putBool(preference_wifi_ap_mode, apactif == "on");
+    // Special handling for checkboxes (come as "on" string when checked, absent when unchecked)
+    if (saveBasic) {
+        preferences->putBool(preference_wifi_ap_mode, !doc[preference_wifi_ap_mode].isNull() && doc[preference_wifi_ap_mode].as<String>() == "on");
+        preferences->putBool(preference_debug_enabled, !doc[preference_debug_enabled].isNull() && doc[preference_debug_enabled].as<String>() == "on");
     }
 
     for (size_t i = 0; i < PREF_REGISTRY_SIZE; i++) {
@@ -164,8 +164,9 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
         // Skip internal preferences
         if (def.group & PREF_GROUP_INTERNAL) continue;
 
-        // Skip wifi_ap_mode - handled specially above
+        // Skip checkboxes - handled specially above
         if (strcmp(def.key, preference_wifi_ap_mode) == 0) continue;
+        if (strcmp(def.key, preference_debug_enabled) == 0) continue;
 
         // Only save if the group matches
         if ((def.group & PREF_GROUP_BASIC) && saveBasic) {

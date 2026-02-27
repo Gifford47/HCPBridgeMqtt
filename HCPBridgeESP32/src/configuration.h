@@ -1,6 +1,15 @@
 #ifndef CONFIGURATION_H_
     #define CONFIGURATION_H_
 
+    // ============================================================================
+    // Debug logging - controlled by WebUI preference "debug_enabled"
+    // ============================================================================
+    inline bool debugEnabled = false;
+
+    #define DBG_PRINT(...)    do { if (debugEnabled) Serial.print(__VA_ARGS__); } while(0)
+    #define DBG_PRINTLN(...)  do { if (debugEnabled) Serial.println(__VA_ARGS__); } while(0)
+    #define DBG_PRINTF(...)   do { if (debugEnabled) Serial.printf(__VA_ARGS__); } while(0)
+
     // Please change on every new firmware builds!
     inline const char *HA_VERSION = "0.9.1";
 

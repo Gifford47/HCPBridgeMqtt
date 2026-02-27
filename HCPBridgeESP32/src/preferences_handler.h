@@ -77,6 +77,9 @@
 // Sensor query interval
 #define preference_query_interval_sensors "sen_StInterval"
 
+// Debug
+#define preference_debug_enabled "debug_enabled"
+
 // ============================================================================
 // Registry-based Preference System
 // ============================================================================
@@ -124,6 +127,9 @@ static const PrefDef PREF_REGISTRY[] = {
     {preference_mqtt_server_port,   PrefType::INT,    false,  PREF_GROUP_BASIC,    "",             MQTTPORT,       0.0,        false},
     {preference_mqtt_user,          PrefType::STRING, false,  PREF_GROUP_BASIC,    MQTTUSER,       0,              0.0,        false},
     {preference_mqtt_password,      PrefType::STRING, true,   PREF_GROUP_BASIC,    MQTTPASSWORD,   0,              0.0,        false},
+
+    // Debug
+    {preference_debug_enabled,      PrefType::BOOL,   false,  PREF_GROUP_BASIC,    "",             0,              0.0,        false},
 
     // === Expert Config (WebUI expert tab) ===
     // RS485

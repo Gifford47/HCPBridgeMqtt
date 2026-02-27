@@ -74,7 +74,7 @@ void MqttHandler::begin(Preferences* prefs, PreferenceHandler* prefHandler, Sens
 }
 
 void MqttHandler::connectToMqtt() {
-    Serial.println("Connecting to MQTT...");
+    DBG_PRINTLN("Connecting to MQTT...");
     _mqttClient.connect();
 }
 
@@ -83,7 +83,7 @@ void MqttHandler::connectToMqtt() {
 // ============================================================================
 
 void MqttHandler::onConnect(bool sessionPresent) {
-    Serial.println("Function on mqtt connect.");
+    DBG_PRINTLN("Function on mqtt connect.");
     _mqttConnected = true;
     xTimerStop(mqttReconnectTimer, 0);
     sendOnline();
@@ -107,21 +107,21 @@ void MqttHandler::onDisconnect(AsyncMqttClientDisconnectReason reason) {
     #ifdef DEBUG
     switch (reason) {
         case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
-            Serial.println("Disconnected from MQTT. reason : TCP_DISCONNECTED"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : TCP_DISCONNECTED"); break;
         case AsyncMqttClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
-            Serial.println("Disconnected from MQTT. reason : MQTT_UNACCEPTABLE_PROTOCOL_VERSION"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : MQTT_UNACCEPTABLE_PROTOCOL_VERSION"); break;
         case AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
-            Serial.println("Disconnected from MQTT. reason : MQTT_IDENTIFIER_REJECTED"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : MQTT_IDENTIFIER_REJECTED"); break;
         case AsyncMqttClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
-            Serial.println("Disconnected from MQTT. reason : MQTT_SERVER_UNAVAILABLE"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : MQTT_SERVER_UNAVAILABLE"); break;
         case AsyncMqttClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
-            Serial.println("Disconnected from MQTT. reason : ESP8266_NOT_ENOUGH_SPACE"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : ESP8266_NOT_ENOUGH_SPACE"); break;
         case AsyncMqttClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
-            Serial.println("Disconnected from MQTT. reason : MQTT_MALFORMED_CREDENTIALS"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : MQTT_MALFORMED_CREDENTIALS"); break;
         case AsyncMqttClientDisconnectReason::MQTT_NOT_AUTHORIZED:
-            Serial.println("Disconnected from MQTT. reason : MQTT_NOT_AUTHORIZED"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason : MQTT_NOT_AUTHORIZED"); break;
         case AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT:
-            Serial.println("Disconnected from MQTT. reason :TLS_BAD_FINGERPRINT"); break;
+            DBG_PRINTLN("Disconnected from MQTT. reason :TLS_BAD_FINGERPRINT"); break;
         default: break;
     }
     #endif
@@ -160,9 +160,9 @@ void MqttHandler::onMessage(char* topic, char* payload, AsyncMqttClientMessagePr
         } else if (strncmp(payload, HA_VENT, len) == 0) {
             hoermannEngine->ventilationPositionDoor();
         } else if (strncmp(payload, HA_STEP, len) == 0) {
-            Serial.println("STEPPING...");
+            DBG_PRINTLN("STEPPING...");
             HoermannState::State currState = hoermannEngine->state->state;
-            Serial.println(currState);
+            DBG_PRINTLN(currState);
             if (currState == HoermannState::State::CLOSED) {
                 hoermannEngine->openDoor();
             } else if (currState == HoermannState::State::OPEN) {

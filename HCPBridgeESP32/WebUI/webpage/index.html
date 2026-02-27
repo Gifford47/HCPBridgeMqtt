@@ -209,6 +209,13 @@
 			</div>
 		</div>
 		<div class="subtitle">
+			<h5>Debug</h5>
+			<div class="flex">
+				<label for="debug_enabled">Enable Serial Debug</label>
+				<input type="checkbox" id="debug_enabled" name="debug_enabled">
+			</div>
+		</div>
+		<div class="subtitle">
 			<h5>WEB UI</h5>
 			<div class="flex">
 				<label for="www_pass">Web Password</label>
@@ -302,6 +309,14 @@
 				<label for="sen_sr501pin">SR501</label>
 				<input type="number" id="sen_sr501pin" name="sen_sr501pin" min="1" max="48" step="1">
 			</div>
+			<div class="flex">
+				<label for="sen_mq4analog">MQ4 Analog</label>
+				<input type="number" id="sen_mq4analog" name="sen_mq4analog" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_mq4digital">MQ4 Digital</label>
+				<input type="number" id="sen_mq4digital" name="sen_mq4digital" min="0" max="48" step="1">
+			</div>
 		</div>
 		<div class="subtitle">
 			<h5>Sensor Adjustments</h5>
@@ -338,6 +353,13 @@
 				<input type="number" id="sen_prox_thresh" name="sen_prox_thresh" min="1" step="1">
 			</div>
 			<div class="flex">
+				<div class="form-label">
+					<label for="sen_gas_thresh">Gas threshold</label>
+					<small>analog delta when to update mqtt</small>
+				</div>
+				<input type="number" id="sen_gas_thresh" name="sen_gas_thresh" min="1" step="1">
+			</div>
+			<div class="flex">
 				<label for="sen_sr04maxdist">SR04 Max Dist</label>
 				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
 			</div>
@@ -367,6 +389,14 @@
 			<div class="flex">
 				<label for="sen_park_avail">Park availability</label>
 				<input type="text" id="sen_park_avail" name="sen_park_avail">
+			</div>
+			<div class="flex">
+				<label for="sensor_gas">Gas Level</label>
+				<input type="text" id="sensor_gas" name="sensor_gas">
+			</div>
+			<div class="flex">
+				<label for="sen_gas_alarm">Gas Alarm</label>
+				<input type="text" id="sen_gas_alarm" name="sen_gas_alarm">
 			</div>
 		</div>
 		<br>

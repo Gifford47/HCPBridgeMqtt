@@ -75,7 +75,7 @@ void IRAM_ATTR reset_button_change() {
 
 void resetPreferences() {
     xTimerStop(resetTimer, 0);
-    Serial.println("Resetting config...");
+    DBG_PRINTLN("Resetting config...");
     prefHandler.resetPreferences();
 }
 
@@ -85,10 +85,10 @@ void resetPreferences() {
 
 void connectToWifi() {
     if (localPrefs->getString(preference_wifi_ssid) != "") {
-        Serial.println("Connecting to Wi-Fi...");
+        DBG_PRINTLN("Connecting to Wi-Fi...");
         WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str(), 0, nullptr, true);
     } else {
-        Serial.println("No WiFi Client enabled");
+        DBG_PRINTLN("No WiFi Client enabled");
     }
 }
 
@@ -158,8 +158,8 @@ void WiFiEvent(WiFiEvent_t event) {
             eventInfo = "Obtained IP address"; break;
         default: break;
     }
-    Serial.print("WIFI-Event: ");
-    Serial.println(eventInfo);
+    DBG_PRINT("WIFI-Event: ");
+    DBG_PRINTLN(eventInfo);
 }
 
 // ============================================================================
@@ -221,6 +221,9 @@ void setup() {
     prefHandler.initPreferences();
     localPrefs = prefHandler.getPreferences();
 
+    // Load debug flag from preferences
+    debugEnabled = localPrefs->getBool(preference_debug_enabled, false);
+
     // Setup modbus
     hoermannEngine->setup(localPrefs);
 
@@ -249,7 +252,7 @@ void setup() {
         }
         WiFi.disconnect(true);
         delay(300);
-        Serial.println("WIFI AP enabled");
+        DBG_PRINTLN("WIFI AP enabled");
         WiFi.mode(WIFI_AP_STA);
         WiFi.softAP(prefHandler.getPreferencesCache()->hostname, apPass.c_str(), 1, false, 4);
     } else {
@@ -344,7 +347,7 @@ void setup() {
                 case 4: hoermannEngine->halfPositionDoor(); break;
                 case 5: hoermannEngine->toogleLight(); break;
                 case 6:
-                    Serial.println("restart...");
+                    DBG_PRINTLN("restart...");
                     mqttHandler.setWill();
                     ESP.restart();
                     break;
@@ -361,7 +364,7 @@ void setup() {
 
     server.on("/sysinfo", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!requireAuth(request)) return;
-        Serial.println("GET SYSINFO");
+        DBG_PRINTLN("GET SYSINFO");
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument root;
         root["freemem"] = ESP.getFreeHeap();
@@ -377,7 +380,7 @@ void setup() {
 
     server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!requireAuth(request)) return;
-        Serial.println("GET CONFIG");
+        DBG_PRINTLN("GET CONFIG");
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument conf;
         prefHandler.getConf(conf);
@@ -397,7 +400,7 @@ void setup() {
 
     server.on("/reset", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!requireAuth(request)) return;
-        Serial.println("GET reset");
+        DBG_PRINTLN("GET reset");
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument root;
         root["reset"] = "OK";

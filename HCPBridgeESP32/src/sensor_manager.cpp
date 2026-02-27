@@ -46,9 +46,9 @@ bool SensorManager::validateGasReading(int analogValue) {
 
 void SensorManager::disableSensor(const char* name, SensorStatus& status) {
     status = SensorStatus::FAILED_DISABLED;
-    Serial.print("SENSOR DISABLED: ");
-    Serial.print(name);
-    Serial.println(" - too many consecutive failures. Will not retry until reboot.");
+    DBG_PRINT("SENSOR DISABLED: ");
+    DBG_PRINT(name);
+    DBG_PRINTLN(" - too many consecutive failures. Will not retry until reboot.");
 }
 
 // ============================================================================
@@ -60,14 +60,14 @@ bool SensorManager::detectBme(Preferences* prefs) {
     _i2cSclPin = prefs->getInt(preference_sensor_i2c_scl);
 
     if (_i2cSdaPin == 0 || _i2cSclPin == 0) {
-        Serial.println("BME280: Pins not configured, skipping");
+        DBG_PRINTLN("BME280: Pins not configured, skipping");
         return false;
     }
 
-    Serial.print("BME280: Probing on I2C SDA=");
-    Serial.print(_i2cSdaPin);
-    Serial.print(" SCL=");
-    Serial.println(_i2cSclPin);
+    DBG_PRINT("BME280: Probing on I2C SDA=");
+    DBG_PRINT(_i2cSdaPin);
+    DBG_PRINT(" SCL=");
+    DBG_PRINTLN(_i2cSclPin);
 
     _i2cBme.begin(_i2cSdaPin, _i2cSclPin);
 
@@ -78,7 +78,7 @@ bool SensorManager::detectBme(Preferences* prefs) {
     }
 
     if (!found) {
-        Serial.println("BME280: Not found on I2C bus");
+        DBG_PRINTLN("BME280: Not found on I2C bus");
         return false;
     }
 
@@ -88,20 +88,20 @@ bool SensorManager::detectBme(Preferences* prefs) {
     float pres = _bme.readPressure() / 100.0f;
 
     if (!validateBmeReading(temp, hum, pres)) {
-        Serial.println("BME280: Found but initial reading invalid");
+        DBG_PRINTLN("BME280: Found but initial reading invalid");
         return false;
     }
 
     _bmeTemp = temp;
     _bmeHum = hum;
     _bmePres = pres;
-    Serial.print("BME280: Active (T=");
-    Serial.print(temp);
-    Serial.print(" H=");
-    Serial.print(hum);
-    Serial.print(" P=");
-    Serial.print(pres);
-    Serial.println(")");
+    DBG_PRINT("BME280: Active (T=");
+    DBG_PRINT(temp);
+    DBG_PRINT(" H=");
+    DBG_PRINT(hum);
+    DBG_PRINT(" P=");
+    DBG_PRINT(pres);
+    DBG_PRINTLN(")");
     return true;
 }
 
@@ -109,12 +109,12 @@ bool SensorManager::detectDs18x20(Preferences* prefs) {
     _ds18x20Pin = prefs->getInt(preference_sensor_ds18x20_pin);
 
     if (_ds18x20Pin == 0) {
-        Serial.println("DS18X20: Pin not configured, skipping");
+        DBG_PRINTLN("DS18X20: Pin not configured, skipping");
         return false;
     }
 
-    Serial.print("DS18X20: Probing on pin ");
-    Serial.println(_ds18x20Pin);
+    DBG_PRINT("DS18X20: Probing on pin ");
+    DBG_PRINTLN(_ds18x20Pin);
 
     // Create static instances that persist
     static OneWire staticOneWire(_ds18x20Pin);
@@ -129,16 +129,16 @@ bool SensorManager::detectDs18x20(Preferences* prefs) {
     float temp = _ds18x20->getTempCByIndex(0);
 
     if (!validateTemperature(temp)) {
-        Serial.println("DS18X20: Not found or invalid reading");
+        DBG_PRINTLN("DS18X20: Not found or invalid reading");
         _ds18x20 = nullptr;
         _oneWire = nullptr;
         return false;
     }
 
     _ds18x20Temp = temp;
-    Serial.print("DS18X20: Active (T=");
-    Serial.print(temp);
-    Serial.println(")");
+    DBG_PRINT("DS18X20: Active (T=");
+    DBG_PRINT(temp);
+    DBG_PRINTLN(")");
     return true;
 }
 
@@ -146,12 +146,12 @@ bool SensorManager::detectDht22(Preferences* prefs) {
     _dhtPin = prefs->getInt(preference_sensor_dht_data_pin);
 
     if (_dhtPin == 0) {
-        Serial.println("DHT22: Pin not configured, skipping");
+        DBG_PRINTLN("DHT22: Pin not configured, skipping");
         return false;
     }
 
-    Serial.print("DHT22: Probing on pin ");
-    Serial.println(_dhtPin);
+    DBG_PRINT("DHT22: Probing on pin ");
+    DBG_PRINTLN(_dhtPin);
 
     static DHT staticDht(_dhtPin, DHT22);
     _dht = &staticDht;
@@ -164,18 +164,18 @@ bool SensorManager::detectDht22(Preferences* prefs) {
     float hum = _dht->readHumidity();
 
     if (!validateTemperature(temp) || !validateHumidity(hum)) {
-        Serial.println("DHT22: Not found or invalid reading");
+        DBG_PRINTLN("DHT22: Not found or invalid reading");
         _dht = nullptr;
         return false;
     }
 
     _dht22Temp = temp;
     _dht22Hum = hum;
-    Serial.print("DHT22: Active (T=");
-    Serial.print(temp);
-    Serial.print(" H=");
-    Serial.print(hum);
-    Serial.println(")");
+    DBG_PRINT("DHT22: Active (T=");
+    DBG_PRINT(temp);
+    DBG_PRINT(" H=");
+    DBG_PRINT(hum);
+    DBG_PRINTLN(")");
     return true;
 }
 
@@ -185,14 +185,14 @@ bool SensorManager::detectHcsr04(Preferences* prefs) {
     _hcsr04MaxDistanceCm = prefs->getInt(preference_sensor_sr04_max_dist);
 
     if (_hcsr04TrigPin == 0 || _hcsr04EchoPin == 0) {
-        Serial.println("HC-SR04: Pins not configured, skipping");
+        DBG_PRINTLN("HC-SR04: Pins not configured, skipping");
         return false;
     }
 
-    Serial.print("HC-SR04: Probing on trig=");
-    Serial.print(_hcsr04TrigPin);
-    Serial.print(" echo=");
-    Serial.println(_hcsr04EchoPin);
+    DBG_PRINT("HC-SR04: Probing on trig=");
+    DBG_PRINT(_hcsr04TrigPin);
+    DBG_PRINT(" echo=");
+    DBG_PRINTLN(_hcsr04EchoPin);
 
     pinMode(_hcsr04TrigPin, OUTPUT);
     pinMode(_hcsr04EchoPin, INPUT);
@@ -208,15 +208,15 @@ bool SensorManager::detectHcsr04(Preferences* prefs) {
     int distCm = duration * SOUND_SPEED / 2;
 
     if (!validateDistance(distCm)) {
-        Serial.println("HC-SR04: No valid response");
+        DBG_PRINTLN("HC-SR04: No valid response");
         return false;
     }
 
     _hcsr04DistanceCm = distCm;
     _hcsr04MaxMeasuredCm = distCm;
-    Serial.print("HC-SR04: Active (dist=");
-    Serial.print(distCm);
-    Serial.println("cm)");
+    DBG_PRINT("HC-SR04: Active (dist=");
+    DBG_PRINT(distCm);
+    DBG_PRINTLN("cm)");
     return true;
 }
 
@@ -224,12 +224,12 @@ bool SensorManager::detectHcsr501(Preferences* prefs) {
     _hcsr501Pin = prefs->getInt(preference_sensor_sr501);
 
     if (_hcsr501Pin == 0) {
-        Serial.println("HC-SR501: Pin not configured, skipping");
+        DBG_PRINTLN("HC-SR501: Pin not configured, skipping");
         return false;
     }
 
-    Serial.print("HC-SR501: Configured on pin ");
-    Serial.println(_hcsr501Pin);
+    DBG_PRINT("HC-SR501: Configured on pin ");
+    DBG_PRINTLN(_hcsr501Pin);
 
     // HC-SR501 is a simple digital sensor - no way to detect if it's actually connected
     // We assume it's present if pin is configured
@@ -237,7 +237,7 @@ bool SensorManager::detectHcsr501(Preferences* prefs) {
     _hcsr501LastStat = digitalRead(_hcsr501Pin);
     _hcsr501Stat = _hcsr501LastStat;
 
-    Serial.println("HC-SR501: Active (assumed present)");
+    DBG_PRINTLN("HC-SR501: Active (assumed present)");
     return true;
 }
 
@@ -246,14 +246,14 @@ bool SensorManager::detectMq4(Preferences* prefs) {
     _mq4DigitalPin = prefs->getInt(preference_sensor_mq4_digital);
 
     if (_mq4AnalogPin == 0) {
-        Serial.println("MQ4: Analog pin not configured, skipping");
+        DBG_PRINTLN("MQ4: Analog pin not configured, skipping");
         return false;
     }
 
-    Serial.print("MQ4: Probing on analog=");
-    Serial.print(_mq4AnalogPin);
-    Serial.print(" digital=");
-    Serial.println(_mq4DigitalPin);
+    DBG_PRINT("MQ4: Probing on analog=");
+    DBG_PRINT(_mq4AnalogPin);
+    DBG_PRINT(" digital=");
+    DBG_PRINTLN(_mq4DigitalPin);
 
     // Configure pins
     pinMode(_mq4AnalogPin, INPUT);
@@ -261,25 +261,63 @@ bool SensorManager::detectMq4(Preferences* prefs) {
         pinMode(_mq4DigitalPin, INPUT);
     }
 
-    // Take a test reading
-    delay(100);
-    int analogVal = analogRead(_mq4AnalogPin);
+    // Take multiple readings to distinguish a real sensor from a floating pin.
+    // A connected MQ4 produces stable ADC values; a floating pin produces noisy, scattered readings.
+    const int NUM_SAMPLES = 10;
+    const int SAMPLE_DELAY_MS = 20;
+    int samples[NUM_SAMPLES];
+    int minVal = 4095, maxVal = 0;
+    long sum = 0;
 
-    if (!validateGasReading(analogVal)) {
-        Serial.println("MQ4: Not found or invalid reading");
+    delay(100);  // Let pin settle
+
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        samples[i] = analogRead(_mq4AnalogPin);
+        if (samples[i] < minVal) minVal = samples[i];
+        if (samples[i] > maxVal) maxVal = samples[i];
+        sum += samples[i];
+        delay(SAMPLE_DELAY_MS);
+    }
+
+    int avgVal = sum / NUM_SAMPLES;
+    int spread = maxVal - minVal;
+
+    DBG_PRINT("MQ4: samples avg=");
+    DBG_PRINT(avgVal);
+    DBG_PRINT(" spread=");
+    DBG_PRINT(spread);
+    DBG_PRINT(" (min=");
+    DBG_PRINT(minVal);
+    DBG_PRINT(" max=");
+    DBG_PRINT(maxVal);
+    DBG_PRINTLN(")");
+
+    // Validate average value
+    if (!validateGasReading(avgVal)) {
+        DBG_PRINTLN("MQ4: Not found or invalid reading");
         return false;
     }
 
-    _mq4AnalogValue = analogVal;
+    // A floating pin without pullup/pulldown produces high variance (spread > 100 typical).
+    // A real MQ4 sensor is stable (spread < 50 under normal conditions).
+    const int MAX_SPREAD = 80;
+    if (spread > MAX_SPREAD) {
+        DBG_PRINT("MQ4: Readings too unstable (spread=");
+        DBG_PRINT(spread);
+        DBG_PRINTLN("), likely floating pin - no sensor connected");
+        return false;
+    }
+
+    _mq4AnalogValue = avgVal;
     if (_mq4DigitalPin > 0) {
         _mq4DigitalAlarm = digitalRead(_mq4DigitalPin) == LOW;  // MQ4 digital output is active LOW
     }
 
-    Serial.print("MQ4: Active (analog=");
-    Serial.print(analogVal);
-    Serial.print(" alarm=");
-    Serial.print(_mq4DigitalAlarm ? "YES" : "NO");
-    Serial.println(")");
+    DBG_PRINT("MQ4: Active (analog=");
+    DBG_PRINT(avgVal);
+    DBG_PRINT(" alarm=");
+    DBG_PRINT(_mq4DigitalAlarm ? "YES" : "NO");
+    DBG_PRINTLN(")");
     return true;
 }
 
@@ -288,7 +326,7 @@ bool SensorManager::detectMq4(Preferences* prefs) {
 // ============================================================================
 
 void SensorManager::begin(Preferences* prefs) {
-    Serial.println("=== Sensor Auto-Detection ===");
+    DBG_PRINTLN("=== Sensor Auto-Detection ===");
 
     // Load thresholds
     tempThreshold = prefs->getDouble(preference_sensor_temp_treshold);
@@ -341,14 +379,14 @@ void SensorManager::begin(Preferences* prefs) {
     }
 
     // Summary
-    Serial.println("=== Sensor Summary ===");
-    Serial.print("BME280:  "); Serial.println(_bmeStatus == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.print("DS18X20: "); Serial.println(_ds18x20Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.print("DHT22:   "); Serial.println(_dht22Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.print("HC-SR04: "); Serial.println(_hcsr04Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.print("HC-SR501:"); Serial.println(_hcsr501Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.print("MQ4:     "); Serial.println(_mq4Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    Serial.println("======================");
+    DBG_PRINTLN("=== Sensor Summary ===");
+    DBG_PRINT("BME280:  "); DBG_PRINTLN(_bmeStatus == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("DS18X20: "); DBG_PRINTLN(_ds18x20Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("DHT22:   "); DBG_PRINTLN(_dht22Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("HC-SR04: "); DBG_PRINTLN(_hcsr04Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("HC-SR501:"); DBG_PRINTLN(_hcsr501Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("MQ4:     "); DBG_PRINTLN(_mq4Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINTLN("======================");
 }
 
 // ============================================================================
