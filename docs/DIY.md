@@ -5,7 +5,7 @@
 
   ## Wiring
  
- ![min wiring](docs/Images/esp32.png)
+ ![min wiring](Images/esp32.png)
  
  ESP32 powering requires a Step Down Module such as LM2596S DC-DC, but any 24VDC ==> 5VDC will do, even the tiny ones with 3 pin.
  Please note that the suggested serial pins for serial interfacing, on ESP32, are 16 RXD and 17 TXD.
@@ -16,8 +16,8 @@
  
  <br>
  
- ![alt text](docs/Images/esp32_protoboard.jpg)
- ![alt text](docs/Images/esp32_protoboard2.jpg)
+ ![alt text](Images/esp32_protoboard.jpg)
+ ![alt text](Images/esp32_protoboard2.jpg)
  </details>
  
  <details>
@@ -34,7 +34,7 @@
  <summary>Pinout RS485 Plug</summary>
  <br>
  
- ![alt text](docs/Images/plug-min.png)
+ ![alt text](Images/plug-min.png)
  
  > 📌 **Pinout**
  > 1. GND (Blue)<br>
@@ -47,7 +47,7 @@
  </details>
  
  ### RS485 Adapter
- ![alt text](docs/Images/rs485_raw.jpg)
+ ![alt text](Images/rs485_raw.jpg)
  > [!NOTE]<br>
  > Pins A+ (Red) and B- (Green) need a 120 Ohm resistor between them for BUS termination. Some RS485 adapters provide termination pad to be soldered.
 
@@ -60,11 +60,11 @@
  To use the board without any additional sensors (f.e. as showed in section [wiring](#wiring)) you only need to upload the standard firmware binary.
  ### Sensors
  
- To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](docs/flashing_instructions.md) for further info.
+ To use additional sensors, you have also to build and upload the according firmware for the sensor. See [flash instructions](flashing_instructions.md) for further info.
  <details>
  <summary>DS18X20 Temperature Sensor</summary>
  
- ![DS18X20](docs/Images/ds18x20.jpg) <br/>
+ ![DS18X20](Images/ds18x20.jpg) <br/>
  DS18X20 connected to GPIO4.
  <br>
  
@@ -85,7 +85,7 @@
  <details>
  <summary>BME280 Temperature and humudity Sensor</summary>
  
- ![DS18X20](docs/Images/bme280.jpg) <br/>
+ ![DS18X20](Images/bme280.jpg) <br/>
  SDA connected to  GPIO21<br>
  SCL/SCK connected to GPIO22<br>
  <br>
@@ -204,7 +204,7 @@
   ### New Hardware version 
   With newer HW versions, the bus scan is carried out using the LC display in menu 37. For more see: [Supramatic 4 Busscan](https://www.tor7.de/news/bus-scan-beim-supramatic-serie-4-fehlercode-04-vermeiden)
   
-  ![alt text](docs/Images/antrieb-min.png)
+  ![alt text](Images/antrieb-min.png)
 </details><br>
 
 ## Set the ventilation position 
@@ -219,6 +219,7 @@ The switch for the venting position works with a small hack. Based on the analys
 
 <br>
 
-![Homeassistant card1](docs/Images/ha_shuttercard.png)
-![Homeassistant card2](docs/Images/ha.png)
+![Homeassistant card1](Images/ha_shuttercard.png)
+![Homeassistant card2](Images/ha.png)
 </details>
+
