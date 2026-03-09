@@ -555,8 +555,8 @@
 			for (const key in config){
 				var el = document.getElementById(key);
 				if(el) {		// if element exists in doc...
-					if (config[key] === true) {
-						el.checked = config[key]
+					if (el.type === 'checkbox') {
+						el.checked = config[key] === true;
 					}
 					else {
 						el.value = config[key]

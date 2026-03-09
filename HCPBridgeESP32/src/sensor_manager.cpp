@@ -231,13 +231,40 @@ bool SensorManager::detectHcsr501(Preferences* prefs) {
     DBG_PRINT("HC-SR501: Configured on pin ");
     DBG_PRINTLN(_hcsr501Pin);
 
-    // HC-SR501 is a simple digital sensor - no way to detect if it's actually connected
-    // We assume it's present if pin is configured
+    // Detect floating pin: a connected HC-SR501 drives the pin strongly,
+    // overriding weak internal pull resistors (~45kOhm).
+    // A floating (unconnected) pin follows the pull resistor direction.
+    const int NUM_SAMPLES = 5;
+    const int SAMPLE_DELAY_MS = 10;
+    int pullupHigh = 0, pulldownLow = 0;
+
+    pinMode(_hcsr501Pin, INPUT_PULLUP);
+    delay(50);
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        if (digitalRead(_hcsr501Pin) == HIGH) pullupHigh++;
+        delay(SAMPLE_DELAY_MS);
+    }
+
+    pinMode(_hcsr501Pin, INPUT_PULLDOWN);
+    delay(50);
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        if (digitalRead(_hcsr501Pin) == LOW) pulldownLow++;
+        delay(SAMPLE_DELAY_MS);
+    }
+
+    // Floating pin follows both pull directions (HIGH with pullup, LOW with pulldown).
+    // A connected sensor drives the pin and overrides at least one pull direction.
+    if (pullupHigh >= NUM_SAMPLES - 1 && pulldownLow >= NUM_SAMPLES - 1) {
+        DBG_PRINTLN("HC-SR501: Pin follows pull resistors, likely floating - no sensor connected");
+        pinMode(_hcsr501Pin, INPUT);
+        return false;
+    }
+
     pinMode(_hcsr501Pin, INPUT);
     _hcsr501LastStat = digitalRead(_hcsr501Pin);
     _hcsr501Stat = _hcsr501LastStat;
 
-    DBG_PRINTLN("HC-SR501: Active (assumed present)");
+    DBG_PRINTLN("HC-SR501: Active (sensor detected)");
     return true;
 }
 

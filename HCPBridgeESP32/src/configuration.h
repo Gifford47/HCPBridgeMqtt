@@ -11,7 +11,7 @@
     #define DBG_PRINTF(...)   do { if (debugEnabled) Serial.printf(__VA_ARGS__); } while(0)
 
     // Please change on every new firmware builds!
-    inline const char *HA_VERSION = "0.9.1";
+    inline const char *HA_VERSION = "1.0.0";
 
     // WIFI Hostname
     inline const char HOSTNAME[]   = "HCPBRIDGE";
@@ -153,7 +153,7 @@
         #define INPUT2 14
         #define OUTPUT1 25
         #define OUTPUT2 22
-        #define MQ4_ANALOG_PIN 2
+        #define MQ4_ANALOG_PIN 35
         #define MQ4_DIGITAL_PIN 15
     #else
         #define MQ4_ANALOG_PIN 0
