@@ -212,20 +212,21 @@ void sensorCheckTask(void *parameter) {
 void setup() {
     Serial.begin(9600);
 
+    // Setup preferences (needed for RS485 pin config)
+    prefHandler.initPreferences();
+    localPrefs = prefHandler.getPreferences();
+
+    // Setup modbus FIRST - master requires immediate response after power-on
+    hoermannEngine->setup(localPrefs);
+
+    // Everything below is non-critical and can init while ModBusTask runs on core 1
     #ifdef IS_HCP_BOARD
     pinMode(LED1, OUTPUT);
     digitalWrite(LED1, HIGH);
     #endif
 
-    // Setup preferences
-    prefHandler.initPreferences();
-    localPrefs = prefHandler.getPreferences();
-
     // Load debug flag from preferences
     debugEnabled = localPrefs->getBool(preference_debug_enabled, false);
-
-    // Setup modbus
-    hoermannEngine->setup(localPrefs);
 
     // Reset button
     pinMode(RESET_PIN, INPUT);
