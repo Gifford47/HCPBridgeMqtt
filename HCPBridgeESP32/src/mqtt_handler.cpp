@@ -95,13 +95,13 @@ void MqttHandler::onConnect(bool sessionPresent) {
     _mqttClient.subscribe(_mqttStrings.st_cmd_topic_subs.c_str(), 1);
     updateDoorStatus(true);
     updateSensors(true);
-    if (_sensorMgr->isReady()) {
-        sendDiscoveryMessage();
-    } else {
-        _discoveryPending = true;
-        DBG_PRINTLN("Discovery deferred: sensors not ready");
-    }
     if (_bootFlag) {
+        if (_sensorMgr->isReady()) {
+            sendDiscoveryMessage();
+        } else {
+            _discoveryPending = true;
+            DBG_PRINTLN("Discovery deferred: sensors not ready");
+        }
         sendDebug();
         _bootFlag = false;
     }
