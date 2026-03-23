@@ -51,7 +51,9 @@
 
     // MQTT
     #define DEVICE_ID "hcpbridge"
-    inline const char ID_LENGTH = 16;
+    // Max device_id length - limited by char[64] buffers in MQTT discovery topics
+    // Longest: "homeassistant/binary_sensor/{id}/{key}/config" with key "gas_alarm"
+    inline const char ID_LENGTH = 14;
     inline const char DEVICENAME[] = "Garage Door";
     inline const char *MQTTSERVER = "192.168.1.100";
     inline const int MQTTPORT = 1883;
@@ -167,7 +169,6 @@
     #define HA_DISCOVERY_SWITCH "homeassistant/switch/%s/%s/config"
     #define HA_DISCOVERY_COVER "homeassistant/cover/%s/%s/config"
     #define HA_DISCOVERY_LIGHT "homeassistant/light/%s/%s/config"
-    #define HA_DISCOVERY_TEXT "homeassistant/text/%s/%s/config"
 
     // DEBUG
     //#define DEBUG

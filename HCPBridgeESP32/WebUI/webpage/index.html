@@ -207,7 +207,7 @@
 			</div>
 			<div class="flex">
 				<label for="device_id">Device ID</label>
-				<input type="text" id="device_id" name="device_id">
+				<input type="text" id="device_id" name="device_id" maxlength="14">
 			</div>
 			<div class="flex">
 				<label for="device_name">Device Name</label>
@@ -233,60 +233,57 @@
 	</form>
 
 	<div class="flex justify-between">
-		<h4>Expert Configuration</h4>
-		<button id="toggle_expert_conf" class="btn">show</button>
+		<h4>Sensor Configuration</h4>
+		<button id="toggle_sensor_conf" class="btn">show</button>
 	</div>
-	<form id="expert_conf_form" class="card" style="display: none">
+	<form id="sensor_conf_form" class="card" style="display: none">
 		<div class="subtitle">
-			<h5>Door Status Text Definition</h5>
+			<h5>Sensor Selection</h5>
 			<div class="flex">
-				<label for="gd_availability">Availability</label>
-				<input type="text" id="gd_availability" name="gd_availability">
+				<div class="form-label">
+					<label for="sen_bme_en">Temperatur / Feuchte / Druck</label>
+					<small>BME280 (I2C)</small>
+				</div>
+				<input type="checkbox" id="sen_bme_en" name="sen_bme_en">
 			</div>
 			<div class="flex">
-				<label for="gd_light">Light</label>
-				<input type="text" id="gd_light" name="gd_light">
+				<div class="form-label">
+					<label for="sen_ds18_en">Temperatur</label>
+					<small>DS18X20 (OneWire)</small>
+				</div>
+				<input type="checkbox" id="sen_ds18_en" name="sen_ds18_en">
 			</div>
 			<div class="flex">
-				<label for="gd_vent">Ventilation</label>
-				<input type="text" id="gd_vent" name="gd_vent">
+				<div class="form-label">
+					<label for="sen_dht_en">Temperatur / Feuchte</label>
+					<small>DHT22</small>
+				</div>
+				<input type="checkbox" id="sen_dht_en" name="sen_dht_en">
 			</div>
 			<div class="flex">
-				<label for="gd_half">Half</label>
-				<input type="text" id="gd_half" name="gd_half">
+				<div class="form-label">
+					<label for="sen_sr04_en">Entfernung</label>
+					<small>HC-SR04 (Ultraschall)</small>
+				</div>
+				<input type="checkbox" id="sen_sr04_en" name="sen_sr04_en">
 			</div>
 			<div class="flex">
-				<label for="gd_status">Status</label>
-				<input type="text" id="gd_status" name="gd_status">
+				<div class="form-label">
+					<label for="sen_sr501_en">Bewegungsmelder</label>
+					<small>HC-SR501 (PIR)</small>
+				</div>
+				<input type="checkbox" id="sen_sr501_en" name="sen_sr501_en">
 			</div>
 			<div class="flex">
-				<label for="gd_det_status">Detailed Status</label>
-				<input type="text" id="gd_det_status" name="gd_det_status">
-			</div>
-			<div class="flex">
-				<label for="gd_position">Position</label>
-				<input type="text" id="gd_position" name="gd_position">
-			</div>
-			<div class="flex">
-				<label for="sen_motion">Motion</label>
-				<input type="text" id="sen_motion" name="sen_motion">
-			</div>
-			<div class="flex">
-				<label for="gd_debug_string">Debug String</label>
-				<input type="text" id="gd_debug_string" name="gd_debug_string">
+				<div class="form-label">
+					<label for="sen_mq4_en">Gassensor</label>
+					<small>MQ4 (Methan / Erdgas)</small>
+				</div>
+				<input type="checkbox" id="sen_mq4_en" name="sen_mq4_en">
 			</div>
 		</div>
-
 		<div class="subtitle">
 			<h5>Pin Definition</h5>
-			<div class="flex">
-				<label for="rs485_txd">RS485 TXD</label>
-				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="48" step="1">
-			</div>
-			<div class="flex">
-				<label for="rs485_rxd">RS485 RXD</label>
-				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="48" step="1">
-			</div>
 			<div class="flex">
 				<label for="sen_i2c_sda">I2C SDA</label>
 				<input type="number" id="sen_i2c_sda" name="sen_i2c_sda" min="1" max="48" step="1">
@@ -370,8 +367,32 @@
 				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
 			</div>
 		</div>
+		<br>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
+		<h4>Expert Configuration</h4>
+		<button id="toggle_expert_conf" class="btn">show</button>
+	</div>
+	<form id="expert_conf_form" class="card" style="display: none">
 		<div class="subtitle">
-			<h5>Other Text Definition</h5>	
+			<h5>RS485 Pins</h5>
+			<div class="flex">
+				<label for="rs485_txd">RS485 TXD</label>
+				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="rs485_rxd">RS485 RXD</label>
+				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="48" step="1">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Text Definition</h5>
+			<div class="flex">
+				<label for="gd_debug_string">Debug String</label>
+				<input type="text" id="gd_debug_string" name="gd_debug_string">
+			</div>
 			<div class="flex">
 				<label for="gd_dg_rst_reas">Restart Reason</label>
 				<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas">
@@ -395,6 +416,10 @@
 			<div class="flex">
 				<label for="sen_park_avail">Park availability</label>
 				<input type="text" id="sen_park_avail" name="sen_park_avail">
+			</div>
+			<div class="flex">
+				<label for="sen_motion">Motion</label>
+				<input type="text" id="sen_motion" name="sen_motion">
 			</div>
 			<div class="flex">
 				<label for="sensor_gas">Gas Level</label>
@@ -440,6 +465,7 @@
 		loadSysinfo();
 	};
 	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
+	document.getElementById("toggle_sensor_conf").onclick = function() {collapse('sensor_conf_form')};
 	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
 	function collapse(elementId) {
@@ -463,7 +489,7 @@
 				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
 				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
 				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
-				document.getElementById("si_reset").textContent = info.resetreason || "?";
+				document.getElementById("si_reset").textContent = info.restart_reason || "?";
 				var tbl = document.getElementById("si_sensors");
 				tbl.innerHTML = "";
 				var hasActive = false;
@@ -477,7 +503,7 @@
 					}
 				}
 				if (!hasActive) {
-					tbl.innerHTML = "<tr><td style='padding:4px 8px;color:#999;' colspan='2'>No sensors detected.</td></tr>";
+					tbl.innerHTML = "<tr><td style='padding:4px 8px;color:#999;' colspan='2'>No sensors enabled.</td></tr>";
 				}
 			}
 		};
@@ -602,6 +628,9 @@
 
 	const basicConfForm = document.getElementById('basic_conf_form');
 	basicConfForm.addEventListener('submit', handleSubmitConf);
+
+	const sensorConfForm = document.getElementById('sensor_conf_form');
+	sensorConfForm.addEventListener('submit', handleSubmitConf);
 
 	const expertConfForm = document.getElementById('expert_conf_form');
 	expertConfForm.addEventListener('submit', handleSubmitConf);

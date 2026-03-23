@@ -9,7 +9,7 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-181717?logo=GitHub)](https://github.com/sponsors/gifford47)
 
 # Hörmann hormann — MQTT + Home Assistant
-![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
+<img src="docs/Images/webinterface.png" width="600" alt="Web Interface">
 
 **Emulates Hörmann UAP1-HCP (HCP2) using an ESP32 + RS485 converter and exposes garage door controls via MQTT and a web UI.**
 
@@ -62,7 +62,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 - OTA Updates  
 - First-use hotspot (for out-of-the-box Wi-Fi setup)  
 - Support for ESP32-S1/S2/S3 families  
-- Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501)  
+- Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501, MQ4)
 - Efficient MQTT traffic (only publish on state change)  
 - Support multiple HCP Bridges for several doors
 
@@ -148,14 +148,17 @@ Configuration can be done via the Web UI.
 ---
 
 ## Sensors (optional)
-Supported optional sensors:
-- DS18x20 (1-wire) — temperature  
-- BME280 — temperature, humidity, pressure  
-- DHT22 — temperature, humidity  
-- HC-SR04 — distance (car detection)  
-- HC-SR501 — PIR motion
+Sensors are **manually enabled** via the Web UI under **Sensor Configuration**. Each sensor can be individually activated with a checkbox — no auto-detection. If an enabled sensor is not connected or fails to initialize, the ESP will continue booting normally and report the error via the debug MQTT entity.
 
-Sensor readings are published to MQTT under `hormann/<device_id>/<sensor>` with configurable thresholds for triggered messages.
+Supported sensors:
+- **BME280** (I2C) — temperature, humidity, pressure
+- **DS18x20** (OneWire) — temperature
+- **DHT22** — temperature, humidity
+- **HC-SR04** (ultrasonic) — distance (car detection)
+- **HC-SR501** (PIR) — motion
+- **MQ4** (analog) — methane / natural gas
+
+Sensor readings are published to MQTT under `hormann/<device_id>/sensor` with configurable thresholds. Pins and thresholds are configurable in the Web UI.
 
 ---
 
@@ -192,6 +195,8 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 <img src="docs/Images/webinterface.png" width="420" alt="Web UI">
 <img src="docs/Images/hass_ov.png" width="420" alt="Hass">
 <img src="docs/Images/ha_shuttercard.png" width="420" alt="HA shutter card">
+
+![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
 ---
 

@@ -83,7 +83,7 @@ public:
     void setWill();
 
     // Send debug info
-    void sendDebug(char* key = nullptr, String value = "");
+    void sendDebug();
 
     // Publish HC-SR501 motion state immediately
     void publishMotionState(int state);
@@ -115,7 +115,6 @@ private:
     void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char key[], const char off[], const char on[], const JsonDocument& device);
     void sendDiscoveryMessageForAVSensor(const JsonDocument& device);
     void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device, const char device_class[] = "", const char unit[] = "");
-    void sendDiscoveryMessageForDebug(const char name[], const char key[], const JsonDocument& device);
     void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false);
     void sendDiscoveryMessageForCover(const char name[], const char topic[], const JsonDocument& device);
 
@@ -133,7 +132,6 @@ private:
     unsigned long _sensorLastUpdate = 0;
     int _sensorForceUpdateInterval = 7200000;  // 2 hours
 
-    #ifdef DEBUG
     bool _bootFlag = true;
-    #endif
+    bool _discoveryPending = false;
 };

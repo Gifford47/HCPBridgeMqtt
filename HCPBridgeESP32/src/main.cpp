@@ -262,6 +262,10 @@ void setup() {
 
     WiFi.onEvent(WiFiEvent);
 
+    // Initialize enabled sensors before WiFi/MQTT to prevent race condition:
+    // MQTT onConnect sends discovery, needs sensor status already set
+    sensorManager.begin(localPrefs);
+
     // Setup MQTT
     mqttHandler.begin(localPrefs, &prefHandler, &sensorManager);
 
@@ -277,9 +281,6 @@ void setup() {
         configMAX_PRIORITIES - 3,
         &mqttTask,
         0);
-
-    // Sensor auto-detection and initialization
-    sensorManager.begin(localPrefs);
 
     // Sensor polling task (only if any sensor is active)
     if (sensorManager.hasAnySensor()) {
@@ -373,7 +374,7 @@ void setup() {
         root["ip"] = WiFi.localIP().toString();
         root["wifistatus"] = WiFi.status();
         root["mqttstatus"] = mqttHandler.getClient().connected();
-        root["resetreason"] = esp_reset_reason();
+        root["restart_reason"] = esp_reset_reason();
         root["swversion"] = HA_VERSION;
         #ifdef BUILD_ENV
         root["buildenv"] = BUILD_ENV;

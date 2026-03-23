@@ -74,6 +74,11 @@ void MqttHandler::begin(Preferences* prefs, PreferenceHandler* prefHandler, Sens
 }
 
 void MqttHandler::connectToMqtt() {
+    if (!_sensorMgr->isReady()) {
+        DBG_PRINTLN("MQTT: waiting for sensors...");
+        xTimerStart(mqttReconnectTimer, 0);
+        return;
+    }
     DBG_PRINTLN("Connecting to MQTT...");
     _mqttClient.connect();
 }
@@ -90,21 +95,20 @@ void MqttHandler::onConnect(bool sessionPresent) {
     _mqttClient.subscribe(_mqttStrings.st_cmd_topic_subs.c_str(), 1);
     updateDoorStatus(true);
     updateSensors(true);
-    sendDiscoveryMessage();
-    #ifdef DEBUG
+    if (_sensorMgr->isReady()) {
+        sendDiscoveryMessage();
+    } else {
+        _discoveryPending = true;
+        DBG_PRINTLN("Discovery deferred: sensors not ready");
+    }
     if (_bootFlag) {
-        int i = esp_reset_reason();
-        char val[3];
-        sprintf(val, "%i", i);
-        sendDebug("ResetReason", val);
+        sendDebug();
         _bootFlag = false;
     }
-    #endif
 }
 
 void MqttHandler::onDisconnect(AsyncMqttClientDisconnectReason reason) {
     _mqttConnected = false;
-    #ifdef DEBUG
     switch (reason) {
         case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
             DBG_PRINTLN("Disconnected from MQTT. reason : TCP_DISCONNECTED"); break;
@@ -124,7 +128,6 @@ void MqttHandler::onDisconnect(AsyncMqttClientDisconnectReason reason) {
             DBG_PRINTLN("Disconnected from MQTT. reason :TLS_BAD_FINGERPRINT"); break;
         default: break;
     }
-    #endif
 
     if (WiFi.isConnected()) {
         xTimerStart(mqttReconnectTimer, 0);
@@ -256,13 +259,17 @@ void MqttHandler::setWill() {
     _mqttClient.setWill(_mqttStrings.availability_topic, 0, true, HA_OFFLINE);
 }
 
-void MqttHandler::sendDebug(char* key, String value) {
+void MqttHandler::sendDebug() {
     JsonDocument doc;
     char payload[1024];
-    doc["reset-reason"] = esp_reset_reason();
+    doc["restart_reason"] = esp_reset_reason();
     doc["debug"] = hoermannEngine->state->debugMessage;
+    String sensorErr = _sensorMgr->getLastError();
+    if (sensorErr.length() > 0) {
+        doc["sensor_error"] = sensorErr;
+    }
     serializeJson(doc, payload);
-    _mqttClient.publish(_mqttStrings.debug_topic, 0, false, payload);
+    _mqttClient.publish(_mqttStrings.debug_topic, 0, true, payload);
 }
 
 // ============================================================================
@@ -304,7 +311,7 @@ void MqttHandler::sendDiscoveryMessageForAVSensor(const JsonDocument& device) {
     sprintf(uid, "%s_sensor_availability", _prefs->getString(preference_gd_id));
 
     JsonDocument doc;
-    doc["name"] = _prefs->getString(preference_gd_avail);
+    doc["name"] = GD_AVAIL;
     doc["state_topic"] = _mqttStrings.availability_topic;
     doc["unique_id"] = uid;
     doc["device"] = device;
@@ -357,35 +364,6 @@ void MqttHandler::sendDiscoveryMessageForSensor(const char name[], const char to
         doc["unit_of_measurement"] = "hPa";
         doc["device_class"] = "pressure";
     }
-
-    char payload[1024];
-    serializeJson(doc, payload);
-    _mqttClient.publish(full_topic, 1, true, payload);
-}
-
-void MqttHandler::sendDiscoveryMessageForDebug(const char name[], const char key[], const JsonDocument& device) {
-    char command_topic[64];
-    sprintf(command_topic, _mqttStrings.st_cmd_topic_var.c_str(), _mqttStrings.debug_topic);
-
-    char full_topic[64];
-    sprintf(full_topic, HA_DISCOVERY_TEXT, _prefs->getString(preference_gd_id), key);
-
-    char uid[64];
-    sprintf(uid, "%s_text_%s", _prefs->getString(preference_gd_id), key);
-
-    char vtemp[64];
-    sprintf(vtemp, "{{ value_json.%s }}", key);
-
-    JsonDocument doc;
-    doc["name"] = name;
-    doc["state_topic"] = _mqttStrings.debug_topic;
-    doc["command_topic"] = command_topic;
-    doc["availability_topic"] = _mqttStrings.availability_topic;
-    doc["payload_available"] = HA_ONLINE;
-    doc["payload_not_available"] = HA_OFFLINE;
-    doc["unique_id"] = uid;
-    doc["value_template"] = vtemp;
-    doc["device"] = device;
 
     char payload[1024];
     serializeJson(doc, payload);
@@ -485,43 +463,47 @@ void MqttHandler::sendDiscoveryMessage() {
     device["configuration_url"] = configUrl;
 
     sendDiscoveryMessageForAVSensor(device);
-    sendDiscoveryMessageForSwitch(_prefs->getString(preference_gd_light).c_str(), HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
-    sendDiscoveryMessageForBinarySensor(_prefs->getString(preference_gd_light).c_str(), _mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
-    sendDiscoveryMessageForSwitch(_prefs->getString(preference_gd_vent).c_str(), HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
-    sendDiscoveryMessageForSwitch(_prefs->getString(preference_gd_half).c_str(), HA_DISCOVERY_SWITCH, "half", HA_CLOSE, HA_HALF, "mdi:air-filter", device);
-    sendDiscoveryMessageForSwitch(_prefs->getString(preference_gd_step).c_str(), HA_DISCOVERY_SWITCH, "step", HA_STEP, HA_STEP, "mdi:remote", device);
+    sendDiscoveryMessageForSwitch(GD_LIGHT, HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
+    sendDiscoveryMessageForBinarySensor(GD_LIGHT, _mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
+    sendDiscoveryMessageForSwitch(GD_VENT, HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
+    sendDiscoveryMessageForSwitch(GD_HALF, HA_DISCOVERY_SWITCH, "half", HA_CLOSE, HA_HALF, "mdi:air-filter", device);
+    sendDiscoveryMessageForSwitch(GD_STEP, HA_DISCOVERY_SWITCH, "step", HA_STEP, HA_STEP, "mdi:remote", device);
     sendDiscoveryMessageForCover(_prefs->getString(preference_gd_name).c_str(), "door", device);
 
-    sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_status).c_str(), _mqttStrings.state_topic, "doorstate", device, "enum");
-    sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_det_status).c_str(), _mqttStrings.state_topic, "detailedState", device, "enum");
-    sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_position).c_str(), _mqttStrings.state_topic, "doorposition", device);
+    sendDiscoveryMessageForSensor(GD_STATUS, _mqttStrings.state_topic, "doorstate", device, "enum");
+    sendDiscoveryMessageForSensor(GD_DET_STATUS, _mqttStrings.state_topic, "detailedState", device, "enum");
+    sendDiscoveryMessageForSensor(GD_POSITIOM, _mqttStrings.state_topic, "doorposition", device);
 
-    // Dynamic sensor discovery based on runtime detection
+    // Dynamic sensor discovery - send for active, remove retained for inactive
+    auto clearTopic = [&](const char* fmt, const char* key) {
+        char t[64]; sprintf(t, fmt, _prefs->getString(preference_gd_id), key);
+        _mqttClient.publish(t, 1, true, "");
+    };
+
     if (_sensorMgr->hasTempSensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_temp).c_str(), _mqttStrings.sensor_topic, "temp", device, "temperature", "°C");
-    }
+    } else { clearTopic(HA_DISCOVERY_SENSOR, "temp"); }
     if (_sensorMgr->hasHumiditySensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_hum).c_str(), _mqttStrings.sensor_topic, "hum", device, "humidity", "%");
-    }
+    } else { clearTopic(HA_DISCOVERY_SENSOR, "hum"); }
     if (_sensorMgr->hasPressureSensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_pres).c_str(), _mqttStrings.sensor_topic, "pres", device, "atmospheric_pressure", "hPa");
-    }
+    } else { clearTopic(HA_DISCOVERY_SENSOR, "pres"); }
     if (_sensorMgr->hasDistanceSensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_free_dist).c_str(), _mqttStrings.sensor_topic, "dist", device, "distance", "cm");
         sendDiscoveryMessageForBinarySensor(_prefs->getString(preference_gs_park_avail).c_str(), _mqttStrings.sensor_topic, "free", HA_OFF, HA_ON, device);
-    }
+    } else { clearTopic(HA_DISCOVERY_SENSOR, "dist"); clearTopic(HA_DISCOVERY_BIN_SENSOR, "free"); }
     if (_sensorMgr->hasMotionSensor()) {
         sendDiscoveryMessageForBinarySensor(_prefs->getString(preference_gs_motion).c_str(), _mqttStrings.sensor_topic, "motion", HA_OFF, HA_ON, device);
-    }
+    } else { clearTopic(HA_DISCOVERY_BIN_SENSOR, "motion"); }
     if (_sensorMgr->hasGasSensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_gas).c_str(), _mqttStrings.sensor_topic, "gas", device, "volatile_organic_compounds_parts", "ppm");
         sendDiscoveryMessageForBinarySensor(_prefs->getString(preference_gs_gas_alarm).c_str(), _mqttStrings.sensor_topic, "gas_alarm", HA_OFF, HA_ON, device);
-    }
+    } else { clearTopic(HA_DISCOVERY_SENSOR, "gas"); clearTopic(HA_DISCOVERY_BIN_SENSOR, "gas_alarm"); }
 
-    #ifdef DEBUG
-    sendDiscoveryMessageForDebug(_prefs->getString(preference_gd_debug).c_str(), "debug", device);
-    sendDiscoveryMessageForDebug(_prefs->getString(preference_gd_debug_restart).c_str(), "reset-reason", device);
-    #endif
+    // Debug entities are always active (independent of debug_enabled)
+    sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_debug).c_str(), _mqttStrings.debug_topic, "debug", device);
+    sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_debug_restart).c_str(), _mqttStrings.debug_topic, "restart_reason", device);
 }
 
 // ============================================================================
@@ -530,13 +512,15 @@ void MqttHandler::sendDiscoveryMessage() {
 
 void MqttHandler::taskFunc() {
     if (_mqttConnected) {
+        if (_discoveryPending && _sensorMgr->isReady()) {
+            _discoveryPending = false;
+            sendDiscoveryMessage();
+        }
         updateDoorStatus();
         updateSensors();
-        #ifdef DEBUG
         if (hoermannEngine->state->debMessage) {
             hoermannEngine->state->clearDebug();
             sendDebug();
         }
-        #endif
     }
 }

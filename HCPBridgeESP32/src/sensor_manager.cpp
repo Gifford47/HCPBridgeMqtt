@@ -1,7 +1,7 @@
 #include "sensor_manager.h"
 
 // ============================================================================
-// Validation functions (used by both detect and poll)
+// Validation functions
 // ============================================================================
 
 bool SensorManager::validateTemperature(float temp) {
@@ -23,337 +23,217 @@ bool SensorManager::validatePressure(float pres) {
 }
 
 bool SensorManager::validateBmeReading(float temp, float hum, float pres) {
-    // BME280 specific: humidity >= 99.9 indicates I2C hung
     if (hum >= 99.9f) return false;
     return validateTemperature(temp) && validateHumidity(hum) && validatePressure(pres);
 }
 
 bool SensorManager::validateDistance(int distCm) {
     if (distCm <= 0) return false;
-    if (distCm > _hcsr04MaxDistanceCm * 2) return false;  // Allow some headroom over max
+    if (distCm > _hcsr04MaxDistanceCm * 2) return false;
     return true;
 }
 
 bool SensorManager::validateGasReading(int analogValue) {
-    // ADC reading should be in valid range (not 0 = disconnected, not 4095 = stuck high)
     if (analogValue <= 0 || analogValue >= 4095) return false;
     return true;
 }
 
 // ============================================================================
-// Disable helper
+// Helpers
 // ============================================================================
 
 void SensorManager::disableSensor(const char* name, SensorStatus& status) {
     status = SensorStatus::FAILED_DISABLED;
+    char msg[48];
+    snprintf(msg, sizeof(msg), "%s: too many failures", name);
+    setError(msg);
     DBG_PRINT("SENSOR DISABLED: ");
-    DBG_PRINT(name);
-    DBG_PRINTLN(" - too many consecutive failures. Will not retry until reboot.");
+    DBG_PRINTLN(name);
+}
+
+void SensorManager::setError(const char* msg) {
+    if (_lastError.length() > 0) {
+        _lastError += "; ";
+    }
+    _lastError += msg;
+    DBG_PRINTLN(msg);
 }
 
 // ============================================================================
-// Detection functions
+// Init functions (called from begin() for enabled sensors)
 // ============================================================================
 
-bool SensorManager::detectBme(Preferences* prefs) {
+bool SensorManager::initBme(Preferences* prefs) {
     _i2cSdaPin = prefs->getInt(preference_sensor_i2c_sda);
     _i2cSclPin = prefs->getInt(preference_sensor_i2c_scl);
 
     if (_i2cSdaPin == 0 || _i2cSclPin == 0) {
-        DBG_PRINTLN("BME280: Pins not configured, skipping");
+        setError("BME280: pins not set");
         return false;
     }
-
-    DBG_PRINT("BME280: Probing on I2C SDA=");
-    DBG_PRINT(_i2cSdaPin);
-    DBG_PRINT(" SCL=");
-    DBG_PRINTLN(_i2cSclPin);
 
     _i2cBme.begin(_i2cSdaPin, _i2cSclPin);
 
-    // Try address 0x76 first, then 0x77
-    bool found = _bme.begin(0x76, &_i2cBme);
-    if (!found) {
-        found = _bme.begin(0x77, &_i2cBme);
-    }
-
-    if (!found) {
-        DBG_PRINTLN("BME280: Not found on I2C bus");
+    if (!_bme.begin(0x76, &_i2cBme) && !_bme.begin(0x77, &_i2cBme)) {
+        setError("BME280: not found on I2C");
         return false;
     }
 
-    // Read first values and validate
     float temp = _bme.readTemperature();
     float hum = _bme.readHumidity();
     float pres = _bme.readPressure() / 100.0f;
 
     if (!validateBmeReading(temp, hum, pres)) {
-        DBG_PRINTLN("BME280: Found but initial reading invalid");
+        setError("BME280: initial reading invalid");
         return false;
     }
 
     _bmeTemp = temp;
     _bmeHum = hum;
     _bmePres = pres;
-    DBG_PRINT("BME280: Active (T=");
-    DBG_PRINT(temp);
-    DBG_PRINT(" H=");
-    DBG_PRINT(hum);
-    DBG_PRINT(" P=");
-    DBG_PRINT(pres);
-    DBG_PRINTLN(")");
+    DBG_PRINTLN("BME280: Active");
     return true;
 }
 
-bool SensorManager::detectDs18x20(Preferences* prefs) {
+bool SensorManager::initDs18x20(Preferences* prefs) {
     _ds18x20Pin = prefs->getInt(preference_sensor_ds18x20_pin);
 
     if (_ds18x20Pin == 0) {
-        DBG_PRINTLN("DS18X20: Pin not configured, skipping");
+        setError("DS18X20: pin not set");
         return false;
     }
 
-    DBG_PRINT("DS18X20: Probing on pin ");
-    DBG_PRINTLN(_ds18x20Pin);
-
-    // Create static instances that persist
     static OneWire staticOneWire(_ds18x20Pin);
     static DallasTemperature staticDs18x20(&staticOneWire);
 
     _oneWire = &staticOneWire;
     _ds18x20 = &staticDs18x20;
     _ds18x20->begin();
-
-    // Request temperature and read
     _ds18x20->requestTemperatures();
     float temp = _ds18x20->getTempCByIndex(0);
 
     if (!validateTemperature(temp)) {
-        DBG_PRINTLN("DS18X20: Not found or invalid reading");
+        setError("DS18X20: no valid reading");
         _ds18x20 = nullptr;
         _oneWire = nullptr;
         return false;
     }
 
     _ds18x20Temp = temp;
-    DBG_PRINT("DS18X20: Active (T=");
-    DBG_PRINT(temp);
-    DBG_PRINTLN(")");
+    DBG_PRINTLN("DS18X20: Active");
     return true;
 }
 
-bool SensorManager::detectDht22(Preferences* prefs) {
+bool SensorManager::initDht22(Preferences* prefs) {
     _dhtPin = prefs->getInt(preference_sensor_dht_data_pin);
 
     if (_dhtPin == 0) {
-        DBG_PRINTLN("DHT22: Pin not configured, skipping");
+        setError("DHT22: pin not set");
         return false;
     }
-
-    DBG_PRINT("DHT22: Probing on pin ");
-    DBG_PRINTLN(_dhtPin);
 
     static DHT staticDht(_dhtPin, DHT22);
     _dht = &staticDht;
     _dht->begin();
-
-    // Wait a moment for DHT22 to stabilize
     delay(2000);
 
     float temp = _dht->readTemperature();
     float hum = _dht->readHumidity();
 
     if (!validateTemperature(temp) || !validateHumidity(hum)) {
-        DBG_PRINTLN("DHT22: Not found or invalid reading");
+        setError("DHT22: no valid reading");
         _dht = nullptr;
         return false;
     }
 
     _dht22Temp = temp;
     _dht22Hum = hum;
-    DBG_PRINT("DHT22: Active (T=");
-    DBG_PRINT(temp);
-    DBG_PRINT(" H=");
-    DBG_PRINT(hum);
-    DBG_PRINTLN(")");
+    DBG_PRINTLN("DHT22: Active");
     return true;
 }
 
-bool SensorManager::detectHcsr04(Preferences* prefs) {
+bool SensorManager::initHcsr04(Preferences* prefs) {
     _hcsr04TrigPin = prefs->getInt(preference_sensor_sr04_trigpin);
     _hcsr04EchoPin = prefs->getInt(preference_sensor_sr04_echopin);
     _hcsr04MaxDistanceCm = prefs->getInt(preference_sensor_sr04_max_dist);
 
     if (_hcsr04TrigPin == 0 || _hcsr04EchoPin == 0) {
-        DBG_PRINTLN("HC-SR04: Pins not configured, skipping");
+        setError("HC-SR04: pins not set");
         return false;
     }
-
-    DBG_PRINT("HC-SR04: Probing on trig=");
-    DBG_PRINT(_hcsr04TrigPin);
-    DBG_PRINT(" echo=");
-    DBG_PRINTLN(_hcsr04EchoPin);
 
     pinMode(_hcsr04TrigPin, OUTPUT);
     pinMode(_hcsr04EchoPin, INPUT);
 
-    // Take a test measurement
     digitalWrite(_hcsr04TrigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(_hcsr04TrigPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(_hcsr04TrigPin, LOW);
 
-    long duration = pulseIn(_hcsr04EchoPin, HIGH, 30000);  // 30ms timeout
+    long duration = pulseIn(_hcsr04EchoPin, HIGH, 30000);
     int distCm = duration * SOUND_SPEED / 2;
 
     if (!validateDistance(distCm)) {
-        DBG_PRINTLN("HC-SR04: No valid response");
+        setError("HC-SR04: no valid response");
         return false;
     }
 
     _hcsr04DistanceCm = distCm;
     _hcsr04MaxMeasuredCm = distCm;
-    DBG_PRINT("HC-SR04: Active (dist=");
-    DBG_PRINT(distCm);
-    DBG_PRINTLN("cm)");
+    DBG_PRINTLN("HC-SR04: Active");
     return true;
 }
 
-bool SensorManager::detectHcsr501(Preferences* prefs) {
+bool SensorManager::initHcsr501(Preferences* prefs) {
     _hcsr501Pin = prefs->getInt(preference_sensor_sr501);
 
     if (_hcsr501Pin == 0) {
-        DBG_PRINTLN("HC-SR501: Pin not configured, skipping");
-        return false;
-    }
-
-    DBG_PRINT("HC-SR501: Configured on pin ");
-    DBG_PRINTLN(_hcsr501Pin);
-
-    // Detect floating pin: a connected HC-SR501 drives the pin strongly,
-    // overriding weak internal pull resistors (~45kOhm).
-    // A floating (unconnected) pin follows the pull resistor direction.
-    const int NUM_SAMPLES = 5;
-    const int SAMPLE_DELAY_MS = 10;
-    int pullupHigh = 0, pulldownLow = 0;
-
-    pinMode(_hcsr501Pin, INPUT_PULLUP);
-    delay(50);
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        if (digitalRead(_hcsr501Pin) == HIGH) pullupHigh++;
-        delay(SAMPLE_DELAY_MS);
-    }
-
-    pinMode(_hcsr501Pin, INPUT_PULLDOWN);
-    delay(50);
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        if (digitalRead(_hcsr501Pin) == LOW) pulldownLow++;
-        delay(SAMPLE_DELAY_MS);
-    }
-
-    // Floating pin follows both pull directions (HIGH with pullup, LOW with pulldown).
-    // A connected sensor drives the pin and overrides at least one pull direction.
-    if (pullupHigh >= NUM_SAMPLES - 1 && pulldownLow >= NUM_SAMPLES - 1) {
-        DBG_PRINTLN("HC-SR501: Pin follows pull resistors, likely floating - no sensor connected");
-        pinMode(_hcsr501Pin, INPUT);
+        setError("HC-SR501: pin not set");
         return false;
     }
 
     pinMode(_hcsr501Pin, INPUT);
     _hcsr501LastStat = digitalRead(_hcsr501Pin);
     _hcsr501Stat = _hcsr501LastStat;
-
-    DBG_PRINTLN("HC-SR501: Active (sensor detected)");
+    DBG_PRINTLN("HC-SR501: Active");
     return true;
 }
 
-bool SensorManager::detectMq4(Preferences* prefs) {
+bool SensorManager::initMq4(Preferences* prefs) {
     _mq4AnalogPin = prefs->getInt(preference_sensor_mq4_analog);
     _mq4DigitalPin = prefs->getInt(preference_sensor_mq4_digital);
 
     if (_mq4AnalogPin == 0) {
-        DBG_PRINTLN("MQ4: Analog pin not configured, skipping");
+        setError("MQ4: analog pin not set");
         return false;
     }
 
-    DBG_PRINT("MQ4: Probing on analog=");
-    DBG_PRINT(_mq4AnalogPin);
-    DBG_PRINT(" digital=");
-    DBG_PRINTLN(_mq4DigitalPin);
-
-    // Configure pins
     pinMode(_mq4AnalogPin, INPUT);
     if (_mq4DigitalPin > 0) {
         pinMode(_mq4DigitalPin, INPUT);
     }
 
-    // Take multiple readings to distinguish a real sensor from a floating pin.
-    // A connected MQ4 produces stable ADC values; a floating pin produces noisy, scattered readings.
-    const int NUM_SAMPLES = 10;
-    const int SAMPLE_DELAY_MS = 20;
-    int samples[NUM_SAMPLES];
-    int minVal = 4095, maxVal = 0;
-    long sum = 0;
-
-    delay(100);  // Let pin settle
-
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        samples[i] = analogRead(_mq4AnalogPin);
-        if (samples[i] < minVal) minVal = samples[i];
-        if (samples[i] > maxVal) maxVal = samples[i];
-        sum += samples[i];
-        delay(SAMPLE_DELAY_MS);
-    }
-
-    int avgVal = sum / NUM_SAMPLES;
-    int spread = maxVal - minVal;
-
-    DBG_PRINT("MQ4: samples avg=");
-    DBG_PRINT(avgVal);
-    DBG_PRINT(" spread=");
-    DBG_PRINT(spread);
-    DBG_PRINT(" (min=");
-    DBG_PRINT(minVal);
-    DBG_PRINT(" max=");
-    DBG_PRINT(maxVal);
-    DBG_PRINTLN(")");
-
-    // Validate average value
-    if (!validateGasReading(avgVal)) {
-        DBG_PRINTLN("MQ4: Not found or invalid reading");
+    int analogVal = analogRead(_mq4AnalogPin);
+    if (!validateGasReading(analogVal)) {
+        setError("MQ4: no valid reading");
         return false;
     }
 
-    // A floating pin without pullup/pulldown produces high variance (spread > 100 typical).
-    // A real MQ4 sensor is stable (spread < 50 under normal conditions).
-    const int MAX_SPREAD = 80;
-    if (spread > MAX_SPREAD) {
-        DBG_PRINT("MQ4: Readings too unstable (spread=");
-        DBG_PRINT(spread);
-        DBG_PRINTLN("), likely floating pin - no sensor connected");
-        return false;
-    }
-
-    _mq4AnalogValue = avgVal;
+    _mq4AnalogValue = analogVal;
     if (_mq4DigitalPin > 0) {
-        _mq4DigitalAlarm = digitalRead(_mq4DigitalPin) == LOW;  // MQ4 digital output is active LOW
+        _mq4DigitalAlarm = digitalRead(_mq4DigitalPin) == LOW;
     }
-
-    DBG_PRINT("MQ4: Active (analog=");
-    DBG_PRINT(avgVal);
-    DBG_PRINT(" alarm=");
-    DBG_PRINT(_mq4DigitalAlarm ? "YES" : "NO");
-    DBG_PRINTLN(")");
+    DBG_PRINTLN("MQ4: Active");
     return true;
 }
 
 // ============================================================================
-// begin() - Initialize and auto-detect sensors
+// begin() - Initialize enabled sensors (manual selection via WebUI)
 // ============================================================================
 
 void SensorManager::begin(Preferences* prefs) {
-    DBG_PRINTLN("=== Sensor Auto-Detection ===");
+    DBG_PRINTLN("=== Sensor Init ===");
 
     // Load thresholds
     tempThreshold = prefs->getDouble(preference_sensor_temp_treshold);
@@ -362,58 +242,40 @@ void SensorManager::begin(Preferences* prefs) {
     proxThreshold = prefs->getInt(preference_sensor_prox_treshold);
     gasThreshold = prefs->getInt(preference_sensor_gas_threshold);
 
-    // Try each sensor type
-    _bmeStatus = SensorStatus::DETECTING;
-    if (detectBme(prefs)) {
-        _bmeStatus = SensorStatus::ACTIVE;
-    } else {
-        _bmeStatus = SensorStatus::NOT_CONFIGURED;
+    // Only init sensors that are enabled in preferences
+    if (prefs->getBool(preference_sensor_bme_enabled)) {
+        _bmeStatus = initBme(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    _ds18x20Status = SensorStatus::DETECTING;
-    if (detectDs18x20(prefs)) {
-        _ds18x20Status = SensorStatus::ACTIVE;
-    } else {
-        _ds18x20Status = SensorStatus::NOT_CONFIGURED;
+    if (prefs->getBool(preference_sensor_ds18x20_enabled)) {
+        _ds18x20Status = initDs18x20(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    _dht22Status = SensorStatus::DETECTING;
-    if (detectDht22(prefs)) {
-        _dht22Status = SensorStatus::ACTIVE;
-    } else {
-        _dht22Status = SensorStatus::NOT_CONFIGURED;
+    if (prefs->getBool(preference_sensor_dht22_enabled)) {
+        _dht22Status = initDht22(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    _hcsr04Status = SensorStatus::DETECTING;
-    if (detectHcsr04(prefs)) {
-        _hcsr04Status = SensorStatus::ACTIVE;
-    } else {
-        _hcsr04Status = SensorStatus::NOT_CONFIGURED;
+    if (prefs->getBool(preference_sensor_hcsr04_enabled)) {
+        _hcsr04Status = initHcsr04(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    _hcsr501Status = SensorStatus::DETECTING;
-    if (detectHcsr501(prefs)) {
-        _hcsr501Status = SensorStatus::ACTIVE;
-    } else {
-        _hcsr501Status = SensorStatus::NOT_CONFIGURED;
+    if (prefs->getBool(preference_sensor_hcsr501_enabled)) {
+        _hcsr501Status = initHcsr501(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    _mq4Status = SensorStatus::DETECTING;
-    if (detectMq4(prefs)) {
-        _mq4Status = SensorStatus::ACTIVE;
-    } else {
-        _mq4Status = SensorStatus::NOT_CONFIGURED;
+    if (prefs->getBool(preference_sensor_mq4_enabled)) {
+        _mq4Status = initMq4(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
     }
 
-    // Summary
     DBG_PRINTLN("=== Sensor Summary ===");
-    DBG_PRINT("BME280:  "); DBG_PRINTLN(_bmeStatus == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    DBG_PRINT("DS18X20: "); DBG_PRINTLN(_ds18x20Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    DBG_PRINT("DHT22:   "); DBG_PRINTLN(_dht22Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    DBG_PRINT("HC-SR04: "); DBG_PRINTLN(_hcsr04Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    DBG_PRINT("HC-SR501:"); DBG_PRINTLN(_hcsr501Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
-    DBG_PRINT("MQ4:     "); DBG_PRINTLN(_mq4Status == SensorStatus::ACTIVE ? "ACTIVE" : "not found");
+    DBG_PRINT("BME280:  "); DBG_PRINTLN(_bmeStatus == SensorStatus::ACTIVE ? "ACTIVE" : "off");
+    DBG_PRINT("DS18X20: "); DBG_PRINTLN(_ds18x20Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
+    DBG_PRINT("DHT22:   "); DBG_PRINTLN(_dht22Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
+    DBG_PRINT("HC-SR04: "); DBG_PRINTLN(_hcsr04Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
+    DBG_PRINT("HC-SR501:"); DBG_PRINTLN(_hcsr501Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
+    DBG_PRINT("MQ4:     "); DBG_PRINTLN(_mq4Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
     DBG_PRINTLN("======================");
+    _ready = true;
 }
 
 // ============================================================================
@@ -510,7 +372,6 @@ void SensorManager::pollDht22() {
 }
 
 void SensorManager::pollHcsr04() {
-    // Trigger measurement
     digitalWrite(_hcsr04TrigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(_hcsr04TrigPin, HIGH);
@@ -531,12 +392,10 @@ void SensorManager::pollHcsr04() {
     _hcsr04FailCount = 0;
     _hcsr04DistanceCm = distCm;
 
-    // Track max distance
     if (_hcsr04DistanceCm > _hcsr04MaxMeasuredCm) {
         _hcsr04MaxMeasuredCm = _hcsr04DistanceCm;
     }
 
-    // Determine park availability
     if ((_hcsr04DistanceCm + proxThreshold) > _hcsr04MaxMeasuredCm) {
         _hcsr04ParkAvailable = true;
     } else {
@@ -556,7 +415,6 @@ void SensorManager::pollHcsr501() {
     if (_hcsr501Stat != _hcsr501LastStat) {
         _hcsr501LastStat = _hcsr501Stat;
         _hcsr501Changed = true;
-        // Motion sensor triggers immediate publish (not through _newSensorData)
     }
 }
 
@@ -576,7 +434,7 @@ void SensorManager::pollMq4() {
 
     bool digitalAlarm = false;
     if (_mq4DigitalPin > 0) {
-        digitalAlarm = digitalRead(_mq4DigitalPin) == LOW;  // Active LOW
+        digitalAlarm = digitalRead(_mq4DigitalPin) == LOW;
     }
     _mq4DigitalAlarm = digitalAlarm;
 
@@ -593,27 +451,21 @@ void SensorManager::pollMq4() {
 // ============================================================================
 
 void SensorManager::poll() {
-    // HC-SR501 is polled first for immediate state change detection
     if (_hcsr501Status == SensorStatus::ACTIVE) {
         pollHcsr501();
     }
-
     if (_ds18x20Status == SensorStatus::ACTIVE) {
         pollDs18x20();
     }
-
     if (_bmeStatus == SensorStatus::ACTIVE) {
         pollBme();
     }
-
     if (_hcsr04Status == SensorStatus::ACTIVE) {
         pollHcsr04();
     }
-
     if (_dht22Status == SensorStatus::ACTIVE) {
         pollDht22();
     }
-
     if (_mq4Status == SensorStatus::ACTIVE) {
         pollMq4();
     }
@@ -684,7 +536,6 @@ void SensorManager::toDetectionJson(JsonObject& sensors) const {
 void SensorManager::toJson(JsonDocument& doc) {
     char buf[20];
 
-    // Temperature: prefer BME280 > DS18X20 > DHT22
     if (_bmeStatus == SensorStatus::ACTIVE) {
         dtostrf(_bmeTemp, 2, 1, buf);
         doc["temp"] = buf;

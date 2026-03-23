@@ -18,13 +18,11 @@
 // ============================================================================
 
 enum class SensorStatus {
-    NOT_CONFIGURED,  // Pin = 0 or invalid
-    DETECTING,       // Being probed during begin()
-    ACTIVE,          // Working, delivering valid values
-    FAILED_DISABLED  // Was active, disabled due to errors (until reboot)
+    NOT_CONFIGURED,  // Not enabled or pin invalid
+    ACTIVE,          // Enabled and initialized
+    FAILED_DISABLED  // Too many consecutive errors (until reboot)
 };
 
-// Number of consecutive failures before disabling a sensor
 #define SENSOR_MAX_FAIL_COUNT 5
 
 // ============================================================================
@@ -33,7 +31,7 @@ enum class SensorStatus {
 
 class SensorManager {
 public:
-    // Initialize all sensors - call in setup()
+    // Initialize enabled sensors - call in setup()
     void begin(Preferences* prefs);
 
     // Poll all active sensors - call in SensorCheck FreeRTOS task
@@ -41,8 +39,6 @@ public:
 
     // Check if new data is available since last call
     bool hasNewData();
-
-    // Clear the new data flag
     void clearNewData();
 
     // Build JSON payload for MQTT sensor topic
@@ -66,14 +62,12 @@ public:
     bool hasDistanceSensor() const;
     bool hasMotionSensor() const;
     bool hasGasSensor() const;
-
-    // Check if any sensor is active
     bool hasAnySensor() const;
 
-    // Build JSON with sensor detection status for /sysinfo
+    // Build JSON with sensor status for /sysinfo
     void toDetectionJson(JsonObject& sensors) const;
 
-    // Thresholds (loaded from preferences)
+    // Thresholds
     float tempThreshold = 0;
     int humThreshold = 0;
     int presThreshold = 0;
@@ -81,13 +75,19 @@ public:
     int gasThreshold = 0;
     int forceUpdateInterval = 7200000;  // 2 hours in ms
 
-    // HC-SR501 immediate publish data
+    // HC-SR501 immediate publish
     bool hcsr501StateChanged() const { return _hcsr501Changed; }
     void clearHcsr501Changed() { _hcsr501Changed = false; }
     int getHcsr501State() const { return _hcsr501Stat; }
 
+    // Sensors fully initialized (begin() complete)
+    volatile bool isReady() const { return _ready; }
+
+    // Last error string for debug entity (always active)
+    String getLastError() const { return _lastError; }
+
 private:
-    // ---- Validation functions (used by both detect and poll) ----
+    // Validation
     bool validateTemperature(float temp);
     bool validateHumidity(float hum);
     bool validatePressure(float pres);
@@ -95,15 +95,15 @@ private:
     bool validateDistance(int distCm);
     bool validateGasReading(int analogValue);
 
-    // ---- Detection functions (called in begin()) ----
-    bool detectBme(Preferences* prefs);
-    bool detectDs18x20(Preferences* prefs);
-    bool detectDht22(Preferences* prefs);
-    bool detectHcsr04(Preferences* prefs);
-    bool detectHcsr501(Preferences* prefs);
-    bool detectMq4(Preferences* prefs);
+    // Init functions (called in begin() for enabled sensors)
+    bool initBme(Preferences* prefs);
+    bool initDs18x20(Preferences* prefs);
+    bool initDht22(Preferences* prefs);
+    bool initHcsr04(Preferences* prefs);
+    bool initHcsr501(Preferences* prefs);
+    bool initMq4(Preferences* prefs);
 
-    // ---- Poll functions ----
+    // Poll functions
     void pollBme();
     void pollDs18x20();
     void pollDht22();
@@ -111,10 +111,10 @@ private:
     void pollHcsr501();
     void pollMq4();
 
-    // ---- Disable helper ----
     void disableSensor(const char* name, SensorStatus& status);
+    void setError(const char* msg);
 
-    // ---- Sensor states ----
+    // Sensor states
     SensorStatus _bmeStatus = SensorStatus::NOT_CONFIGURED;
     SensorStatus _ds18x20Status = SensorStatus::NOT_CONFIGURED;
     SensorStatus _hcsr04Status = SensorStatus::NOT_CONFIGURED;
@@ -122,79 +122,53 @@ private:
     SensorStatus _hcsr501Status = SensorStatus::NOT_CONFIGURED;
     SensorStatus _mq4Status = SensorStatus::NOT_CONFIGURED;
 
-    // ---- Fail counters ----
+    // Fail counters
     int _bmeFailCount = 0;
     int _ds18x20FailCount = 0;
     int _dht22FailCount = 0;
     int _hcsr04FailCount = 0;
     int _mq4FailCount = 0;
 
-    // ---- Sensor hardware ----
-    // BME280
+    // Sensor hardware
     TwoWire _i2cBme = TwoWire(0);
     Adafruit_BME280 _bme;
     int _i2cSdaPin = 0;
     int _i2cSclPin = 0;
 
-    // DS18X20
     OneWire* _oneWire = nullptr;
     DallasTemperature* _ds18x20 = nullptr;
     int _ds18x20Pin = 0;
 
-    // DHT22
     DHT* _dht = nullptr;
     int _dhtPin = 0;
 
-    // HC-SR04
     int _hcsr04TrigPin = 0;
     int _hcsr04EchoPin = 0;
     int _hcsr04MaxDistanceCm = SR04_MAXDISTANCECM;
 
-    // HC-SR501
     int _hcsr501Pin = 0;
 
-    // MQ4
     int _mq4AnalogPin = 0;
     int _mq4DigitalPin = 0;
 
-    // ---- Sensor values ----
-    // BME280
-    float _bmeTemp = -99.99;
-    float _bmeLastTemp = -99.99;
-    float _bmeHum = -99.99;
-    float _bmeLastHum = -99.99;
-    float _bmePres = -99.99;
-    float _bmeLastPres = -99.99;
-
-    // DS18X20
-    float _ds18x20Temp = -99.99;
-    float _ds18x20LastTemp = -99.99;
-
-    // DHT22
-    float _dht22Temp = -99.99;
-    float _dht22LastTemp = -99.99;
-    float _dht22Hum = -99.99;
-    float _dht22LastHum = -99.99;
-
-    // HC-SR04
-    int _hcsr04DistanceCm = 0;
-    int _hcsr04LastDistanceCm = 0;
+    // Sensor values
+    float _bmeTemp = -99.99, _bmeLastTemp = -99.99;
+    float _bmeHum = -99.99, _bmeLastHum = -99.99;
+    float _bmePres = -99.99, _bmeLastPres = -99.99;
+    float _ds18x20Temp = -99.99, _ds18x20LastTemp = -99.99;
+    float _dht22Temp = -99.99, _dht22LastTemp = -99.99;
+    float _dht22Hum = -99.99, _dht22LastHum = -99.99;
+    int _hcsr04DistanceCm = 0, _hcsr04LastDistanceCm = 0;
     int _hcsr04MaxMeasuredCm = 0;
-    bool _hcsr04ParkAvailable = false;
-    bool _hcsr04LastParkAvailable = false;
-
-    // HC-SR501
+    bool _hcsr04ParkAvailable = false, _hcsr04LastParkAvailable = false;
     int _hcsr501Stat = 0;
     bool _hcsr501LastStat = false;
     bool _hcsr501Changed = false;
+    int _mq4AnalogValue = 0, _mq4LastAnalogValue = 0;
+    bool _mq4DigitalAlarm = false, _mq4LastDigitalAlarm = false;
 
-    // MQ4 Gas Sensor
-    int _mq4AnalogValue = 0;
-    int _mq4LastAnalogValue = 0;
-    bool _mq4DigitalAlarm = false;
-    bool _mq4LastDigitalAlarm = false;
-
-    // ---- Data flag ----
     bool _newSensorData = false;
+    volatile bool _ready = false;
     unsigned long _lastUpdateTime = 0;
+    String _lastError = "";
 };

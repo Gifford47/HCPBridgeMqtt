@@ -32,7 +32,6 @@ void PreferenceHandler::setDefault(const PrefDef& def) {
 }
 
 void PreferenceHandler::loadToJson(const PrefDef& def, JsonDocument& doc) const {
-    // Redacted fields show "*" if non-empty, "" if empty
     if (def.redacted) {
         switch (def.type) {
             case PrefType::STRING:
@@ -47,7 +46,6 @@ void PreferenceHandler::loadToJson(const PrefDef& def, JsonDocument& doc) const 
 
     switch (def.type) {
         case PrefType::STRING: {
-            // Need to copy to buffer to avoid dangling pointer
             String val = preferences->getString(def.key);
             doc[def.key] = val;
             break;
@@ -65,14 +63,11 @@ void PreferenceHandler::loadToJson(const PrefDef& def, JsonDocument& doc) const 
 }
 
 void PreferenceHandler::saveFromJson(const PrefDef& def, const JsonDocument& doc) {
-    // Skip if key not present in JSON
     if (doc[def.key].isNull()) return;
 
-    // Redacted fields: "*" means "unchanged", skip saving
     if (def.redacted) {
         String val = doc[def.key].as<String>();
         if (val == "*") return;
-        // For redacted fields, only STRING type is used
         preferences->putString(def.key, val);
         return;
     }
@@ -102,22 +97,16 @@ void PreferenceHandler::initPreferences() {
     this->preferences->begin("hcpbridgeesp32", false);
     this->firstStart = !preferences->getBool(preference_started_before);
 
-    // Always overwrite AP password with compiled default
     preferences->putString(preference_wifi_ap_password, AP_PASSWD);
 
     if (this->firstStart) {
-        // Mark as started
         preferences->putBool(preference_started_before, true);
-
-        // Set all defaults from registry
         for (size_t i = 0; i < PREF_REGISTRY_SIZE; i++) {
-            // Skip the "started_before" flag itself
             if (strcmp(PREF_REGISTRY[i].key, preference_started_before) == 0) continue;
             setDefault(PREF_REGISTRY[i]);
         }
     }
 
-    // Setup preferences cache for performance-critical fields
     this->preferencesCache = new Preferences_cache();
     strcpy(this->preferencesCache->mqtt_server, preferences->getString(preference_mqtt_server).c_str());
     strcpy(this->preferencesCache->mqtt_user, preferences->getString(preference_mqtt_user).c_str());
@@ -143,33 +132,37 @@ void PreferenceHandler::resetPreferences() {
 }
 
 void PreferenceHandler::saveConf(JsonDocument& doc) {
-    // Determine which groups to save based on what's present in the JSON
-    // Basic config is identified by presence of preference_gd_id
-    // Expert config is identified by presence of preference_gd_avail
-    String gd_id = doc[preference_gd_id].as<String>();
-    String gd_avail = doc[preference_gd_avail].as<String>();
+    // Detect which form was submitted by presence of sentinel keys
+    bool saveBasic  = !doc[preference_gd_id].isNull();
+    bool saveSensor = !doc[preference_query_interval_sensors].isNull();
+    bool saveExpert = !doc[preference_rs485_txd].isNull();
 
-    bool saveBasic = (gd_id != "null");
-    bool saveExpert = (gd_avail != "null");
-
-    // Special handling for checkboxes (come as "on" string when checked, absent when unchecked)
+    // Special handling for checkboxes (come as "on" when checked, absent when unchecked)
     if (saveBasic) {
         preferences->putBool(preference_wifi_ap_mode, !doc[preference_wifi_ap_mode].isNull() && doc[preference_wifi_ap_mode].as<String>() == "on");
         preferences->putBool(preference_debug_enabled, !doc[preference_debug_enabled].isNull() && doc[preference_debug_enabled].as<String>() == "on");
     }
 
+    if (saveSensor) {
+        preferences->putBool(preference_sensor_bme_enabled, !doc[preference_sensor_bme_enabled].isNull() && doc[preference_sensor_bme_enabled].as<String>() == "on");
+        preferences->putBool(preference_sensor_ds18x20_enabled, !doc[preference_sensor_ds18x20_enabled].isNull() && doc[preference_sensor_ds18x20_enabled].as<String>() == "on");
+        preferences->putBool(preference_sensor_dht22_enabled, !doc[preference_sensor_dht22_enabled].isNull() && doc[preference_sensor_dht22_enabled].as<String>() == "on");
+        preferences->putBool(preference_sensor_hcsr04_enabled, !doc[preference_sensor_hcsr04_enabled].isNull() && doc[preference_sensor_hcsr04_enabled].as<String>() == "on");
+        preferences->putBool(preference_sensor_hcsr501_enabled, !doc[preference_sensor_hcsr501_enabled].isNull() && doc[preference_sensor_hcsr501_enabled].as<String>() == "on");
+        preferences->putBool(preference_sensor_mq4_enabled, !doc[preference_sensor_mq4_enabled].isNull() && doc[preference_sensor_mq4_enabled].as<String>() == "on");
+    }
+
     for (size_t i = 0; i < PREF_REGISTRY_SIZE; i++) {
         const PrefDef& def = PREF_REGISTRY[i];
 
-        // Skip internal preferences
         if (def.group & PREF_GROUP_INTERNAL) continue;
 
-        // Skip checkboxes - handled specially above
-        if (strcmp(def.key, preference_wifi_ap_mode) == 0) continue;
-        if (strcmp(def.key, preference_debug_enabled) == 0) continue;
+        // Skip all checkboxes - handled specially above
+        if (def.type == PrefType::BOOL) continue;
 
-        // Only save if the group matches
         if ((def.group & PREF_GROUP_BASIC) && saveBasic) {
+            saveFromJson(def, doc);
+        } else if ((def.group & PREF_GROUP_SENSOR) && saveSensor) {
             saveFromJson(def, doc);
         } else if ((def.group & PREF_GROUP_EXPERT) && saveExpert) {
             saveFromJson(def, doc);
@@ -182,10 +175,7 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
 void PreferenceHandler::getConf(JsonDocument& conf) {
     for (size_t i = 0; i < PREF_REGISTRY_SIZE; i++) {
         const PrefDef& def = PREF_REGISTRY[i];
-
-        // Skip internal preferences (like "started_before")
         if (def.group & PREF_GROUP_INTERNAL) continue;
-
         loadToJson(def, conf);
     }
 }
