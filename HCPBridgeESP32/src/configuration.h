@@ -63,7 +63,7 @@
     inline const char GD_LIGHT[] = "Light";
     inline const char GD_VENT[] = "Vent";
     inline const char GD_HALF[] = "Half Open";
-    inline const char GD_STEP[] = "Step";
+    inline const char GD_TOGGLE[] = "Toggle";
     inline const char GD_STATUS[] = "Status";
     inline const char GD_DET_STATUS[] = "Detailed Status";
     inline const char GD_POSITIOM[] = "Position";
@@ -132,7 +132,7 @@
 
     //HC-SR501
     #if defined(HCP_Giffordv2)
-    #define SR501PIN 23
+    #define SR501PIN 34
     #elif defined(HCP_Giffordv3)
         #define SR501PIN 32
     #else
@@ -169,6 +169,7 @@
     #define HA_DISCOVERY_SWITCH "homeassistant/switch/%s/%s/config"
     #define HA_DISCOVERY_COVER "homeassistant/cover/%s/%s/config"
     #define HA_DISCOVERY_LIGHT "homeassistant/light/%s/%s/config"
+    #define HA_DISCOVERY_BUTTON "homeassistant/button/%s/%s/config"
 
     // DEBUG
     //#define DEBUG

@@ -35,14 +35,16 @@ TimerHandle_t wifiReconnectTimer;
 TimerHandle_t resetTimer;
 
 #define RESET_PIN 0
+#define SENSOR_DISABLE_COUNT 3
 #define RESET_PRESS_COUNT 5
-#define RESET_TIME_WINDOW 6000  // 6 seconds window for 5 presses
-#define DEBOUNCE_DELAY 200      // 200ms debounce
+#define RESET_TIME_WINDOW 6000  // 6 seconds window
+#define DEBOUNCE_DELAY 50      // 500ms debounce
 
 volatile int pressCount = 0;
 volatile unsigned long firstPressTime = 0;
 volatile unsigned long lastPressTime = 0;
 volatile bool resetTriggered = false;
+volatile bool sensorDisableTriggered = false;
 
 void IRAM_ATTR reset_button_change() {
     unsigned long now = millis();
@@ -70,7 +72,20 @@ void IRAM_ATTR reset_button_change() {
         pressCount = 0;
         firstPressTime = 0;
         lastPressTime = 0;
+    } else if (pressCount >= SENSOR_DISABLE_COUNT) {
+        sensorDisableTriggered = true;
     }
+}
+
+void disableAllSensors() {
+    DBG_PRINTLN("Disabling all sensors...");
+    localPrefs->putBool(preference_sensor_bme_enabled, false);
+    localPrefs->putBool(preference_sensor_ds18x20_enabled, false);
+    localPrefs->putBool(preference_sensor_dht22_enabled, false);
+    localPrefs->putBool(preference_sensor_hcsr04_enabled, false);
+    localPrefs->putBool(preference_sensor_hcsr501_enabled, false);
+    localPrefs->putBool(preference_sensor_mq4_enabled, false);
+    ESP.restart();
 }
 
 void resetPreferences() {
@@ -262,6 +277,14 @@ void setup() {
 
     WiFi.onEvent(WiFiEvent);
 
+    // Crash recovery: if last boot was a crash, disable all sensors immediately
+    esp_reset_reason_t rstReason = esp_reset_reason();
+    if (rstReason == ESP_RST_PANIC || rstReason == ESP_RST_INT_WDT ||
+        rstReason == ESP_RST_TASK_WDT || rstReason == ESP_RST_WDT) {
+        DBG_PRINTLN("Crash detected - disabling all sensors");
+        disableAllSensors();  // sets all sen_*_en=false + restart
+    }
+
     // Initialize enabled sensors before WiFi/MQTT to prevent race condition:
     // MQTT onConnect sends discovery, needs sensor status already set
     sensorManager.begin(localPrefs);
@@ -319,10 +342,10 @@ void setup() {
         root["lastModbusRespone"] = hoermannEngine->state->lastModbusRespone;
         root["swversion"] = HA_VERSION;
 
-        if (sensorManager.hasAnySensor()) {
-            JsonObject sensors = root["sensors"].to<JsonObject>();
-            sensorManager.toStatusJson(sensors);
-        }
+        JsonObject sensors = root["sensors"].to<JsonObject>();
+        sensorManager.toStatusJson(sensors);
+        JsonObject sensorStatus = root["sensor_status"].to<JsonObject>();
+        sensorManager.toDetectionJson(sensorStatus);
 
         root["lastCommandTopic"] = mqttHandler.lastCommandTopic;
         root["lastCommandPayload"] = mqttHandler.lastCommandPayload;
@@ -434,6 +457,17 @@ void setup() {
 
 void loop() {
     ElegantOTA.loop();
+
+    if (sensorDisableTriggered) {
+        sensorDisableTriggered = false;
+        #ifdef IS_HCP_BOARD
+        for (int i = 0; i < 6; i++) {
+            digitalWrite(LED1, !digitalRead(LED1));
+            delay(150);
+        }
+        #endif
+        disableAllSensors();
+    }
 
     if (resetTriggered) {
         resetTriggered = false;

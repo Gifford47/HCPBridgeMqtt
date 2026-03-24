@@ -242,29 +242,46 @@ void SensorManager::begin(Preferences* prefs) {
     proxThreshold = prefs->getInt(preference_sensor_prox_treshold);
     gasThreshold = prefs->getInt(preference_sensor_gas_threshold);
 
-    // Only init sensors that are enabled in preferences
+    // Init enabled sensors with up to 3 retries before marking as failed
+    #define SENSOR_INIT_RETRIES 3
+    #define SENSOR_INIT_RETRY_DELAY 50
+
+    auto initWithRetry = [](auto initFn, Preferences* p) -> bool {
+        for (int i = 0; i < SENSOR_INIT_RETRIES; i++) {
+            if (initFn(p)) return true;
+            delay(SENSOR_INIT_RETRY_DELAY);
+        }
+        return false;
+    };
+
     if (prefs->getBool(preference_sensor_bme_enabled)) {
-        _bmeStatus = initBme(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _bmeStatus = initWithRetry([this](Preferences* p){ return initBme(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     if (prefs->getBool(preference_sensor_ds18x20_enabled)) {
-        _ds18x20Status = initDs18x20(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _ds18x20Status = initWithRetry([this](Preferences* p){ return initDs18x20(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     if (prefs->getBool(preference_sensor_dht22_enabled)) {
-        _dht22Status = initDht22(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _dht22Status = initWithRetry([this](Preferences* p){ return initDht22(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     if (prefs->getBool(preference_sensor_hcsr04_enabled)) {
-        _hcsr04Status = initHcsr04(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _hcsr04Status = initWithRetry([this](Preferences* p){ return initHcsr04(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     if (prefs->getBool(preference_sensor_hcsr501_enabled)) {
-        _hcsr501Status = initHcsr501(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _hcsr501Status = initWithRetry([this](Preferences* p){ return initHcsr501(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     if (prefs->getBool(preference_sensor_mq4_enabled)) {
-        _mq4Status = initMq4(prefs) ? SensorStatus::ACTIVE : SensorStatus::NOT_CONFIGURED;
+        _mq4Status = initWithRetry([this](Preferences* p){ return initMq4(p); }, prefs)
+            ? SensorStatus::ACTIVE : SensorStatus::FAILED_DISABLED;
     }
 
     DBG_PRINTLN("=== Sensor Summary ===");
@@ -275,6 +292,8 @@ void SensorManager::begin(Preferences* prefs) {
     DBG_PRINT("HC-SR501:"); DBG_PRINTLN(_hcsr501Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
     DBG_PRINT("MQ4:     "); DBG_PRINTLN(_mq4Status == SensorStatus::ACTIVE ? "ACTIVE" : "off");
     DBG_PRINTLN("======================");
+
+    updateDataStrings();
     _ready = true;
 }
 
@@ -469,6 +488,7 @@ void SensorManager::poll() {
     if (_mq4Status == SensorStatus::ACTIVE) {
         pollMq4();
     }
+    updateDataStrings();
 }
 
 // ============================================================================
@@ -533,78 +553,82 @@ void SensorManager::toDetectionJson(JsonObject& sensors) const {
     sensors["MQ4"]     = sensorStatusStr(_mq4Status);
 }
 
-void SensorManager::toJson(JsonDocument& doc) {
-    char buf[20];
+void SensorManager::updateDataStrings() {
+    // Reset flags only (keep last known values for failed sensors)
+    for (int i = 0; i < SENSOR_FIELD_COUNT; i++) {
+        data.fields[i].active = false;
+        data.fields[i].failed = false;
+    }
 
+    // Helper: mark fields as active or failed (keeps last value on failure)
+    auto setFields = [&](SensorStatus s, int idx, int count) {
+        if (s == SensorStatus::ACTIVE) {
+            for (int i = idx; i < idx + count; i++) data.fields[i].active = true;
+        } else if (s == SensorStatus::FAILED_DISABLED) {
+            for (int i = idx; i < idx + count; i++) { data.fields[i].active = true; data.fields[i].failed = true; }
+        }
+    };
+
+    // Temperature (priority: BME > DS18X20 > DHT22)
     if (_bmeStatus == SensorStatus::ACTIVE) {
-        dtostrf(_bmeTemp, 2, 1, buf);
-        doc["temp"] = buf;
-        dtostrf(_bmeHum, 2, 1, buf);
-        doc["hum"] = buf;
-        dtostrf(_bmePres, 2, 1, buf);
-        doc["pres"] = buf;
+        dtostrf(_bmeTemp, 2, 1, data.fields[0].value);
+        dtostrf(_bmeHum, 2, 1, data.fields[1].value);
+        dtostrf(_bmePres, 2, 1, data.fields[2].value);
+    }
+    if (_bmeStatus != SensorStatus::NOT_CONFIGURED) {
+        setFields(_bmeStatus, 0, 3);
     } else if (_ds18x20Status == SensorStatus::ACTIVE) {
-        dtostrf(_ds18x20Temp, 2, 1, buf);
-        doc["temp"] = buf;
+        dtostrf(_ds18x20Temp, 2, 1, data.fields[0].value);
+        data.fields[0].active = true;
+    } else if (_ds18x20Status == SensorStatus::FAILED_DISABLED) {
+        data.fields[0].active = true; data.fields[0].failed = true;
     } else if (_dht22Status == SensorStatus::ACTIVE) {
-        dtostrf(_dht22Temp, 2, 2, buf);
-        doc["temp"] = buf;
-        dtostrf(_dht22Hum, 2, 2, buf);
-        doc["hum"] = buf;
+        dtostrf(_dht22Temp, 2, 2, data.fields[0].value);
+        dtostrf(_dht22Hum, 2, 2, data.fields[1].value);
+        data.fields[0].active = data.fields[1].active = true;
+    } else if (_dht22Status == SensorStatus::FAILED_DISABLED) {
+        data.fields[0].active = data.fields[0].failed = true;
+        data.fields[1].active = data.fields[1].failed = true;
     }
 
     if (_hcsr04Status == SensorStatus::ACTIVE) {
-        sprintf(buf, "%d", _hcsr04DistanceCm);
-        doc["dist"] = buf;
-        doc["free"] = _hcsr04ParkAvailable ? "true" : "false";
+        sprintf(data.fields[3].value, "%d", _hcsr04DistanceCm);
+        strcpy(data.fields[4].value, _hcsr04ParkAvailable ? "true" : "false");
     }
+    setFields(_hcsr04Status, 3, 2);
 
     if (_hcsr501Status == SensorStatus::ACTIVE) {
-        doc["motion"] = _hcsr501Stat ? "true" : "false";
+        strcpy(data.fields[5].value, _hcsr501Stat ? "true" : "false");
     }
+    setFields(_hcsr501Status, 5, 1);
 
     if (_mq4Status == SensorStatus::ACTIVE) {
-        sprintf(buf, "%d", _mq4AnalogValue);
-        doc["gas"] = buf;
-        doc["gas_alarm"] = _mq4DigitalAlarm ? "true" : "false";
+        sprintf(data.fields[6].value, "%d", _mq4AnalogValue);
+        strcpy(data.fields[7].value, _mq4DigitalAlarm ? "true" : "false");
+    }
+    setFields(_mq4Status, 6, 2);
+}
+
+void SensorManager::toJson(JsonDocument& doc) {
+    for (int i = 0; i < SENSOR_FIELD_COUNT; i++) {
+        if (data.fields[i].active && !data.fields[i].failed) {
+            doc[data.fields[i].key] = data.fields[i].value;
+        }
     }
 }
 
 void SensorManager::toStatusJson(JsonObject& sensors) {
-    char buf[20];
-
-    if (_bmeStatus == SensorStatus::ACTIVE) {
-        dtostrf(_bmeTemp, 2, 1, buf);
-        strcat(buf, " °C");
-        sensors["temp"] = buf;
-        dtostrf(_bmeHum, 2, 1, buf);
-        strcat(buf, " %");
-        sensors["hum"] = buf;
-        dtostrf(_bmePres, 2, 1, buf);
-        strcat(buf, " mbar");
-        sensors["pres"] = buf;
-    } else if (_ds18x20Status == SensorStatus::ACTIVE) {
-        dtostrf(_ds18x20Temp, 2, 1, buf);
-        strcat(buf, " °C");
-        sensors["temp"] = buf;
-    } else if (_dht22Status == SensorStatus::ACTIVE) {
-        dtostrf(_dht22Temp, 2, 1, buf);
-        strcat(buf, " °C");
-        sensors["temp"] = buf;
-        dtostrf(_dht22Hum, 2, 1, buf);
-        strcat(buf, " %");
-        sensors["hum"] = buf;
-    }
-
-    if (_hcsr04Status == SensorStatus::ACTIVE) {
-        dtostrf(_hcsr04DistanceCm, 2, 0, buf);
-        strcat(buf, " cm");
-        sensors["dist"] = buf;
-    }
-
-    if (_mq4Status == SensorStatus::ACTIVE) {
-        sprintf(buf, "%d", _mq4AnalogValue);
-        sensors["gas"] = buf;
-        sensors["gas_alarm"] = _mq4DigitalAlarm ? "ALARM" : "OK";
+    char buf[32];
+    JsonArray failed = sensors["_failed"].to<JsonArray>();
+    for (int i = 0; i < SENSOR_FIELD_COUNT; i++) {
+        if (!data.fields[i].active) continue;
+        if (data.fields[i].failed) failed.add(data.fields[i].key);
+        if (data.fields[i].unit[0] != '\0') {
+            strcpy(buf, data.fields[i].value);
+            strcat(buf, data.fields[i].unit);
+            sensors[data.fields[i].key] = buf;
+        } else {
+            sensors[data.fields[i].key] = data.fields[i].value;
+        }
     }
 }

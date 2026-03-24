@@ -116,6 +116,7 @@ private:
     void sendDiscoveryMessageForAVSensor(const JsonDocument& device);
     void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device, const char device_class[] = "", const char unit[] = "");
     void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false);
+    void sendDiscoveryMessageForButton(const char name[], const char topic[], const char payload_press[], const char icon[], const JsonDocument& device);
     void sendDiscoveryMessageForCover(const char name[], const char topic[], const JsonDocument& device);
 
     // Helper

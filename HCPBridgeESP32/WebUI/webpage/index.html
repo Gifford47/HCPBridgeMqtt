@@ -69,6 +69,7 @@
 	}
 	.sensor-val {font-size: 1.1rem; font-weight: 600;}
 	.sensor-lbl {font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;}
+	.sensor-tile.failed .sensor-val {color: #ED5961;}
 
 	.btn-red {border-color: #ED5961;}
 	.btn-yellow {border-color: #fcca00;}
@@ -674,13 +675,16 @@
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';
-					var sLabels = {temp:"Temp",hum:"Humidity",pres:"Pressure",dist:"Distance",gas:"Gas",gas_alarm:"Gas Alarm"};
+					var sLabels = {temp:"Temp",hum:"Humidity",pres:"Pressure",dist:"Distance",free:"Parking",motion:"Motion",gas:"Gas",gas_alarm:"Gas Alarm"};
+					var failedKeys = status.sensors._failed || [];
 					Object.keys(status.sensors).forEach(function(key){
-						var div = document.getElementById(key);
+						if (key === '_failed') return;
+						var isFailed = failedKeys.indexOf(key) >= 0;
+						var div = document.getElementById("s_"+key);
 						if (div === null){
 							var tile = document.createElement('div');
-							tile.id = key;
-							tile.className = 'sensor-tile';
+							tile.id = "s_"+key;
+							tile.className = 'sensor-tile' + (isFailed ? ' failed' : '');
 							var valDiv = document.createElement('div');
 							valDiv.className = 'sensor-val';
 							valDiv.textContent = status.sensors[key];
@@ -692,6 +696,7 @@
 							sdiv.appendChild(tile);
 						} else {
 							div.children[0].textContent = status.sensors[key];
+							div.className = 'sensor-tile' + (isFailed ? ' failed' : '');
 						}
 					});
 				}

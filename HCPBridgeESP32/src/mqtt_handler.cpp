@@ -407,6 +407,32 @@ void MqttHandler::sendDiscoveryMessageForSwitch(const char name[], const char di
     _mqttClient.publish(full_topic, 1, true, payload);
 }
 
+void MqttHandler::sendDiscoveryMessageForButton(const char name[], const char topic[], const char payload_press[], const char icon[], const JsonDocument& device) {
+    char command_topic[64];
+    sprintf(command_topic, _mqttStrings.st_cmd_topic_var.c_str(), topic);
+
+    char full_topic[64];
+    sprintf(full_topic, HA_DISCOVERY_BUTTON, _prefs->getString(preference_gd_id), topic);
+
+    char uid[64];
+    sprintf(uid, "%s_button_%s", _prefs->getString(preference_gd_id), topic);
+
+    JsonDocument doc;
+    doc["name"] = name;
+    doc["command_topic"] = command_topic;
+    doc["payload_press"] = payload_press;
+    doc["icon"] = icon;
+    doc["availability_topic"] = _mqttStrings.availability_topic;
+    doc["payload_available"] = HA_ONLINE;
+    doc["payload_not_available"] = HA_OFFLINE;
+    doc["unique_id"] = uid;
+    doc["device"] = device;
+
+    char payload[1024];
+    serializeJson(doc, payload);
+    _mqttClient.publish(full_topic, 1, true, payload);
+}
+
 void MqttHandler::sendDiscoveryMessageForCover(const char name[], const char topic[], const JsonDocument& device) {
     char command_topic[64];
     sprintf(command_topic, _mqttStrings.st_cmd_topic_var.c_str(), topic);
@@ -462,23 +488,23 @@ void MqttHandler::sendDiscoveryMessage() {
     String configUrl = "http://" + WiFi.localIP().toString();
     device["configuration_url"] = configUrl;
 
+    // Helper to remove retained discovery topics
+    auto clearTopic = [&](const char* fmt, const char* key) {
+        char t[64]; sprintf(t, fmt, _prefs->getString(preference_gd_id), key);
+        _mqttClient.publish(t, 1, true, "");
+    };
+
     sendDiscoveryMessageForAVSensor(device);
     sendDiscoveryMessageForSwitch(GD_LIGHT, HA_DISCOVERY_SWITCH, "lamp", HA_OFF, HA_ON, "mdi:lightbulb", device);
     sendDiscoveryMessageForBinarySensor(GD_LIGHT, _mqttStrings.state_topic, "lamp", HA_OFF, HA_ON, device);
     sendDiscoveryMessageForSwitch(GD_VENT, HA_DISCOVERY_SWITCH, "vent", HA_CLOSE, HA_VENT, "mdi:air-filter", device);
     sendDiscoveryMessageForSwitch(GD_HALF, HA_DISCOVERY_SWITCH, "half", HA_CLOSE, HA_HALF, "mdi:air-filter", device);
-    sendDiscoveryMessageForSwitch(GD_STEP, HA_DISCOVERY_SWITCH, "step", HA_STEP, HA_STEP, "mdi:remote", device);
+    sendDiscoveryMessageForButton(GD_TOGGLE, "step", HA_STEP, "mdi:remote", device);
     sendDiscoveryMessageForCover(_prefs->getString(preference_gd_name).c_str(), "door", device);
 
     sendDiscoveryMessageForSensor(GD_STATUS, _mqttStrings.state_topic, "doorstate", device, "enum");
     sendDiscoveryMessageForSensor(GD_DET_STATUS, _mqttStrings.state_topic, "detailedState", device, "enum");
     sendDiscoveryMessageForSensor(GD_POSITIOM, _mqttStrings.state_topic, "doorposition", device);
-
-    // Dynamic sensor discovery - send for active, remove retained for inactive
-    auto clearTopic = [&](const char* fmt, const char* key) {
-        char t[64]; sprintf(t, fmt, _prefs->getString(preference_gd_id), key);
-        _mqttClient.publish(t, 1, true, "");
-    };
 
     if (_sensorMgr->hasTempSensor()) {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_temp).c_str(), _mqttStrings.sensor_topic, "temp", device, "temperature", "°C");

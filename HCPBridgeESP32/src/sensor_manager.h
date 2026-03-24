@@ -26,6 +26,33 @@ enum class SensorStatus {
 #define SENSOR_MAX_FAIL_COUNT 5
 
 // ============================================================================
+// Unified sensor data - single source of truth for all consumers
+// ============================================================================
+
+struct SensorEntry {
+    const char* key;     // JSON key (e.g. "temp", "hum")
+    char value[16];      // Formatted value string
+    const char* unit;    // Unit suffix for WebUI (e.g. " °C")
+    bool active;         // Sensor present (active or failed)
+    bool failed;         // Sensor failed (shows last known value in red)
+};
+
+#define SENSOR_FIELD_COUNT 8
+
+struct SensorData {
+    SensorEntry fields[SENSOR_FIELD_COUNT] = {
+        {"temp",      "", " \xC2\xB0""C", false, false},
+        {"hum",       "", " %",           false, false},
+        {"pres",      "", " mbar",        false, false},
+        {"dist",      "", " cm",          false, false},
+        {"free",      "", "",             false, false},
+        {"motion",    "", "",             false, false},
+        {"gas",       "", "",             false, false},
+        {"gas_alarm", "", "",             false, false}
+    };
+};
+
+// ============================================================================
 // SensorManager Class
 // ============================================================================
 
@@ -40,6 +67,9 @@ public:
     // Check if new data is available since last call
     bool hasNewData();
     void clearNewData();
+
+    // Unified sensor data (updated by poll/begin)
+    SensorData data;
 
     // Build JSON payload for MQTT sensor topic
     void toJson(JsonDocument& doc);
@@ -113,6 +143,7 @@ private:
 
     void disableSensor(const char* name, SensorStatus& status);
     void setError(const char* msg);
+    void updateDataStrings();
 
     // Sensor states
     SensorStatus _bmeStatus = SensorStatus::NOT_CONFIGURED;

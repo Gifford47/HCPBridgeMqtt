@@ -105,16 +105,22 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 
 ---
 
-## Factory Reset
-If you need to reset the device to factory defaults (clearing all Wi-Fi and MQTT configuration), you can trigger a factory reset using the Boot button (GPIO 0):
+## Factory Reset & Sensor Recovery
+The Boot button (GPIO 0) supports two reset levels:
 
-**How to perform a factory reset:**
-1. Press the Boot button **5 times** within **6 seconds**
-2. On HCP_Gifford boards, the LED will blink to confirm
-3. The device will reset all preferences and restart
-4. After restart, the device will create its default hotspot again
+| Presses (within 6s) | Action |
+|---|---|
+| **3x** | Disable all sensors and restart (sensor recovery) |
+| **5x** | Full factory reset (clear all preferences) |
 
-> **Note:** This feature includes debounce protection to prevent accidental resets. Each button press must be at least 200ms apart to be counted.
+**Sensor recovery (3x press):**
+If a faulty sensor causes boot problems, press the button 3 times to disable all sensors. The device will restart normally and you can fix the sensor configuration in the Web UI.
+
+**Automatic crash recovery:**
+If a sensor causes a crash (panic/watchdog), the firmware detects this on the next boot via `esp_reset_reason()` and automatically disables all sensors.
+
+**Full factory reset (5x press):**
+Clears all Wi-Fi, MQTT and sensor configuration. The device will restart with its default hotspot.
 
 ---
 
@@ -159,6 +165,13 @@ Supported sensors:
 - **MQ4** (analog) — methane / natural gas
 
 Sensor readings are published to MQTT under `hormann/<device_id>/sensor` with configurable thresholds. Pins and thresholds are configurable in the Web UI.
+
+### Sensor Safety
+- Each sensor is tested up to **3 times** during boot before being marked as failed
+- Failed sensors are shown with **red text** in the Web UI (last known value preserved)
+- During normal operation, **5 consecutive poll failures** disable a sensor until reboot
+- MQTT discovery and publishing skip failed sensors — no stale data sent to Home Assistant
+- See [Factory Reset & Sensor Recovery](#factory-reset--sensor-recovery) for crash recovery options
 
 ---
 
