@@ -51,13 +51,13 @@ void PreferenceHandler::loadToJson(const PrefDef& def, JsonDocument& doc) const 
             break;
         }
         case PrefType::INT:
-            doc[def.key] = preferences->getInt(def.key);
+            doc[def.key] = preferences->getInt(def.key, def.defaultInt);
             break;
         case PrefType::DOUBLE:
-            doc[def.key] = preferences->getDouble(def.key);
+            doc[def.key] = preferences->getDouble(def.key, def.defaultDouble);
             break;
         case PrefType::BOOL:
-            doc[def.key] = preferences->getBool(def.key);
+            doc[def.key] = preferences->getBool(def.key, def.defaultBool);
             break;
     }
 }

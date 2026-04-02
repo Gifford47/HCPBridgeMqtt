@@ -160,11 +160,25 @@ Supported sensors:
 - **BME280** (I2C) — temperature, humidity, pressure
 - **DS18x20** (OneWire) — temperature
 - **DHT22** — temperature, humidity
-- **HC-SR04** (ultrasonic) — distance (car detection)
+- **HC-SR04** (ultrasonic) — distance / **parking space detection**
 - **HC-SR501** (PIR) — motion
 - **MQ4** (analog) — methane / natural gas
 
 Sensor readings are published to MQTT under `hormann/<device_id>/sensor` with configurable thresholds. Pins and thresholds are configurable in the Web UI.
+
+### Parking Space Detection (HC-SR04)
+The HC-SR04 ultrasonic sensor can be used to detect available parking space. The "Parking" feature (displayed as `"free": true/false` in MQTT):
+- Measures distance to an object (e.g., car in garage)
+- Tracks the **maximum distance ever measured** (represents empty space baseline)
+- Compares current distance to max with a proximity threshold (default: 10cm)
+- Publishes `true` when `(current_distance + threshold) > max_distance` → **space available** ✅
+- Publishes `false` when occupied → **no parking space** ❌
+
+**Configuration:**
+- **Enable sensor:** Activate HC-SR04 in Sensor Configuration tab
+- **Trigger & Echo pins:** Set custom GPIO pins for your board
+- **Max distance:** Sensor range limit (default: 150cm)
+- **Proximity threshold:** Distance margin for detection (default: 10cm, configurable as `sen_prox_thresh`)
 
 ### Sensor Safety
 - Each sensor is tested up to **3 times** during boot before being marked as failed
