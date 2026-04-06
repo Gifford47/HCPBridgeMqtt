@@ -21,6 +21,7 @@ extern "C" {
 // ============================================================================
 
 AsyncWebServer server(80);
+AsyncEventSource events("/events");
 PreferenceHandler prefHandler;
 Preferences *localPrefs = nullptr;
 SensorManager sensorManager;
@@ -206,17 +207,53 @@ void mqttTaskFunc(void *parameter) {
     }
 }
 
-void sensorCheckTask(void *parameter) {
-    while (true) {
-        sensorManager.poll();
+// Send a single sensor value change via SSE to all connected WebUI clients
+void sendSensorEvent(const char* key, const char* value) {
+    char json[64];
+    snprintf(json, sizeof(json), "{\"%s\":\"%s\"}", key, value);
+    events.send(json, "sensor", millis());
+}
 
-        // Handle HC-SR501 immediate publish
-        if (sensorManager.hcsr501StateChanged()) {
-            mqttHandler.publishMotionState(sensorManager.getHcsr501State());
-            sensorManager.clearHcsr501Changed();
+void sensorCheckTask(void *parameter) {
+    unsigned long lastFullPoll = 0;
+    unsigned long fullPollInterval = localPrefs->getInt(preference_query_interval_sensors) * 1000;
+
+    while (true) {
+        // HC-SR501: poll every 500ms for immediate motion detection
+        if (sensorManager.hasMotionSensor()) {
+            sensorManager.pollHcsr501();
+            if (sensorManager.hcsr501StateChanged()) {
+                mqttHandler.publishMotionState(sensorManager.getHcsr501State());
+                sensorManager.clearHcsr501Changed();
+                sendSensorEvent("motion", sensorManager.getHcsr501State() ? "true" : "false");
+            }
         }
 
-        vTaskDelay(localPrefs->getInt(preference_query_interval_sensors) * 1000);
+        // All other sensors: poll at configured interval
+        if (millis() - lastFullPoll >= fullPollInterval) {
+            // Snapshot old values to detect changes
+            SensorData oldData = sensorManager.data;
+            sensorManager.poll();
+
+            // Send SSE only for changed values
+            for (int i = 0; i < SENSOR_FIELD_COUNT; i++) {
+                if (!sensorManager.data.fields[i].active) continue;
+                if (strcmp(sensorManager.data.fields[i].value, oldData.fields[i].value) != 0) {
+                    char buf[32];
+                    if (sensorManager.data.fields[i].unit[0] != '\0') {
+                        strcpy(buf, sensorManager.data.fields[i].value);
+                        strcat(buf, sensorManager.data.fields[i].unit);
+                    } else {
+                        strcpy(buf, sensorManager.data.fields[i].value);
+                    }
+                    sendSensorEvent(sensorManager.data.fields[i].key, buf);
+                }
+            }
+
+            lastFullPoll = millis();
+        }
+
+        vTaskDelay(500);
     }
 }
 
@@ -445,6 +482,7 @@ void setup() {
     ElegantOTA.setAutoReboot(true);
     ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWD);
 
+    server.addHandler(&events);
     server.begin();
     #ifdef IS_HCP_BOARD
     digitalWrite(LED1, LOW);

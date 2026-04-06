@@ -708,10 +708,20 @@
 			xmlhttp.send();
 	}
 
-	getConfig();	
+	getConfig();
 	Draw();
-	updateData();	
+	updateData();
 	setInterval(updateData, 3000);
+
+	// SSE: immediate sensor updates (only changed values)
+	var evtSource = new EventSource('/events');
+	evtSource.addEventListener('sensor', function(e) {
+		var d = JSON.parse(e.data);
+		for (var key in d) {
+			var el = document.getElementById("s_"+key);
+			if (el) el.children[0].textContent = d[key];
+		}
+	});
 	
 	
 </script>

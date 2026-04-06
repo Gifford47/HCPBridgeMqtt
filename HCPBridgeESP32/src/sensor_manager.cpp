@@ -434,6 +434,9 @@ void SensorManager::pollHcsr501() {
     if (_hcsr501Stat != _hcsr501LastStat) {
         _hcsr501LastStat = _hcsr501Stat;
         _hcsr501Changed = true;
+        _newSensorData = true;
+        // Update data struct immediately for WebUI/MQTT
+        strcpy(data.fields[5].value, _hcsr501Stat ? "true" : "false");
     }
 }
 

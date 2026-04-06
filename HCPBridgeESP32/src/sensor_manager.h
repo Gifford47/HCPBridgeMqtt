@@ -105,7 +105,8 @@ public:
     int gasThreshold = 0;
     int forceUpdateInterval = 7200000;  // 2 hours in ms
 
-    // HC-SR501 immediate publish
+    // HC-SR501 immediate publish (polled separately at higher frequency)
+    void pollHcsr501();
     bool hcsr501StateChanged() const { return _hcsr501Changed; }
     void clearHcsr501Changed() { _hcsr501Changed = false; }
     int getHcsr501State() const { return _hcsr501Stat; }
@@ -138,7 +139,6 @@ private:
     void pollDs18x20();
     void pollDht22();
     void pollHcsr04();
-    void pollHcsr501();
     void pollMq4();
 
     void disableSensor(const char* name, SensorStatus& status);
