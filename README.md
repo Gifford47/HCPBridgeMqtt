@@ -9,7 +9,7 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-181717?logo=GitHub)](https://github.com/sponsors/gifford47)
 
 # Hörmann hormann — MQTT + Home Assistant
-![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
+<img src="docs/Images/webinterface.png" width="600" alt="Web Interface">
 
 **Emulates Hörmann UAP1-HCP (HCP2) using an ESP32 + RS485 converter and exposes garage door controls via MQTT and a web UI.**
 
@@ -62,7 +62,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 - OTA Updates  
 - First-use hotspot (for out-of-the-box Wi-Fi setup)  
 - Support for ESP32-S1/S2/S3 families  
-- Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501)  
+- Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501, MQ4)
 - Efficient MQTT traffic (only publish on state change)  
 - Support multiple HCP Bridges for several doors
 
@@ -105,16 +105,22 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 
 ---
 
-## Factory Reset
-If you need to reset the device to factory defaults (clearing all Wi-Fi and MQTT configuration), you can trigger a factory reset using the Boot button (GPIO 0):
+## Factory Reset & Sensor Recovery
+The Boot button (GPIO 0) supports two reset levels:
 
-**How to perform a factory reset:**
-1. Press the Boot button **5 times** within **6 seconds**
-2. On HCP_Gifford boards, the LED will blink to confirm
-3. The device will reset all preferences and restart
-4. After restart, the device will create its default hotspot again
+| Presses (within 6s) | Action |
+|---|---|
+| **3x** | Disable all sensors and restart (sensor recovery) |
+| **5x** | Full factory reset (clear all preferences) |
 
-> **Note:** This feature includes debounce protection to prevent accidental resets. Each button press must be at least 200ms apart to be counted.
+**Sensor recovery (3x press):**
+If a faulty sensor causes boot problems, press the button 3 times to disable all sensors. The device will restart normally and you can fix the sensor configuration in the Web UI.
+
+**Automatic crash recovery:**
+If a sensor causes a crash (panic/watchdog), the firmware detects this on the next boot via `esp_reset_reason()` and automatically disables all sensors.
+
+**Full factory reset (5x press):**
+Clears all Wi-Fi, MQTT and sensor configuration. The device will restart with its default hotspot.
 
 ---
 
@@ -148,14 +154,38 @@ Configuration can be done via the Web UI.
 ---
 
 ## Sensors (optional)
-Supported optional sensors:
-- DS18x20 (1-wire) — temperature  
-- BME280 — temperature, humidity, pressure  
-- DHT22 — temperature, humidity  
-- HC-SR04 — distance (car detection)  
-- HC-SR501 — PIR motion
+Sensors are **manually enabled** via the Web UI under **Sensor Configuration**. Each sensor can be individually activated with a checkbox — no auto-detection. If an enabled sensor is not connected or fails to initialize, the ESP will continue booting normally and report the error via the debug MQTT entity.
 
-Sensor readings are published to MQTT under `hormann/<device_id>/<sensor>` with configurable thresholds for triggered messages.
+Supported sensors:
+- **BME280** (I2C) — temperature, humidity, pressure
+- **DS18x20** (OneWire) — temperature
+- **DHT22** — temperature, humidity
+- **HC-SR04** (ultrasonic) — distance / **parking space detection**
+- **HC-SR501** (PIR) — motion
+- **MQ4** (analog) — methane / natural gas
+
+Sensor readings are published to MQTT under `hormann/<device_id>/sensor` with configurable thresholds. Pins and thresholds are configurable in the Web UI.
+
+### Parking Space Detection (HC-SR04)
+The HC-SR04 ultrasonic sensor can be used to detect available parking space. The "Parking" feature (displayed as `"free": true/false` in MQTT):
+- Measures distance to an object (e.g., car in garage)
+- Tracks the **maximum distance ever measured** (represents empty space baseline)
+- Compares current distance to max with a proximity threshold (default: 10cm)
+- Publishes `true` when `(current_distance + threshold) > max_distance` → **space available** ✅
+- Publishes `false` when occupied → **no parking space** ❌
+
+**Configuration:**
+- **Enable sensor:** Activate HC-SR04 in Sensor Configuration tab
+- **Trigger & Echo pins:** Set custom GPIO pins for your board
+- **Max distance:** Sensor range limit (default: 150cm)
+- **Proximity threshold:** Distance margin for detection (default: 10cm, configurable as `sen_prox_thresh`)
+
+### Sensor Safety
+- Each sensor is tested up to **3 times** during boot before being marked as failed
+- Failed sensors are shown with **red text** in the Web UI (last known value preserved)
+- During normal operation, **5 consecutive poll failures** disable a sensor until reboot
+- MQTT discovery and publishing skip failed sensors — no stale data sent to Home Assistant
+- See [Factory Reset & Sensor Recovery](#factory-reset--sensor-recovery) for crash recovery options
 
 ---
 
@@ -192,6 +222,8 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 <img src="docs/Images/webinterface.png" width="420" alt="Web UI">
 <img src="docs/Images/hass_ov.png" width="420" alt="Hass">
 <img src="docs/Images/ha_shuttercard.png" width="420" alt="HA shutter card">
+
+![hormann](https://user-images.githubusercontent.com/14005124/215204028-66bb0342-6bc2-48dc-ad8e-b08508bdc811.png)
 
 ---
 

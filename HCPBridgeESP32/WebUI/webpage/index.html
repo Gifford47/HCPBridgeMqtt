@@ -5,130 +5,137 @@
   <meta charset="UTF-8">
   <link rel="icon" href="data:,">
   <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    h2 {font-size: 3.0rem;}
-    p {font-size: 1rem;}
-    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
-    .switch {position: relative; display: inline-block; width: 80px; height: 48px} 
-    .switch input {display: none}
-    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px}
-    .slider:before {position: absolute; content: ""; height: 32px; width: 32px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 3px}
-    input:checked+.slider {background-color: #b30000}
-    input:checked+.slider:before {-webkit-transform: translateX(32px); -ms-transform: translateX(32px); transform: translateX(32px)}
-	
+	:root {
+		--bg: #f0f2f5; --card: #fff; --accent: #b30000;
+		--border: #d0d4da; --text: #1a1a1a; --muted: #666;
+		--shadow: 0 2px 8px rgba(0,0,0,.07); --radius: 10px;
+	}
+	html {font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; display: inline-block; text-align: center; color: var(--text);}
+	h2 {font-size: 2.4rem; font-weight: 700;}
+	h4 {margin: 0.6rem 0;}
+	h5 {color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 1rem 0 0.4rem;}
+	p {font-size: 1rem;}
+	body {max-width: 600px; margin:0 auto; padding: 0 0.5rem 25px; background: var(--bg);}
+	hr {border: none; border-top: 1px solid var(--border); margin: 1rem 0;}
+	.switch {position: relative; display: inline-block; width: 80px; height: 48px}
+	.switch input {display: none}
+	.slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px; transition: background-color .3s}
+	.slider:before {position: absolute; content: ""; height: 32px; width: 32px; left: 8px; bottom: 8px; background-color: #fff; transition: .3s; border-radius: 3px}
+	input:checked+.slider {background-color: var(--accent)}
+	input:checked+.slider:before {transform: translateX(32px)}
+
 	.btn {
-		background-color: whitesmoke;
-		border: 0px;
-		color: black;
+		background: var(--card);
+		border: 1px solid var(--border);
+		color: var(--text);
 		text-align: center;
-		display: inline;
 		text-decoration: none;
 		display: inline-block;
-		font-size: 20px;
+		font-size: 1rem;
 		margin: 4px 2px;
 		cursor: pointer;
-		border-radius: 8px;
+		border-radius: var(--radius);
 		padding: 8px 16px;
-		&:hover {
-			background-color: lightgray;
-		}
+		transition: background .2s, box-shadow .2s;
+		&:hover { background: #e8eaed; box-shadow: var(--shadow); }
+		&:active { background: #d4d7dc; }
 	}
 
 	.btn-round {
-		border: 4px;
+		border-width: 3px;
 		border-style: solid;
-		height: 100px;
-		width: 100px;
-		border-radius: 50px;
+		height: 90px;
+		width: 90px;
+		border-radius: 50%;
+		font-weight: 600;
 	}
 
 	.hbox {
-		justify-content: space-around;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0;
 	}
 
-	.circle {
-		display: inline-table;
-		vertical-align: middle;
-		width: 60px;
-		height: 60px;
-		background-color: #bbb;
-		background-color:#fff;
-		border:2px solid rgb(81, 0, 255);    
-		border-radius:50%;
+	.sensor-tile {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		background: var(--card);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		padding: 0.5rem 0.8rem;
+		min-width: 65px;
 	}
-
-	.circle__cont {
-		display: table-cell;
-		vertical-align: middle;
-		text-align: center;
-	}
+	.sensor-val {font-size: 1.1rem; font-weight: 600;}
+	.sensor-lbl {font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;}
+	.sensor-tile.failed .sensor-val {color: #ED5961;}
 
 	.btn-red {border-color: #ED5961;}
 	.btn-yellow {border-color: #fcca00;}
 	.btn-orange {border-color: #ffa500;}
-	.btn-green {border-color: #48bd81;}  
-	.btn-black {border-color: #000000;}
-	
+	.btn-green {border-color: #48bd81;}
+	.btn-black {border-color: #000;}
+
 	.link-gray {
+		font-size: 0.9rem;
+		color: var(--muted);
+		padding: 6px 12px;
+		border-radius: 6px;
+		text-decoration: none;
+		transition: all .2s;
+		&:hover { color: #fff; background: #4e5664; }
+	}
+
+	input[type=text], input[type=number] {
+		width: 100%;
+		padding: 8px 10px;
+		margin: 6px 0;
+		box-sizing: border-box;
+		border: 1px solid var(--border);
+		border-radius: 8px;
 		font-size: 1rem;
-		color: #4e5664;
-		padding: 4px;
-		transition: all 250ms cubic-bezier(0.165, 0.84, 0.44, 1);
-		&:hover {
-			color: #FFF;
-			text-decoration: none;
-			background: #4e5664;
-		}
+		transition: border-color .2s;
+		outline: none;
+		&:focus { border-color: #4a90d9; }
 	}
 
-	input[type=text] {
-		width: 100%;
-		padding: 8px 8px;
-		margin: 8px 0;
-		box-sizing: border-box;
-		border: 2px solid grey;
-  		border-radius: 4px;
-		font-size: 1.2rem;
-	}
-	input[type=number] {
-		width: 100%;
-		padding: 8px 8px;
-		margin: 8px 0;
-		box-sizing: border-box;
-		border: 2px solid grey;
-  		border-radius: 4px;
-		font-size: 1.2rem;
+	.card {
+		background: var(--card);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		padding: 0.5rem 0;
+		margin-bottom: 0.5rem;
 	}
 
-	.flex label {
-		min-width: 12rem;
-		text-align: left;
-	}
-
-	.flex .form-label {
-		min-width: 12rem;
-		text-align: left;
-	}
-
-	.form-label small {
-		display: block;
-	}
+	.flex label {min-width: 11rem; text-align: left;}
+	.flex .form-label {min-width: 11rem; text-align: left;}
+	.form-label small {display: block; color: var(--muted); font-size: 0.8rem;}
 
 	.flex {
 		display: flex;
-		align-items:center;
-		padding: 0rem 1rem;
+		align-items: center;
+		padding: 0.15rem 1rem;
 	}
 
 	.flex.justify-between {
 		justify-content: space-between;
+		padding: 0 0.5rem;
 	}
 
 	.subtitle {
 		text-align: left;
-		padding: 0rem 1rem;
+		padding: 0 1rem;
 	}
-	
+
+	@media (max-width: 480px) {
+		h2 {font-size: 1.8rem;}
+		.btn-round {height: 70px; width: 70px; font-size: 0.85rem;}
+		.flex {flex-wrap: wrap;}
+		.flex label, .flex .form-label {min-width: auto; width: 100%;}
+		input[type=text], input[type=number] {font-size: 0.95rem;}
+	}
+
   </style>
 </head>
 <body>
@@ -157,7 +164,7 @@
 		<h4>Basic Configuration</h4>
 		<button id="toggle_basic_conf" class="btn">show</button>
 	</div>
-	<form id="basic_conf_form" class="collapsible" style="display: none">
+	<form id="basic_conf_form" class="card" style="display: none">
 		<div class="subtitle">
 			<h5>Wifi</h5>
 			<div class="flex">
@@ -201,11 +208,18 @@
 			</div>
 			<div class="flex">
 				<label for="device_id">Device ID</label>
-				<input type="text" id="device_id" name="device_id">
+				<input type="text" id="device_id" name="device_id" maxlength="14">
 			</div>
 			<div class="flex">
 				<label for="device_name">Device Name</label>
 				<input type="text" id="device_name" name="device_name">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Debug</h5>
+			<div class="flex">
+				<label for="debug_enabled">Enable Serial Debug</label>
+				<input type="checkbox" id="debug_enabled" name="debug_enabled">
 			</div>
 		</div>
 		<div class="subtitle">
@@ -220,60 +234,57 @@
 	</form>
 
 	<div class="flex justify-between">
-		<h4>Expert Configuration</h4>
-		<button id="toggle_expert_conf" class="btn">show</button>
+		<h4>Sensor Configuration</h4>
+		<button id="toggle_sensor_conf" class="btn">show</button>
 	</div>
-	<form id="expert_conf_form" class="collapsible" style="display: none">
+	<form id="sensor_conf_form" class="card" style="display: none">
 		<div class="subtitle">
-			<h5>Door Status Text Definition</h5>
+			<h5>Sensor Selection</h5>
 			<div class="flex">
-				<label for="gd_availability">Availability</label>
-				<input type="text" id="gd_availability" name="gd_availability">
+				<div class="form-label">
+					<label for="sen_bme_en">Temperatur / Feuchte / Druck</label>
+					<small>BME280 (I2C)</small>
+				</div>
+				<input type="checkbox" id="sen_bme_en" name="sen_bme_en">
 			</div>
 			<div class="flex">
-				<label for="gd_light">Light</label>
-				<input type="text" id="gd_light" name="gd_light">
+				<div class="form-label">
+					<label for="sen_ds18_en">Temperatur</label>
+					<small>DS18X20 (OneWire)</small>
+				</div>
+				<input type="checkbox" id="sen_ds18_en" name="sen_ds18_en">
 			</div>
 			<div class="flex">
-				<label for="gd_vent">Ventilation</label>
-				<input type="text" id="gd_vent" name="gd_vent">
+				<div class="form-label">
+					<label for="sen_dht_en">Temperatur / Feuchte</label>
+					<small>DHT22</small>
+				</div>
+				<input type="checkbox" id="sen_dht_en" name="sen_dht_en">
 			</div>
 			<div class="flex">
-				<label for="gd_half">Half</label>
-				<input type="text" id="gd_half" name="gd_half">
+				<div class="form-label">
+					<label for="sen_sr04_en">Entfernung</label>
+					<small>HC-SR04 (Ultraschall)</small>
+				</div>
+				<input type="checkbox" id="sen_sr04_en" name="sen_sr04_en">
 			</div>
 			<div class="flex">
-				<label for="gd_status">Status</label>
-				<input type="text" id="gd_status" name="gd_status">
+				<div class="form-label">
+					<label for="sen_sr501_en">Bewegungsmelder</label>
+					<small>HC-SR501 (PIR)</small>
+				</div>
+				<input type="checkbox" id="sen_sr501_en" name="sen_sr501_en">
 			</div>
 			<div class="flex">
-				<label for="gd_det_status">Detailed Status</label>
-				<input type="text" id="gd_det_status" name="gd_det_status">
-			</div>
-			<div class="flex">
-				<label for="gd_position">Position</label>
-				<input type="text" id="gd_position" name="gd_position">
-			</div>
-			<div class="flex">
-				<label for="sen_motion">Motion</label>
-				<input type="text" id="sen_motion" name="sen_motion">
-			</div>
-			<div class="flex">
-				<label for="gd_debug_string">Debug String</label>
-				<input type="text" id="gd_debug_string" name="gd_debug_string">
+				<div class="form-label">
+					<label for="sen_mq4_en">Gassensor</label>
+					<small>MQ4 (Methan / Erdgas)</small>
+				</div>
+				<input type="checkbox" id="sen_mq4_en" name="sen_mq4_en">
 			</div>
 		</div>
-
 		<div class="subtitle">
 			<h5>Pin Definition</h5>
-			<div class="flex">
-				<label for="rs485_txd">RS485 TXD</label>
-				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="48" step="1">
-			</div>
-			<div class="flex">
-				<label for="rs485_rxd">RS485 RXD</label>
-				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="48" step="1">
-			</div>
 			<div class="flex">
 				<label for="sen_i2c_sda">I2C SDA</label>
 				<input type="number" id="sen_i2c_sda" name="sen_i2c_sda" min="1" max="48" step="1">
@@ -302,6 +313,14 @@
 				<label for="sen_sr501pin">SR501</label>
 				<input type="number" id="sen_sr501pin" name="sen_sr501pin" min="1" max="48" step="1">
 			</div>
+			<div class="flex">
+				<label for="sen_mq4analog">MQ4 Analog</label>
+				<input type="number" id="sen_mq4analog" name="sen_mq4analog" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="sen_mq4digital">MQ4 Digital</label>
+				<input type="number" id="sen_mq4digital" name="sen_mq4digital" min="0" max="48" step="1">
+			</div>
 		</div>
 		<div class="subtitle">
 			<h5>Sensor Adjustments</h5>
@@ -328,7 +347,7 @@
 			</div>
 			<div class="flex">
 				<div class="form-label">
-					<label for="sen_pres_thresh">Preasure threshold</label>
+					<label for="sen_pres_thresh">Pressure threshold</label>
 					<small>in mbar when to update mqtt</small>
 				</div>
 				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
@@ -338,12 +357,43 @@
 				<input type="number" id="sen_prox_thresh" name="sen_prox_thresh" min="1" step="1">
 			</div>
 			<div class="flex">
+				<div class="form-label">
+					<label for="sen_gas_thresh">Gas threshold</label>
+					<small>analog delta when to update mqtt</small>
+				</div>
+				<input type="number" id="sen_gas_thresh" name="sen_gas_thresh" min="1" step="1">
+			</div>
+			<div class="flex">
 				<label for="sen_sr04maxdist">SR04 Max Dist</label>
 				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
 			</div>
 		</div>
+		<br>
+		<button type="submit" class="btn">Save & Restart</button>
+	</form>
+
+	<div class="flex justify-between">
+		<h4>Expert Configuration</h4>
+		<button id="toggle_expert_conf" class="btn">show</button>
+	</div>
+	<form id="expert_conf_form" class="card" style="display: none">
 		<div class="subtitle">
-			<h5>Other Text Definition</h5>	
+			<h5>RS485 Pins</h5>
+			<div class="flex">
+				<label for="rs485_txd">RS485 TXD</label>
+				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="rs485_rxd">RS485 RXD</label>
+				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="48" step="1">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Text Definition</h5>
+			<div class="flex">
+				<label for="gd_debug_string">Debug String</label>
+				<input type="text" id="gd_debug_string" name="gd_debug_string">
+			</div>
 			<div class="flex">
 				<label for="gd_dg_rst_reas">Restart Reason</label>
 				<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas">
@@ -353,7 +403,7 @@
 				<input type="text" id="sensor_temp" name="sensor_temp">
 			</div>
 			<div class="flex">
-				<label for="sensor_humidity">Humitidy</label>
+				<label for="sensor_humidity">Humidity</label>
 				<input type="text" id="sensor_humidity" name="sensor_humidity">
 			</div>
 			<div class="flex">
@@ -368,6 +418,18 @@
 				<label for="sen_park_avail">Park availability</label>
 				<input type="text" id="sen_park_avail" name="sen_park_avail">
 			</div>
+			<div class="flex">
+				<label for="sen_motion">Motion</label>
+				<input type="text" id="sen_motion" name="sen_motion">
+			</div>
+			<div class="flex">
+				<label for="sensor_gas">Gas Level</label>
+				<input type="text" id="sensor_gas" name="sensor_gas">
+			</div>
+			<div class="flex">
+				<label for="sen_gas_alarm">Gas Alarm</label>
+				<input type="text" id="sen_gas_alarm" name="sen_gas_alarm">
+			</div>
 		</div>
 		<br>
 		<button type="submit" class="btn">Save & Restart</button>
@@ -377,18 +439,34 @@
 		<h4>System information</h4>
 		<button id="toogle_sysinfo" class="btn">show</button>
 	</div>
-	<div id="sysinfo_links" class="collapsible" style="display: none">
-		<a class="link-gray" href="update" target="_blank">OTA Update</a>
-		<a class="link-gray" href="sysinfo" target="_blank">System Info</a>
-		<a class="link-gray" href="status" target="_blank">Door status</a>
-		<a class="link-gray" href="reset" target="_blank">Factory reset</a>
+	<div id="sysinfo_panel" class="card" style="display: none; text-align: left; padding: 0.5rem 1rem;">
+		<table id="sysinfo_table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+			<tr><td style="padding:4px 8px; color:#666;">Version</td><td id="si_version" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Build</td><td id="si_buildenv" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Hostname</td><td id="si_hostname" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">IP</td><td id="si_ip" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">WiFi</td><td id="si_wifi" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">MQTT</td><td id="si_mqtt" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Free Memory</td><td id="si_mem" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Reset Reason</td><td id="si_reset" style="padding:4px 8px;"></td></tr>
+		</table>
+		<h5 style="margin:12px 0 4px 0;">Sensors</h5>
+		<table id="si_sensors" style="width:100%; border-collapse:collapse; font-size:0.9rem;"></table>
+		<div style="margin-top:12px;">
+			<a class="link-gray" href="update" target="_blank">OTA Update</a>
+			<a class="link-gray" href="reset" target="_blank">Factory Reset</a>
+		</div>
 	</div>
 
 	<p id="swversion"></p>
 		
 	<script>
-	document.getElementById("toogle_sysinfo").onclick = function() {collapse('sysinfo_links')};
+	document.getElementById("toogle_sysinfo").onclick = function() {
+		collapse('sysinfo_panel');
+		loadSysinfo();
+	};
 	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
+	document.getElementById("toggle_sensor_conf").onclick = function() {collapse('sensor_conf_form')};
 	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
 	function collapse(elementId) {
@@ -398,9 +476,42 @@
 		} else {
 		x.style.display = "none";
 		}
-		
 	}
-	
+
+	function loadSysinfo() {
+		var xhr = new XMLHttpRequest();
+		xhr.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				var info = JSON.parse(this.responseText);
+				document.getElementById("si_version").textContent = "v" + (info.swversion || "?");
+				document.getElementById("si_buildenv").textContent = info.buildenv || "?";
+				document.getElementById("si_hostname").textContent = info.hostname || "?";
+				document.getElementById("si_ip").textContent = info.ip || "?";
+				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
+				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
+				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
+				document.getElementById("si_reset").textContent = info.restart_reason || "?";
+				var tbl = document.getElementById("si_sensors");
+				tbl.innerHTML = "";
+				var hasActive = false;
+				if (info.sensors) {
+					for (var name in info.sensors) {
+						var st = info.sensors[name];
+						if (st !== "off") hasActive = true;
+						var color = st === "active" ? "#48bd81" : (st === "disabled" ? "#ED5961" : "#999");
+						var label = st === "active" ? "Active" : (st === "disabled" ? "Disabled" : "Off");
+						tbl.innerHTML += "<tr><td style='padding:2px 8px;'>" + name + "</td><td style='padding:2px 8px;color:" + color + ";font-weight:bold;'>" + label + "</td></tr>";
+					}
+				}
+				if (!hasActive) {
+					tbl.innerHTML = "<tr><td style='padding:4px 8px;color:#999;' colspan='2'>No sensors enabled.</td></tr>";
+				}
+			}
+		};
+		xhr.open("GET", "/sysinfo", true);
+		xhr.send();
+	}
+
 	doorpos = 10;
 	dir = -1;
 	isconnected = false;
@@ -419,7 +530,6 @@
 	}
 	
 	function Draw(){		
-		var svg =document.getElementById("svg");
 		var dc = document.getElementById("dc");		
 		var ctx = dc.getContext("2d");
 		width = dc.width;
@@ -477,8 +587,8 @@
 			for (const key in config){
 				var el = document.getElementById(key);
 				if(el) {		// if element exists in doc...
-					if (config[key] === true) {
-						el.checked = config[key]
+					if (el.type === 'checkbox') {
+						el.checked = config[key] === true;
 					}
 					else {
 						el.value = config[key]
@@ -520,6 +630,9 @@
 	const basicConfForm = document.getElementById('basic_conf_form');
 	basicConfForm.addEventListener('submit', handleSubmitConf);
 
+	const sensorConfForm = document.getElementById('sensor_conf_form');
+	sensorConfForm.addEventListener('submit', handleSubmitConf);
+
 	const expertConfForm = document.getElementById('expert_conf_form');
 	expertConfForm.addEventListener('submit', handleSubmitConf);
 	
@@ -557,25 +670,33 @@
 				var status = JSON.parse(this.responseText);	
                 isconnected = status.valid;
 				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
-				document.getElementById("light").checked = status.light & status.valid;
+				document.getElementById("light").checked = status.light && status.valid;
 				document.getElementById("swversion").innerHTML = "v" + status.swversion;
 				if (status.hasOwnProperty('sensors')) {
 					var sdiv = document.getElementById("sensors")
 					sdiv.style.display = 'flex';
+					var sLabels = {temp:"Temp",hum:"Humidity",pres:"Pressure",dist:"Distance",free:"Parking",motion:"Motion",gas:"Gas",gas_alarm:"Gas Alarm"};
+					var failedKeys = status.sensors._failed || [];
 					Object.keys(status.sensors).forEach(function(key){
-						//console.log(key + ' - ' + status[key]);
-						var div = document.getElementById(key);
+						if (key === '_failed') return;
+						var isFailed = failedKeys.indexOf(key) >= 0;
+						var div = document.getElementById("s_"+key);
 						if (div === null){
-							var div1 = document.createElement('div');
-							div1.id = key;
-							div1.className = 'circle';
-							var div2 = document.createElement('div');
-							div2.className = 'circle__cont';
-							div2.innerHTML = status.sensors[key];
-							div1.appendChild(div2);
-							sdiv.appendChild(div1);
+							var tile = document.createElement('div');
+							tile.id = "s_"+key;
+							tile.className = 'sensor-tile' + (isFailed ? ' failed' : '');
+							var valDiv = document.createElement('div');
+							valDiv.className = 'sensor-val';
+							valDiv.textContent = status.sensors[key];
+							var lblDiv = document.createElement('div');
+							lblDiv.className = 'sensor-lbl';
+							lblDiv.textContent = sLabels[key] || key;
+							tile.appendChild(valDiv);
+							tile.appendChild(lblDiv);
+							sdiv.appendChild(tile);
 						} else {
-							div.children[0].innerHTML = status.sensors[key];
+							div.children[0].textContent = status.sensors[key];
+							div.className = 'sensor-tile' + (isFailed ? ' failed' : '');
 						}
 					});
 				}
@@ -587,10 +708,20 @@
 			xmlhttp.send();
 	}
 
-	getConfig();	
+	getConfig();
 	Draw();
-	updateData();	
+	updateData();
 	setInterval(updateData, 3000);
+
+	// SSE: immediate sensor updates (only changed values)
+	var evtSource = new EventSource('/events');
+	evtSource.addEventListener('sensor', function(e) {
+		var d = JSON.parse(e.data);
+		for (var key in d) {
+			var el = document.getElementById("s_"+key);
+			if (el) el.children[0].textContent = d[key];
+		}
+	});
 	
 	
 </script>
