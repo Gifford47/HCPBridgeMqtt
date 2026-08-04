@@ -102,6 +102,18 @@ void resetPreferences() {
 void connectToWifi() {
     if (localPrefs->getString(preference_wifi_ssid) != "") {
         DBG_PRINTLN("Connecting to Wi-Fi...");
+        // Multi-AP networks (same SSID on several APs): arduino-esp32 defaults to
+        // WIFI_FAST_SCAN, which associates with the FIRST matching AP found and
+        // stops - regardless of RSSI. The bridge then sticks to a far/weak AP and
+        // re-attaches to the same BSSID after every reconnect. Scanning all
+        // channels first makes WIFI_CONNECT_AP_BY_SIGNAL effective, so the
+        // strongest AP wins. Costs a full scan at boot/reconnect only.
+        if (localPrefs->getBool(preference_wifi_best_ap, true)) {
+            WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+            WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+        } else {
+            WiFi.setScanMethod(WIFI_FAST_SCAN);
+        }
         WiFi.begin(localPrefs->getString(preference_wifi_ssid).c_str(), localPrefs->getString(preference_wifi_password).c_str(), 0, nullptr, true);
     } else {
         DBG_PRINTLN("No WiFi Client enabled");

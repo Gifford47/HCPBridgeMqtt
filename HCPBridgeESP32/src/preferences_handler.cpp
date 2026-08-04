@@ -139,6 +139,7 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
     if (saveBasic) {
         preferences->putBool(preference_wifi_ap_mode, !doc[preference_wifi_ap_mode].isNull() && doc[preference_wifi_ap_mode].as<String>() == "on");
         preferences->putBool(preference_debug_enabled, !doc[preference_debug_enabled].isNull() && doc[preference_debug_enabled].as<String>() == "on");
+        preferences->putBool(preference_wifi_best_ap, !doc[preference_wifi_best_ap].isNull() && doc[preference_wifi_best_ap].as<String>() == "on");
     }
 
     if (saveSensor) {

@@ -32,6 +32,8 @@
 #define preference_wifi_password "wifi_pass"
 #define preference_www_password "www_pass"
 #define preference_wifi_ap_password "wifi_ap_pass"
+// Scan all channels and associate with the strongest BSSID of the SSID
+#define preference_wifi_best_ap "wifi_best_ap"
 
 // Debug
 #define preference_debug_enabled "debug_enabled"
@@ -123,6 +125,7 @@ static const PrefDef PREF_REGISTRY[] = {
     {preference_wifi_ssid,          PrefType::STRING, false,  PREF_GROUP_BASIC,    STA_SSID,       0,              0.0,        false},
     {preference_wifi_password,      PrefType::STRING, true,   PREF_GROUP_BASIC,    STA_PASSWD,     0,              0.0,        false},
     {preference_wifi_ap_password,   PrefType::STRING, true,   PREF_GROUP_BASIC,    AP_PASSWD,      0,              0.0,        false},
+    {preference_wifi_best_ap,       PrefType::BOOL,   false,  PREF_GROUP_BASIC,    "",             0,              0.0,        true},
     {preference_www_password,       PrefType::STRING, true,   PREF_GROUP_BASIC,    WWW_PASSWD,     0,              0.0,        false},
     {preference_mqtt_server,        PrefType::STRING, false,  PREF_GROUP_BASIC,    MQTTSERVER,     0,              0.0,        false},
     {preference_mqtt_server_port,   PrefType::INT,    false,  PREF_GROUP_BASIC,    "",             MQTTPORT,       0.0,        false},

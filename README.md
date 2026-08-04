@@ -189,6 +189,11 @@ The HC-SR04 ultrasonic sensor can be used to detect available parking space. The
 
 ---
 
+## Wi-Fi in multi-AP networks
+If the same SSID is broadcast by several access points (UniFi, mesh, repeaters), enable **Connect to strongest AP** in the basic configuration (default: on). The device then scans all channels and associates with the AP with the best signal, instead of the first one it happens to find. Turn it off to get the slightly faster (but signal-agnostic) fast scan on single-AP networks.
+
+---
+
 ## Ventilation (vent) position
 A small implementation supports a ventilation (vent) position and custom positioning. The vent behaviour uses a configured numeric position value. You can set custom positions with MQTT `SET_POSITION`.
 

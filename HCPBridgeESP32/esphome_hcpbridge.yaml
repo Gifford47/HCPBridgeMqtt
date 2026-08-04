@@ -189,6 +189,11 @@ web_server:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Multi-AP networks (same SSID on several APs, e.g. UniFi/mesh):
+  # fast_connect must stay false (the default) - ESPHome then scans all
+  # channels and associates with the AP that has the strongest signal instead
+  # of the first one found. Only set it to true for hidden SSIDs.
+  fast_connect: false
 
 captive_portal:
 
