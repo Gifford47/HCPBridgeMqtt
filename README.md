@@ -25,6 +25,7 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 - [Configuration](#configuration)
 - [OTA Updates](#ota-updates)
 - [Sensors (optional)](#sensors-optional)
+- [Digital Inputs & Outputs (optional)](#digital-inputs--outputs-optional)
 - [Troubleshooting](#troubleshooting)
 - [Development & Contributing](#development--contributing)
 - [License](#license)
@@ -63,6 +64,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 - First-use hotspot (for out-of-the-box Wi-Fi setup)  
 - Support for ESP32-S1/S2/S3 families  
 - Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501, MQ4)
+- Optional digital inputs (wall button) and outputs (relay module) on the prebuilt PCBs
 - Efficient MQTT traffic (only publish on state change)  
 - Support multiple HCP Bridges for several doors
 
@@ -130,6 +132,8 @@ Clears all Wi-Fi, MQTT and sensor configuration. The device will restart with it
 hormann/<device_id>/state -> JSON with state/position/light/temperature  
 hormann/<device_id>/command -> payloads: OPEN, CLOSE, STOP, LIGHT_TOGGLE, SET_POSITION:50  
 hormann/<device_id>/sensor/<name>  
+hormann/<device_id>/io -> JSON with the state of the enabled In1/In2/Out1/Out2 channels  
+hormann/<device_id>/command/out1 -> payloads: true, false, toggle  
 
 
 ### Home Assistant (MQTT Auto Discovery)
@@ -189,6 +193,25 @@ The HC-SR04 ultrasonic sensor can be used to detect available parking space. The
 
 ---
 
+## Digital Inputs & Outputs (optional)
+The prebuilt HCP PCBs have four screw terminals — **In1**, **In2**, **Out1**, **Out2** — that are plain 3.3 V ESP32 GPIOs (the **HCP mini does not have them**). They are **disabled by default** and enabled per channel in the Web UI under **I/O Configuration**.
+
+- **In1 / In2** — **≈5 V voltage inputs**, not dry-contact inputs: each sits behind a fixed 1.2 kΩ / 2.2 kΩ divider, so a signal of about 4–5 V against board GND reads as HIGH and the on-board 2.2 kΩ pulls the input LOW when nothing is applied. A push button therefore has to *switch 5 V* onto the terminal. **Never feed 12 V or 24 V in** — that destroys the GPIO. Each input becomes a Home Assistant `binary_sensor` and can additionally run a **local action** — toggle door, open, close, stop, **toggle light**, vent, half position — which keeps working when Wi-Fi/MQTT is down.
+- **Out1 / Out2** — **high-side switches** (optocoupler-driven MOSFET). Switched on they *source* the voltage selected with the on-board `5V | – | 3V` jumper (minus about one MOSFET threshold), switched off they are high impedance. Suitable for PLC inputs, active-high relay module inputs and logic inputs; **not** for driving relays, lamps or motors directly. Each output becomes a Home Assistant `switch`.
+
+| Terminal | HCP PCB v2 | HCP PCB v3.x |
+|---|---|---|
+| In1 | GPIO12 | GPIO12 |
+| In2 | GPIO14 | GPIO14 |
+| Out1 | GPIO37 | GPIO25 |
+| Out2 | GPIO35 | GPIO22 |
+
+MQTT: state on `hormann/<device_id>/io`, commands on `hormann/<device_id>/command/out1` and `/out2` (`true` / `false` / `toggle`). HTTP: `GET /io?output=1&state=toggle`.
+
+➡️ **Full wiring details, electrical limits, all settings and examples: [Digital Inputs & Outputs](docs/inputs_outputs.md)**
+
+---
+
 ## Wi-Fi in multi-AP networks
 If the same SSID is broadcast by several access points (UniFi, mesh, repeaters), enable **Connect to strongest AP** in the basic configuration (default: on). The device then scans all channels and associates with the AP with the best signal, instead of the first one it happens to find. Turn it off to get the slightly faster (but signal-agnostic) fast scan on single-AP networks.
 
@@ -233,4 +256,5 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 ---
 
 ## More docs
-- [Rollmatic v2 notes](docs/rollmatic_v2.md)  
+- [Rollmatic v2 notes](docs/rollmatic_v2.md)
+- [Digital Inputs & Outputs (In1/In2/Out1/Out2)](docs/inputs_outputs.md)  

@@ -20,11 +20,23 @@ If you want to connect **temperature sensors** or any other sensors, follow thes
 
 ⚠️ **Note:** The “b” firmware variant is required whenever sensors are present — even if only one is connected.
 
+## 🔘 Using the In1 / In2 / Out1 / Out2 terminals
+
+Next to the sensor pads the PCB has four extra screw terminals. They are plain
+3.3 V ESP32 GPIOs (the **HCP mini does not have them**):
+
+* **In1 / In2** — **≈5 V signal inputs** (fixed 1.2 kΩ / 2.2 kΩ divider on the board), not dry-contact inputs. A push button must therefore *switch 5 V* onto the terminal; the on-board 2.2 kΩ pulls the input low again when it is released. Never apply 12 V or 24 V. Each input can trigger a local action such as *toggle light* or *impulse*, and shows up in Home Assistant as a `binary_sensor`.
+* **Out1 / Out2** — **high-side switches** (optocoupler-driven MOSFET). Switched on they *source* the voltage set by the `5V | – | 3V` jumper, switched off they are high impedance. Use them for PLC inputs, active-high relay module inputs or logic inputs; never to drive a load directly. Each output shows up as a Home Assistant `switch`.
+
+Both are **disabled by default** and are enabled in the Web UI under **I/O Configuration**.
+
+➡️ Full details, wiring diagrams, limits and examples: [Digital Inputs & Outputs](inputs_outputs.md)
+
 ## What you need
 
 * Prebuild PCB with HCPBridge Firmware installed (installed out of the box on gifford PCBs)
 * USB-C power supply (PCB-Revision >=3)
-* 3.3V power Supply (min. 300mA)
+* Optional: 3.3V power Supply (min. 500mA) if you want to test the board standalone
 
 ## Initial configuration
 

@@ -80,6 +80,40 @@ binary_sensor:
       #on_state:
       #create your automation based on Garage Door Relay state
 
+  # --- In1 / In2 screw terminals of the prebuilt HCP PCBs -------------------
+  # These are ~5V VOLTAGE inputs, not dry-contact inputs: the board has a fixed
+  # 1.2k series + 2.2k pull-down divider (5V in -> 3.24V at the pin). A button
+  # must therefore SWITCH ~5V onto the terminal against board GND; the 2.2k
+  # pulls the pin low again when it is released. Never apply 12V or 24V.
+  # Because of that pull-down, do NOT enable an internal pullup and do NOT
+  # invert - the internal pullup would be overpowered and the pin would read
+  # LOW permanently.
+  # Pins on PCB v3.x: In1 = GPIO12, In2 = GPIO14 (the HCP mini has no In/Out).
+  # Uncomment the block for the inputs your board actually has.
+  # - platform: gpio
+  #   name: "${friendly_name} Input 1"
+  #   id: input_1
+  #   pin:
+  #     number: GPIO12
+  #     mode:
+  #       input: true
+  #   filters:
+  #     - delayed_on_off: 50ms
+  #   on_press:
+  #     # local button action - e.g. toggle the SupraMatic light
+  #     - light.toggle: gd_light
+  # - platform: gpio
+  #   name: "${friendly_name} Input 2"
+  #   id: input_2
+  #   pin:
+  #     number: GPIO14
+  #     mode:
+  #       input: true
+  #   filters:
+  #     - delayed_on_off: 50ms
+  #   on_press:
+  #     - cover.toggle: garagedoor_cover
+
 output:
   - platform: hcpbridge
     id: output_light
@@ -129,6 +163,31 @@ switch:
       id: half_switch
       name: "${sw_half}"
       restore_mode: disabled
+
+  # --- Out1 / Out2 screw terminals of the prebuilt HCP PCBs -----------------
+  # HIGH-SIDE switches: the GPIO drives an optocoupler which pulls the gate of
+  # an N-channel MOSFET to the rail selected by the on-board "5V | - | 3V"
+  # jumper. Switched on the terminal SOURCES that voltage (minus roughly one
+  # MOSFET threshold), switched off it is high impedance. Both optocoupler sides
+  # share the board GND, so this is a driver stage, not galvanic isolation.
+  # Never drive a load directly - feed a relay module input instead (active
+  # HIGH; active-low modules need an extra inverting stage).
+  # Set inverted: true only if ON/OFF end up swapped for your wiring.
+  # Pins on PCB v3.x: Out1 = GPIO25, Out2 = GPIO22.
+  # - platform: gpio
+  #   name: "${friendly_name} Output 1"
+  #   id: output_1
+  #   pin:
+  #     number: GPIO25
+  #     inverted: false
+  #   restore_mode: ALWAYS_OFF
+  # - platform: gpio
+  #   name: "${friendly_name} Output 2"
+  #   id: output_2
+  #   pin:
+  #     number: GPIO22
+  #     inverted: false
+  #   restore_mode: ALWAYS_OFF
 
 sensor:
   - platform: hcpbridge

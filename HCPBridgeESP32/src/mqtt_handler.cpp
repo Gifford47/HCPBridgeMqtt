@@ -29,6 +29,11 @@ void MqttHandler::setupMqttStrings() {
     _mqttStrings.st_step_topic = _mqttStrings.st_cmd_topic + "/step";
     _mqttStrings.st_sensor_topic = ftopic + "/sensor";
     _mqttStrings.st_debug_topic = ftopic + "/debug";
+    _mqttStrings.st_io_topic = ftopic + "/io";
+    for (int i = 0; i < IO_OUTPUT_COUNT; i++) {
+        _mqttStrings.st_out_topic[i] = _mqttStrings.st_cmd_topic + "/out" + String(i + 1);
+        strcpy(_mqttStrings.out_topic[i], _mqttStrings.st_out_topic[i].c_str());
+    }
 
     strcpy(_mqttStrings.availability_topic, _mqttStrings.st_availability_topic.c_str());
     strcpy(_mqttStrings.state_topic, _mqttStrings.st_state_topic.c_str());
@@ -42,12 +47,14 @@ void MqttHandler::setupMqttStrings() {
     strcpy(_mqttStrings.step_topic, _mqttStrings.st_step_topic.c_str());
     strcpy(_mqttStrings.sensor_topic, _mqttStrings.st_sensor_topic.c_str());
     strcpy(_mqttStrings.debug_topic, _mqttStrings.st_debug_topic.c_str());
+    strcpy(_mqttStrings.io_topic, _mqttStrings.st_io_topic.c_str());
 }
 
-void MqttHandler::begin(Preferences* prefs, PreferenceHandler* prefHandler, SensorManager* sensorMgr) {
+void MqttHandler::begin(Preferences* prefs, PreferenceHandler* prefHandler, SensorManager* sensorMgr, IoManager* ioMgr) {
     _prefs = prefs;
     _prefHandler = prefHandler;
     _sensorMgr = sensorMgr;
+    _ioMgr = ioMgr;
 
     memset(lastCommandTopic, 0, sizeof(lastCommandTopic));
     memset(lastCommandPayload, 0, sizeof(lastCommandPayload));
@@ -95,6 +102,7 @@ void MqttHandler::onConnect(bool sessionPresent) {
     _mqttClient.subscribe(_mqttStrings.st_cmd_topic_subs.c_str(), 1);
     updateDoorStatus(true);
     updateSensors(true);
+    publishIoState(true);
     if (_bootFlag) {
         if (_sensorMgr->isReady()) {
             sendDiscoveryMessage();
@@ -183,6 +191,21 @@ void MqttHandler::onMessage(char* topic, char* payload, AsyncMqttClientMessagePr
     else if (strcmp(_mqttStrings.setpos_topic, topic) == 0) {
         hoermannEngine->setPosition(atoi(lastCommandPayload));
     }
+    else if (_ioMgr) {
+        for (int i = 0; i < IO_OUTPUT_COUNT; i++) {
+            if (strcmp(_mqttStrings.out_topic[i], topic) != 0) continue;
+            if (strncmp(payload, HA_ON, len) == 0) {
+                _ioMgr->setOutput(i, true);
+            } else if (strncmp(payload, HA_OFF, len) == 0) {
+                _ioMgr->setOutput(i, false);
+            } else {
+                _ioMgr->toggleOutput(i);
+            }
+            // IoTask picks up the change flag and publishes the new state -
+            // publishing from inside the MQTT callback is avoided on purpose
+            break;
+        }
+    }
 }
 
 void MqttHandler::onPublish(uint16_t packetId) {
@@ -251,6 +274,18 @@ void MqttHandler::publishMotionState(int state) {
     _mqttClient.publish(_mqttStrings.sensor_topic, 0, true, payload);
 }
 
+void MqttHandler::publishIoState(bool forceUpdate) {
+    if (!_mqttConnected || !_ioMgr || !_ioMgr->hasAny()) return;
+    if (!_ioMgr->hasChanged() && !forceUpdate) return;
+
+    _ioMgr->clearChanged();
+    JsonDocument doc;
+    char payload[256];
+    _ioMgr->toJson(doc);
+    serializeJson(doc, payload);
+    _mqttClient.publish(_mqttStrings.io_topic, 1, true, payload);
+}
+
 void MqttHandler::sendOnline() {
     _mqttClient.publish(_mqttStrings.availability_topic, 0, true, HA_ONLINE);
 }
@@ -267,6 +302,12 @@ void MqttHandler::sendDebug() {
     String sensorErr = _sensorMgr->getLastError();
     if (sensorErr.length() > 0) {
         doc["sensor_error"] = sensorErr;
+    }
+    if (_ioMgr) {
+        String ioErr = _ioMgr->getLastError();
+        if (ioErr.length() > 0) {
+            doc["io_error"] = ioErr;
+        }
     }
     serializeJson(doc, payload);
     _mqttClient.publish(_mqttStrings.debug_topic, 0, true, payload);
@@ -370,7 +411,7 @@ void MqttHandler::sendDiscoveryMessageForSensor(const char name[], const char to
     _mqttClient.publish(full_topic, 1, true, payload);
 }
 
-void MqttHandler::sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic) {
+void MqttHandler::sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic, const char stateTopic[]) {
     char command_topic[64];
     sprintf(command_topic, _mqttStrings.st_cmd_topic_var.c_str(), topic);
 
@@ -389,7 +430,7 @@ void MqttHandler::sendDiscoveryMessageForSwitch(const char name[], const char di
 
     JsonDocument doc;
     doc["name"] = name;
-    doc["state_topic"] = _mqttStrings.state_topic;
+    doc["state_topic"] = stateTopic ? stateTopic : _mqttStrings.state_topic;
     doc["command_topic"] = command_topic;
     doc["payload_on"] = on;
     doc["payload_off"] = off;
@@ -526,6 +567,21 @@ void MqttHandler::sendDiscoveryMessage() {
         sendDiscoveryMessageForSensor(_prefs->getString(preference_gs_gas).c_str(), _mqttStrings.sensor_topic, "gas", device, "volatile_organic_compounds_parts", "ppm");
         sendDiscoveryMessageForBinarySensor(_prefs->getString(preference_gs_gas_alarm).c_str(), _mqttStrings.sensor_topic, "gas_alarm", HA_OFF, HA_ON, device);
     } else { clearTopic(HA_DISCOVERY_SENSOR, "gas"); clearTopic(HA_DISCOVERY_BIN_SENSOR, "gas_alarm"); }
+
+    // Digital I/O: inputs as binary_sensor, outputs as switch on the io topic
+    if (_ioMgr) for (int i = 0; i < IO_INPUT_COUNT; i++) {
+        const IoInputChannel& in = _ioMgr->input(i);
+        if (in.enabled) {
+            sendDiscoveryMessageForBinarySensor(in.name.c_str(), _mqttStrings.io_topic, in.key, HA_OFF, HA_ON, device);
+        } else { clearTopic(HA_DISCOVERY_BIN_SENSOR, in.key); }
+    }
+    if (_ioMgr) for (int i = 0; i < IO_OUTPUT_COUNT; i++) {
+        const IoOutputChannel& out = _ioMgr->output(i);
+        if (out.enabled) {
+            sendDiscoveryMessageForSwitch(out.name.c_str(), HA_DISCOVERY_SWITCH, out.key, HA_OFF, HA_ON,
+                                          "mdi:electric-switch", device, false, _mqttStrings.io_topic);
+        } else { clearTopic(HA_DISCOVERY_SWITCH, out.key); }
+    }
 
     // Debug entities are always active (independent of debug_enabled)
     sendDiscoveryMessageForSensor(_prefs->getString(preference_gd_debug).c_str(), _mqttStrings.debug_topic, "debug", device);

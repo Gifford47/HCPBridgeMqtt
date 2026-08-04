@@ -13,6 +13,7 @@ extern "C" {
 #include "hoermann.h"
 #include "preferences_handler.h"
 #include "sensor_manager.h"
+#include "io_manager.h"
 #include "mqtt_handler.h"
 #include "../WebUI/index_html.h"
 
@@ -25,6 +26,7 @@ AsyncEventSource events("/events");
 PreferenceHandler prefHandler;
 Preferences *localPrefs = nullptr;
 SensorManager sensorManager;
+IoManager ioManager;
 MqttHandler mqttHandler;
 
 TimerHandle_t wifiReconnectTimer;
@@ -211,6 +213,7 @@ bool requireAuth(AsyncWebServerRequest* request) {
 
 TaskHandle_t mqttTask;
 TaskHandle_t sensorTask;
+TaskHandle_t ioTask;
 
 void mqttTaskFunc(void *parameter) {
     while (true) {
@@ -224,6 +227,29 @@ void sendSensorEvent(const char* key, const char* value) {
     char json[64];
     snprintf(json, sizeof(json), "{\"%s\":\"%s\"}", key, value);
     events.send(json, "sensor", millis());
+}
+
+// Send the full digital I/O state via SSE to all connected WebUI clients
+void sendIoEvent() {
+    JsonDocument doc;
+    char json[128];
+    ioManager.toJson(doc);
+    serializeJson(doc, json);
+    events.send(json, "io", millis());
+}
+
+// Debounce digital inputs, run their local action and push the new state out.
+// Runs faster than the sensor task so a wall button feels instant.
+void ioCheckTask(void *parameter) {
+    while (true) {
+        ioManager.poll();
+        if (ioManager.hasChanged()) {
+            ioManager.clearChanged();
+            mqttHandler.publishIoState(true);
+            sendIoEvent();
+        }
+        vTaskDelay(IO_POLL_INTERVAL_MS);
+    }
 }
 
 void sensorCheckTask(void *parameter) {
@@ -338,8 +364,11 @@ void setup() {
     // MQTT onConnect sends discovery, needs sensor status already set
     sensorManager.begin(localPrefs);
 
+    // Digital I/O (In1/In2, Out1/Out2) - must be up before discovery is sent
+    ioManager.begin(localPrefs);
+
     // Setup MQTT
-    mqttHandler.begin(localPrefs, &prefHandler, &sensorManager);
+    mqttHandler.begin(localPrefs, &prefHandler, &sensorManager, &ioManager);
 
     delay(1000);
     connectToWifi();
@@ -363,6 +392,18 @@ void setup() {
             NULL,
             configMAX_PRIORITIES,
             &sensorTask,
+            0);
+    }
+
+    // Digital I/O polling task (only if any channel is enabled)
+    if (ioManager.hasAny()) {
+        xTaskCreatePinnedToCore(
+            ioCheckTask,
+            "IoTask",
+            4096,
+            NULL,
+            configMAX_PRIORITIES - 2,
+            &ioTask,
             0);
     }
 
@@ -395,6 +436,11 @@ void setup() {
         sensorManager.toStatusJson(sensors);
         JsonObject sensorStatus = root["sensor_status"].to<JsonObject>();
         sensorManager.toDetectionJson(sensorStatus);
+
+        if (ioManager.hasAny()) {
+            JsonObject io = root["io"].to<JsonObject>();
+            ioManager.toStatusJson(io);
+        }
 
         root["lastCommandTopic"] = mqttHandler.lastCommandTopic;
         root["lastCommandPayload"] = mqttHandler.lastCommandPayload;
@@ -455,8 +501,28 @@ void setup() {
         #endif
         JsonObject sensors = root["sensors"].to<JsonObject>();
         sensorManager.toDetectionJson(sensors);
+        JsonObject io = root["io"].to<JsonObject>();
+        ioManager.toDetectionJson(io);
         serializeJson(root, *response);
         request->send(response);
+    });
+
+    // Digital outputs: /io?output=1&state=on|off|toggle
+    server.on("/io", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (!requireAuth(request)) return;
+        if (!request->hasParam("output") || !request->hasParam("state")) {
+            request->send(400, "text/plain", "output and state required");
+            return;
+        }
+        int idx = request->getParam("output")->value().toInt() - 1;
+        String state = request->getParam("state")->value();
+        bool ok = (state == "toggle") ? ioManager.toggleOutput(idx)
+                                      : ioManager.setOutput(idx, state == "on" || state == "1" || state == "true");
+        if (!ok) {
+            request->send(404, "text/plain", "output not enabled");
+            return;
+        }
+        request->send(200, "text/plain", "OK");
     });
 
     server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request) {

@@ -134,12 +134,30 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
     bool saveBasic  = !doc[preference_gd_id].isNull();
     bool saveSensor = !doc[preference_query_interval_sensors].isNull();
     bool saveExpert = !doc[preference_rs485_txd].isNull();
+    bool saveIo     = !doc[preference_io_in1_pin].isNull();
 
     // Special handling for checkboxes (come as "on" when checked, absent when unchecked)
+    auto checkbox = [&doc](const char* key) {
+        return !doc[key].isNull() && doc[key].as<String>() == "on";
+    };
+
     if (saveBasic) {
-        preferences->putBool(preference_wifi_ap_mode, !doc[preference_wifi_ap_mode].isNull() && doc[preference_wifi_ap_mode].as<String>() == "on");
-        preferences->putBool(preference_debug_enabled, !doc[preference_debug_enabled].isNull() && doc[preference_debug_enabled].as<String>() == "on");
-        preferences->putBool(preference_wifi_best_ap, !doc[preference_wifi_best_ap].isNull() && doc[preference_wifi_best_ap].as<String>() == "on");
+        preferences->putBool(preference_wifi_ap_mode, checkbox(preference_wifi_ap_mode));
+        preferences->putBool(preference_debug_enabled, checkbox(preference_debug_enabled));
+        preferences->putBool(preference_wifi_best_ap, checkbox(preference_wifi_best_ap));
+    }
+
+    if (saveIo) {
+        preferences->putBool(preference_io_in1_enabled, checkbox(preference_io_in1_enabled));
+        preferences->putBool(preference_io_in1_inverted, checkbox(preference_io_in1_inverted));
+        preferences->putBool(preference_io_in2_enabled, checkbox(preference_io_in2_enabled));
+        preferences->putBool(preference_io_in2_inverted, checkbox(preference_io_in2_inverted));
+        preferences->putBool(preference_io_out1_enabled, checkbox(preference_io_out1_enabled));
+        preferences->putBool(preference_io_out1_inverted, checkbox(preference_io_out1_inverted));
+        preferences->putBool(preference_io_out1_restore, checkbox(preference_io_out1_restore));
+        preferences->putBool(preference_io_out2_enabled, checkbox(preference_io_out2_enabled));
+        preferences->putBool(preference_io_out2_inverted, checkbox(preference_io_out2_inverted));
+        preferences->putBool(preference_io_out2_restore, checkbox(preference_io_out2_restore));
     }
 
     if (saveSensor) {
@@ -164,6 +182,8 @@ void PreferenceHandler::saveConf(JsonDocument& doc) {
         } else if ((def.group & PREF_GROUP_SENSOR) && saveSensor) {
             saveFromJson(def, doc);
         } else if ((def.group & PREF_GROUP_EXPERT) && saveExpert) {
+            saveFromJson(def, doc);
+        } else if ((def.group & PREF_GROUP_IO) && saveIo) {
             saveFromJson(def, doc);
         }
     }
