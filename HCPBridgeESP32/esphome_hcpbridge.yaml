@@ -19,7 +19,7 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "gifford47.hcpbridge"
-    version: "1.0.1"
+    version: "1.0.2"
   libraries:
     - emelianov/modbus-esp8266
   platformio_options:
