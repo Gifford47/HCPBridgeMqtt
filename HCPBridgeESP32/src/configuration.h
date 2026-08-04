@@ -45,8 +45,13 @@
         #define PIN_TXD 19
         #define PIN_RXD 18
     #else
-        #define PIN_TXD 17 // UART 2 TXT - G17
-        #define PIN_RXD 16 // UART 2 RXD - G16
+        #if defined(M5STACKATOMLITE)
+            #define PIN_TXD 22
+            #define PIN_RXD 19
+        #else
+            #define PIN_TXD 17 // UART 2 TXT - G17
+            #define PIN_RXD 16 // UART 2 RXD - G16
+        #endif
     #endif
 
     // MQTT
@@ -97,12 +102,12 @@
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
     //BME280
-    #if defined(HCP_Giffordv2)
+   #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
         #define I2C_SDA 21
         #define I2C_SCL 33
-    #elif defined(HCP_Giffordv3)
-        #define I2C_SDA 21
-        #define I2C_SCL 33
+   #elif defined(M5STACKATOMLITE) 
+        #define I2C_SDA 25
+        #define I2C_SCL 21
     #else
         #define I2C_SDA 21
         #define I2C_SCL 22
