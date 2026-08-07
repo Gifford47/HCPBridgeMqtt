@@ -216,7 +216,10 @@
 				<input type="text" id="mqtt_pass" name="mqtt_pass">
 			</div>
 			<div class="flex">
-				<label for="device_id">Device ID</label>
+				<div class="form-label">
+					<label for="device_id">Device ID</label>
+					<small>max. 14 characters - longer IDs truncate the MQTT discovery topics</small>
+				</div>
 				<input type="text" id="device_id" name="device_id" maxlength="14">
 			</div>
 			<div class="flex">
