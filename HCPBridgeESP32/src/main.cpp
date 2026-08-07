@@ -491,6 +491,8 @@ void setup() {
         root["hostname"] = WiFi.getHostname();
         root["ip"] = WiFi.localIP().toString();
         root["wifistatus"] = WiFi.status();
+        // Only meaningful while associated - reports 0 otherwise
+        root["rssi"] = WiFi.isConnected() ? WiFi.RSSI() : 0;
         root["mqttstatus"] = mqttHandler.getClient().connected();
         root["restart_reason"] = esp_reset_reason();
         root["swversion"] = HA_VERSION;

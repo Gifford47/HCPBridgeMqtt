@@ -627,6 +627,7 @@
 			<tr><td style="padding:4px 8px; color:#666;">Hostname</td><td id="si_hostname" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">IP</td><td id="si_ip" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">WiFi</td><td id="si_wifi" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Signal</td><td id="si_rssi" style="padding:4px 8px; font-weight:bold;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">MQTT</td><td id="si_mqtt" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">Free Memory</td><td id="si_mem" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">Reset Reason</td><td id="si_reset" style="padding:4px 8px;"></td></tr>
@@ -670,6 +671,16 @@
 				document.getElementById("si_hostname").textContent = info.hostname || "?";
 				document.getElementById("si_ip").textContent = info.ip || "?";
 				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
+				var rssiEl = document.getElementById("si_rssi");
+				if (info.wifistatus == 3 && info.rssi < 0) {
+					// -67 dBm and better is comfortable, below -80 dBm gets unreliable
+					var good = info.rssi >= -67, fair = info.rssi >= -80;
+					rssiEl.textContent = info.rssi + " dBm (" + (good ? "good" : fair ? "fair" : "weak") + ")";
+					rssiEl.style.color = good ? "#48bd81" : fair ? "#fcca00" : "#ED5961";
+				} else {
+					rssiEl.textContent = "-";
+					rssiEl.style.color = "#999";
+				}
 				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
 				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
 				document.getElementById("si_reset").textContent = info.restart_reason || "?";
@@ -940,6 +951,11 @@
 	Draw();
 	updateData();
 	setInterval(updateData, 3000);
+
+	// Keep the signal strength live while the sysinfo panel is open
+	setInterval(function() {
+		if (document.getElementById("sysinfo_panel").style.display !== "none") loadSysinfo();
+	}, 5000);
 
 	// SSE: immediate sensor updates (only changed values)
 	var evtSource = new EventSource('/events');
