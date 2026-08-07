@@ -32,6 +32,8 @@
 #define preference_wifi_password "wifi_pass"
 #define preference_www_password "www_pass"
 #define preference_wifi_ap_password "wifi_ap_pass"
+// Scan all channels and associate with the strongest BSSID of the SSID
+#define preference_wifi_best_ap "wifi_best_ap"
 
 // Debug
 #define preference_debug_enabled "debug_enabled"
@@ -80,6 +82,37 @@
 // Sensor query interval
 #define preference_query_interval_sensors "sen_StInterval"
 
+// Digital I/O (In1/In2, Out1/Out2 screw terminals on the prebuilt HCP PCBs)
+#define preference_io_in1_enabled  "io_in1_en"
+#define preference_io_in1_pin      "io_in1_pin"
+#define preference_io_in1_pull     "io_in1_pull"
+#define preference_io_in1_inverted "io_in1_inv"
+#define preference_io_in1_action   "io_in1_act"
+#define preference_io_in1_name     "io_in1_name"
+
+#define preference_io_in2_enabled  "io_in2_en"
+#define preference_io_in2_pin      "io_in2_pin"
+#define preference_io_in2_pull     "io_in2_pull"
+#define preference_io_in2_inverted "io_in2_inv"
+#define preference_io_in2_action   "io_in2_act"
+#define preference_io_in2_name     "io_in2_name"
+
+#define preference_io_out1_enabled  "io_out1_en"
+#define preference_io_out1_pin      "io_out1_pin"
+#define preference_io_out1_inverted "io_out1_inv"
+#define preference_io_out1_restore  "io_out1_rst"
+#define preference_io_out1_name     "io_out1_name"
+
+#define preference_io_out2_enabled  "io_out2_en"
+#define preference_io_out2_pin      "io_out2_pin"
+#define preference_io_out2_inverted "io_out2_inv"
+#define preference_io_out2_restore  "io_out2_rst"
+#define preference_io_out2_name     "io_out2_name"
+
+// Persisted output states (restored on boot when io_outX_rst is set)
+#define preference_io_out1_state "io_out1_st"
+#define preference_io_out2_state "io_out2_st"
+
 // ============================================================================
 // Registry-based Preference System
 // ============================================================================
@@ -92,6 +125,7 @@ enum PrefGroup : uint8_t {
     PREF_GROUP_EXPERT   = 0x02,  // Expert config (WebUI expert tab)
     PREF_GROUP_INTERNAL = 0x04,  // Internal (not exposed via config API)
     PREF_GROUP_SENSOR   = 0x08,  // Sensor config (WebUI sensor tab)
+    PREF_GROUP_IO       = 0x10,  // Digital I/O config (WebUI I/O tab)
 };
 
 struct PrefDef {
@@ -123,6 +157,7 @@ static const PrefDef PREF_REGISTRY[] = {
     {preference_wifi_ssid,          PrefType::STRING, false,  PREF_GROUP_BASIC,    STA_SSID,       0,              0.0,        false},
     {preference_wifi_password,      PrefType::STRING, true,   PREF_GROUP_BASIC,    STA_PASSWD,     0,              0.0,        false},
     {preference_wifi_ap_password,   PrefType::STRING, true,   PREF_GROUP_BASIC,    AP_PASSWD,      0,              0.0,        false},
+    {preference_wifi_best_ap,       PrefType::BOOL,   false,  PREF_GROUP_BASIC,    "",             0,              0.0,        true},
     {preference_www_password,       PrefType::STRING, true,   PREF_GROUP_BASIC,    WWW_PASSWD,     0,              0.0,        false},
     {preference_mqtt_server,        PrefType::STRING, false,  PREF_GROUP_BASIC,    MQTTSERVER,     0,              0.0,        false},
     {preference_mqtt_server_port,   PrefType::INT,    false,  PREF_GROUP_BASIC,    "",             MQTTPORT,       0.0,        false},
@@ -157,6 +192,41 @@ static const PrefDef PREF_REGISTRY[] = {
     {preference_sensor_gas_threshold, PrefType::INT,    false, PREF_GROUP_SENSOR,  "",             gas_threshold,  0.0,        false},
     // Query interval
     {preference_query_interval_sensors, PrefType::INT, false, PREF_GROUP_SENSOR,   "",             SENSE_PERIOD,   0.0,        false},
+
+    // === Digital I/O Config (WebUI I/O tab) ===
+    // Disabled by default - board variants without In/Out terminals share this firmware.
+    {preference_io_in1_enabled,     PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_in1_pin,         PrefType::INT,    false,  PREF_GROUP_IO,       "",             INPUT1,         0.0,        false},
+    // Defaults match the prebuilt HCP PCB: the In1/In2 stage already has a
+    // 1.2k series + 2.2k pull-down divider, so no internal pull is used and
+    // an applied voltage means "active".
+    {preference_io_in1_pull,        PrefType::INT,    false,  PREF_GROUP_IO,       "",             IO_PULL_NONE,   0.0,        false},
+    {preference_io_in1_inverted,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_in1_action,      PrefType::INT,    false,  PREF_GROUP_IO,       "",             IO_ACTION_NONE, 0.0,        false},
+    {preference_io_in1_name,        PrefType::STRING, false,  PREF_GROUP_IO,       GIO_IN1,        0,              0.0,        false},
+
+    {preference_io_in2_enabled,     PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_in2_pin,         PrefType::INT,    false,  PREF_GROUP_IO,       "",             INPUT2,         0.0,        false},
+    {preference_io_in2_pull,        PrefType::INT,    false,  PREF_GROUP_IO,       "",             IO_PULL_NONE,   0.0,        false},
+    {preference_io_in2_inverted,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_in2_action,      PrefType::INT,    false,  PREF_GROUP_IO,       "",             IO_ACTION_NONE, 0.0,        false},
+    {preference_io_in2_name,        PrefType::STRING, false,  PREF_GROUP_IO,       GIO_IN2,        0,              0.0,        false},
+
+    {preference_io_out1_enabled,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out1_pin,        PrefType::INT,    false,  PREF_GROUP_IO,       "",             OUTPUT1,        0.0,        false},
+    {preference_io_out1_inverted,   PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out1_restore,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out1_name,       PrefType::STRING, false,  PREF_GROUP_IO,       GIO_OUT1,       0,              0.0,        false},
+
+    {preference_io_out2_enabled,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out2_pin,        PrefType::INT,    false,  PREF_GROUP_IO,       "",             OUTPUT2,        0.0,        false},
+    {preference_io_out2_inverted,   PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out2_restore,    PrefType::BOOL,   false,  PREF_GROUP_IO,       "",             0,              0.0,        false},
+    {preference_io_out2_name,       PrefType::STRING, false,  PREF_GROUP_IO,       GIO_OUT2,       0,              0.0,        false},
+
+    // Persisted output states - internal, written at runtime, not exposed in the WebUI
+    {preference_io_out1_state,      PrefType::BOOL,   false,  PREF_GROUP_INTERNAL, "",             0,              0.0,        false},
+    {preference_io_out2_state,      PrefType::BOOL,   false,  PREF_GROUP_INTERNAL, "",             0,              0.0,        false},
 
     // === Expert Config ===
     // RS485

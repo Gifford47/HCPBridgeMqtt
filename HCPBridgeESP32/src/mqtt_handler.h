@@ -13,6 +13,7 @@ extern "C" {
 #include "configuration.h"
 #include "preferences_handler.h"
 #include "sensor_manager.h"
+#include "io_manager.h"
 #include "hoermann.h"
 
 // ============================================================================
@@ -33,6 +34,8 @@ public:
     char step_topic[64];
     char sensor_topic[64];
     char debug_topic[64];
+    char io_topic[64];
+    char out_topic[IO_OUTPUT_COUNT][64];
     String st_availability_topic;
     String st_state_topic;
     String st_cmd_topic;
@@ -47,6 +50,8 @@ public:
     String st_step_topic;
     String st_sensor_topic;
     String st_debug_topic;
+    String st_io_topic;
+    String st_out_topic[IO_OUTPUT_COUNT];
 };
 
 // ============================================================================
@@ -56,7 +61,7 @@ public:
 class MqttHandler {
 public:
     // Initialize MQTT - call after preferences and WiFi are set up
-    void begin(Preferences* prefs, PreferenceHandler* prefHandler, SensorManager* sensorMgr);
+    void begin(Preferences* prefs, PreferenceHandler* prefHandler, SensorManager* sensorMgr, IoManager* ioMgr);
 
     // Get the MQTT client (for external use like WiFi event handlers)
     AsyncMqttClient& getClient() { return _mqttClient; }
@@ -88,6 +93,9 @@ public:
     // Publish HC-SR501 motion state immediately
     void publishMotionState(int state);
 
+    // Publish digital I/O state (inputs + outputs)
+    void publishIoState(bool forceUpdate = false);
+
     // MQTT task function (FreeRTOS)
     void taskFunc();
 
@@ -115,7 +123,7 @@ private:
     void sendDiscoveryMessageForBinarySensor(const char name[], const char topic[], const char key[], const char off[], const char on[], const JsonDocument& device);
     void sendDiscoveryMessageForAVSensor(const JsonDocument& device);
     void sendDiscoveryMessageForSensor(const char name[], const char topic[], const char key[], const JsonDocument& device, const char device_class[] = "", const char unit[] = "");
-    void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false);
+    void sendDiscoveryMessageForSwitch(const char name[], const char discovery[], const char topic[], const char off[], const char on[], const char icon[], const JsonDocument& device, bool optimistic = false, const char stateTopic[] = nullptr);
     void sendDiscoveryMessageForButton(const char name[], const char topic[], const char payload_press[], const char icon[], const JsonDocument& device);
     void sendDiscoveryMessageForCover(const char name[], const char topic[], const JsonDocument& device);
 
@@ -129,6 +137,7 @@ private:
     Preferences* _prefs = nullptr;
     PreferenceHandler* _prefHandler = nullptr;
     SensorManager* _sensorMgr = nullptr;
+    IoManager* _ioMgr = nullptr;
 
     unsigned long _sensorLastUpdate = 0;
     int _sensorForceUpdateInterval = 7200000;  // 2 hours

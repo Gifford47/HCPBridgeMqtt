@@ -13,18 +13,27 @@ If you want to connect **temperature sensors** or any other sensors, follow thes
    Make sure the pins are properly aligned and the solder joints are clean and solid.
 2. **Attach the sensors** to the corresponding pin headers according to the pinout.
 3. **Reinstall the PCB** into your **SupraMatic** unit.
-4. **Upload the correct firmware** to your board:
+4. **Enable the sensors in the Web UI** under **Sensor Configuration** — tick the sensor you connected, check its GPIO pins and save. The device restarts and the sensor appears in the status area and in Home Assistant.
 
-   - Without sensors → `HCP_Giffordv2a.bin` or `HCP_Giffordv3a.bin`  
-   - With sensors (any type) → `HCP_Giffordv2b.bin` or `HCP_Giffordv3b.bin`
+⚠️ **Note:** There are no separate firmware variants for sensors any more. Older releases had `…a` (without sensors) and `…b` (with sensors) binaries — since the sensors became configurable in the Web UI there is **one firmware per board**: `HCP_Giffordv2-vX.Y.Z.bin` or `HCP_Giffordv3-vX.Y.Z.bin`. If you are still running an `a`/`b` build, update via **OTA Update** in the Web UI.
 
-⚠️ **Note:** The “b” firmware variant is required whenever sensors are present — even if only one is connected.
+## 🔘 Using the In1 / In2 / Out1 / Out2 terminals
+
+Next to the sensor pads the PCB has four extra screw terminals. They are plain
+3.3 V ESP32 GPIOs (the **HCP mini does not have them**):
+
+* **In1 / In2** — **≈5 V signal inputs** (fixed 1.2 kΩ / 2.2 kΩ divider on the board), not dry-contact inputs. A push button must therefore *switch 5 V* onto the terminal; the on-board 2.2 kΩ pulls the input low again when it is released. Never apply 12 V or 24 V. Each input can trigger a local action such as *toggle light* or *impulse*, and shows up in Home Assistant as a `binary_sensor`.
+* **Out1 / Out2** — **high-side switches** (optocoupler-driven MOSFET). Switched on they *source* the voltage set by the `5V | – | 3V` jumper, switched off they are high impedance. Use them for PLC inputs, active-high relay module inputs or logic inputs; never to drive a load directly. Each output shows up as a Home Assistant `switch`.
+
+Both are **disabled by default** and are enabled in the Web UI under **I/O Configuration**.
+
+➡️ Full details, wiring diagrams, limits and examples: [Digital Inputs & Outputs](inputs_outputs.md)
 
 ## What you need
 
 * Prebuild PCB with HCPBridge Firmware installed (installed out of the box on gifford PCBs)
 * USB-C power supply (PCB-Revision >=3)
-* 3.3V power Supply (min. 300mA)
+* Optional: 3.3V power Supply (min. 500mA) if you want to test the board standalone
 
 ## Initial configuration
 

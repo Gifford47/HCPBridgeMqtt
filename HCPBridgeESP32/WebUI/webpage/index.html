@@ -87,7 +87,7 @@
 		&:hover { color: #fff; background: #4e5664; }
 	}
 
-	input[type=text], input[type=number] {
+	input[type=text], input[type=number], select {
 		width: 100%;
 		padding: 8px 10px;
 		margin: 6px 0;
@@ -133,7 +133,7 @@
 		.btn-round {height: 70px; width: 70px; font-size: 0.85rem;}
 		.flex {flex-wrap: wrap;}
 		.flex label, .flex .form-label {min-width: auto; width: 100%;}
-		input[type=text], input[type=number] {font-size: 0.95rem;}
+		input[type=text], input[type=number], select {font-size: 0.95rem;}
 	}
 
   </style>
@@ -144,7 +144,9 @@
 	<h3 id="status">Waiting connection.</h3>
 	<div class="hbox" style="display: none;" id="sensors">
 	</div>
-	
+	<div class="hbox" style="display: none;" id="io">
+	</div>
+
 	
 	<hr/>
 	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
@@ -184,6 +186,13 @@
 				<input type="text" id="wifi_ap_pass" name="wifi_ap_pass">
 			</div>
 			<div class="flex">
+				<div class="form-label">
+					<label for="wifi_best_ap">Connect to strongest AP</label>
+					<small>Scan all channels (multi-AP / mesh networks)</small>
+				</div>
+				<input type="checkbox" id="wifi_best_ap" name="wifi_best_ap">
+			</div>
+			<div class="flex">
 				<label for="hostname">Hostname</label>
 				<input type="text" id="hostname" name="hostname">
 			</div>
@@ -207,7 +216,10 @@
 				<input type="text" id="mqtt_pass" name="mqtt_pass">
 			</div>
 			<div class="flex">
-				<label for="device_id">Device ID</label>
+				<div class="form-label">
+					<label for="device_id">Device ID</label>
+					<small>max. 14 characters - longer IDs truncate the MQTT discovery topics</small>
+				</div>
 				<input type="text" id="device_id" name="device_id" maxlength="14">
 			</div>
 			<div class="flex">
@@ -373,6 +385,175 @@
 	</form>
 
 	<div class="flex justify-between">
+		<h4>I/O Configuration</h4>
+		<button id="toggle_io_conf" class="btn">show</button>
+	</div>
+	<form id="io_conf_form" class="card" style="display: none">
+		<div class="subtitle">
+			<h5>Input 1</h5>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_in1_en">Enable Input 1</label>
+					<small>Screw terminal In1</small>
+				</div>
+				<input type="checkbox" id="io_in1_en" name="io_in1_en">
+			</div>
+			<div class="flex">
+				<label for="io_in1_name">Name</label>
+				<input type="text" id="io_in1_name" name="io_in1_name">
+			</div>
+			<div class="flex">
+				<label for="io_in1_pin">GPIO</label>
+				<input type="number" id="io_in1_pin" name="io_in1_pin" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="io_in1_pull">Pull resistor</label>
+				<select id="io_in1_pull" name="io_in1_pull">
+					<option value="0">none (external) - HCP PCB</option>
+					<option value="1">internal pull-up</option>
+					<option value="2">internal pull-down</option>
+				</select>
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_in1_inv">Active low</label>
+					<small>Only for a button to GND + pull-up</small>
+				</div>
+				<input type="checkbox" id="io_in1_inv" name="io_in1_inv">
+			</div>
+			<div class="flex">
+				<label for="io_in1_act">Local action</label>
+				<select id="io_in1_act" name="io_in1_act">
+					<option value="0">none (MQTT only)</option>
+					<option value="1">impulse / toggle door</option>
+					<option value="2">open door</option>
+					<option value="3">close door</option>
+					<option value="4">stop door</option>
+					<option value="5">toggle light</option>
+					<option value="6">vent position</option>
+					<option value="7">half position</option>
+					<option value="8">toggle Output 1</option>
+					<option value="9">toggle Output 2</option>
+				</select>
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Input 2</h5>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_in2_en">Enable Input 2</label>
+					<small>Screw terminal In2</small>
+				</div>
+				<input type="checkbox" id="io_in2_en" name="io_in2_en">
+			</div>
+			<div class="flex">
+				<label for="io_in2_name">Name</label>
+				<input type="text" id="io_in2_name" name="io_in2_name">
+			</div>
+			<div class="flex">
+				<label for="io_in2_pin">GPIO</label>
+				<input type="number" id="io_in2_pin" name="io_in2_pin" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<label for="io_in2_pull">Pull resistor</label>
+				<select id="io_in2_pull" name="io_in2_pull">
+					<option value="0">none (external) - HCP PCB</option>
+					<option value="1">internal pull-up</option>
+					<option value="2">internal pull-down</option>
+				</select>
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_in2_inv">Active low</label>
+					<small>Only for a button to GND + pull-up</small>
+				</div>
+				<input type="checkbox" id="io_in2_inv" name="io_in2_inv">
+			</div>
+			<div class="flex">
+				<label for="io_in2_act">Local action</label>
+				<select id="io_in2_act" name="io_in2_act">
+					<option value="0">none (MQTT only)</option>
+					<option value="1">impulse / toggle door</option>
+					<option value="2">open door</option>
+					<option value="3">close door</option>
+					<option value="4">stop door</option>
+					<option value="5">toggle light</option>
+					<option value="6">vent position</option>
+					<option value="7">half position</option>
+					<option value="8">toggle Output 1</option>
+					<option value="9">toggle Output 2</option>
+				</select>
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Output 1</h5>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out1_en">Enable Output 1</label>
+					<small>Screw terminal Out1</small>
+				</div>
+				<input type="checkbox" id="io_out1_en" name="io_out1_en">
+			</div>
+			<div class="flex">
+				<label for="io_out1_name">Name</label>
+				<input type="text" id="io_out1_name" name="io_out1_name">
+			</div>
+			<div class="flex">
+				<label for="io_out1_pin">GPIO</label>
+				<input type="number" id="io_out1_pin" name="io_out1_pin" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out1_inv">Active low</label>
+					<small>Only if ON/OFF end up swapped</small>
+				</div>
+				<input type="checkbox" id="io_out1_inv" name="io_out1_inv">
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out1_rst">Restore after reboot</label>
+					<small>Off = always off after power loss</small>
+				</div>
+				<input type="checkbox" id="io_out1_rst" name="io_out1_rst">
+			</div>
+		</div>
+		<div class="subtitle">
+			<h5>Output 2</h5>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out2_en">Enable Output 2</label>
+					<small>Screw terminal Out2</small>
+				</div>
+				<input type="checkbox" id="io_out2_en" name="io_out2_en">
+			</div>
+			<div class="flex">
+				<label for="io_out2_name">Name</label>
+				<input type="text" id="io_out2_name" name="io_out2_name">
+			</div>
+			<div class="flex">
+				<label for="io_out2_pin">GPIO</label>
+				<input type="number" id="io_out2_pin" name="io_out2_pin" min="0" max="48" step="1">
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out2_inv">Active low</label>
+					<small>Only if ON/OFF end up swapped</small>
+				</div>
+				<input type="checkbox" id="io_out2_inv" name="io_out2_inv">
+			</div>
+			<div class="flex">
+				<div class="form-label">
+					<label for="io_out2_rst">Restore after reboot</label>
+					<small>Off = always off after power loss</small>
+				</div>
+				<input type="checkbox" id="io_out2_rst" name="io_out2_rst">
+			</div>
+		</div>
+		<br>
+		<button type="submit" class="btn">Save &amp; Restart</button>
+	</form>
+
+	<div class="flex justify-between">
 		<h4>Expert Configuration</h4>
 		<button id="toggle_expert_conf" class="btn">show</button>
 	</div>
@@ -446,6 +627,7 @@
 			<tr><td style="padding:4px 8px; color:#666;">Hostname</td><td id="si_hostname" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">IP</td><td id="si_ip" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">WiFi</td><td id="si_wifi" style="padding:4px 8px;"></td></tr>
+			<tr><td style="padding:4px 8px; color:#666;">Signal</td><td id="si_rssi" style="padding:4px 8px; font-weight:bold;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">MQTT</td><td id="si_mqtt" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">Free Memory</td><td id="si_mem" style="padding:4px 8px;"></td></tr>
 			<tr><td style="padding:4px 8px; color:#666;">Reset Reason</td><td id="si_reset" style="padding:4px 8px;"></td></tr>
@@ -467,6 +649,7 @@
 	};
 	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
 	document.getElementById("toggle_sensor_conf").onclick = function() {collapse('sensor_conf_form')};
+	document.getElementById("toggle_io_conf").onclick = function() {collapse('io_conf_form')};
 	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
 
 	function collapse(elementId) {
@@ -488,6 +671,16 @@
 				document.getElementById("si_hostname").textContent = info.hostname || "?";
 				document.getElementById("si_ip").textContent = info.ip || "?";
 				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
+				var rssiEl = document.getElementById("si_rssi");
+				if (info.wifistatus == 3 && info.rssi < 0) {
+					// -67 dBm and better is comfortable, below -80 dBm gets unreliable
+					var good = info.rssi >= -67, fair = info.rssi >= -80;
+					rssiEl.textContent = info.rssi + " dBm (" + (good ? "good" : fair ? "fair" : "weak") + ")";
+					rssiEl.style.color = good ? "#48bd81" : fair ? "#fcca00" : "#ED5961";
+				} else {
+					rssiEl.textContent = "-";
+					rssiEl.style.color = "#999";
+				}
 				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
 				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
 				document.getElementById("si_reset").textContent = info.restart_reason || "?";
@@ -576,6 +769,46 @@
 	  xhr.send();
 	}
 
+	var ioLabels = {in1:"In 1",in2:"In 2",out1:"Out 1",out2:"Out 2"};
+
+	function doIo(key) {
+		var xhr = new XMLHttpRequest();
+		xhr.onload = function(){ updateData(); };
+		xhr.open("GET", "/io?output=" + key.replace("out","") + "&state=toggle", true);
+		xhr.send();
+	}
+
+	function renderIo(io){
+		var idiv = document.getElementById("io");
+		idiv.style.display = 'flex';
+		Object.keys(io).forEach(function(key){
+			var isOut = key.indexOf("out") === 0;
+			var on = io[key] === true || io[key] === "true";
+			var tile = document.getElementById("io_" + key);
+			if (tile === null){
+				tile = document.createElement('div');
+				tile.id = "io_" + key;
+				tile.className = 'sensor-tile';
+				var valDiv = document.createElement(isOut ? 'button' : 'div');
+				if (isOut){
+					valDiv.type = 'button';
+					valDiv.className = 'btn';
+					valDiv.style.padding = '2px 10px';
+					valDiv.onclick = function(){ doIo(key); };
+				} else {
+					valDiv.className = 'sensor-val';
+				}
+				var lblDiv = document.createElement('div');
+				lblDiv.className = 'sensor-lbl';
+				lblDiv.textContent = ioLabels[key] || key;
+				tile.appendChild(valDiv);
+				tile.appendChild(lblDiv);
+				idiv.appendChild(tile);
+			}
+			tile.children[0].textContent = on ? "ON" : "OFF";
+		});
+	}
+
 	function getConfig() {
 	  	//get current config
 	  	var xmlhttp = new XMLHttpRequest();
@@ -632,6 +865,9 @@
 
 	const sensorConfForm = document.getElementById('sensor_conf_form');
 	sensorConfForm.addEventListener('submit', handleSubmitConf);
+
+	const ioConfForm = document.getElementById('io_conf_form');
+	ioConfForm.addEventListener('submit', handleSubmitConf);
 
 	const expertConfForm = document.getElementById('expert_conf_form');
 	expertConfForm.addEventListener('submit', handleSubmitConf);
@@ -700,6 +936,9 @@
 						}
 					});
 				}
+				if (status.hasOwnProperty('io')) {
+					renderIo(status.io);
+				}
 				return;
 			  }
 			  isconnected= false;
@@ -713,6 +952,11 @@
 	updateData();
 	setInterval(updateData, 3000);
 
+	// Keep the signal strength live while the sysinfo panel is open
+	setInterval(function() {
+		if (document.getElementById("sysinfo_panel").style.display !== "none") loadSysinfo();
+	}, 5000);
+
 	// SSE: immediate sensor updates (only changed values)
 	var evtSource = new EventSource('/events');
 	evtSource.addEventListener('sensor', function(e) {
@@ -721,6 +965,9 @@
 			var el = document.getElementById("s_"+key);
 			if (el) el.children[0].textContent = d[key];
 		}
+	});
+	evtSource.addEventListener('io', function(e) {
+		renderIo(JSON.parse(e.data));
 	});
 	
 	

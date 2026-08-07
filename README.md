@@ -21,14 +21,18 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 - [Features](#features)
 - [Installation](#installation)
 - [Web Interface](#web-interface)
+- [Factory Reset & Sensor Recovery](#factory-reset--sensor-recovery)
 - [MQTT & Home Assistant](#mqtt--home-assistant)
 - [Configuration](#configuration)
-- [OTA Updates](#ota-updates)
 - [Sensors (optional)](#sensors-optional)
+- [Digital Inputs & Outputs (optional)](#digital-inputs--outputs-optional)
+- [Wi-Fi in multi-AP networks](#wi-fi-in-multi-ap-networks)
+- [Ventilation (vent) position](#ventilation-vent-position)
 - [Troubleshooting](#troubleshooting)
 - [Development & Contributing](#development--contributing)
 - [License](#license)
 - [Screenshots](#screenshots)
+- [More docs](#more-docs)
 
 ---
 
@@ -37,9 +41,9 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 2. Connect ESP32 TX/RX to an RS485 converter and wire to the HCP bus.  
 3. Power on the motor control board and run a BUS scan (see **Installation**).  
 4. Connect to the device hotspot or your Wi-Fi and open the web interface (details below).  
-5. Configure Wi-Fi and MQTT via the web UI or `config.json`.
+5. Configure Wi-Fi, MQTT and any sensors via the web UI — everything is stored on the ESP32 itself.
 
-If you just want to test: connect to hotspot `hormann` / password `gifford47`, open the web UI and set your MQTT broker.
+If you just want to test: connect to hotspot `HCPBRIDGE` / password `gifford47`, open the web UI and set your MQTT broker.
 
 ---
 
@@ -63,6 +67,7 @@ If you just want to test: connect to hotspot `hormann` / password `gifford47`, o
 - First-use hotspot (for out-of-the-box Wi-Fi setup)  
 - Support for ESP32-S1/S2/S3 families  
 - Optional external sensors (DS18x20, BME280, DHT22, HC-SR04, HC-SR501, MQ4)
+- Optional digital inputs (wall button) and outputs (relay module) on the prebuilt PCBs
 - Efficient MQTT traffic (only publish on state change)  
 - Support multiple HCP Bridges for several doors
 
@@ -126,35 +131,74 @@ Clears all Wi-Fi, MQTT and sensor configuration. The device will restart with it
 
 ## MQTT & Home Assistant
 
-### MQTT topics (example)
-hormann/<device_id>/state -> JSON with state/position/light/temperature  
-hormann/<device_id>/command -> payloads: OPEN, CLOSE, STOP, LIGHT_TOGGLE, SET_POSITION:50  
-hormann/<device_id>/sensor/<name>  
+All topics live under `hormann/<device_id>/`. The **Device ID** is set in the basic configuration and is limited to **14 characters** — longer IDs would overflow the discovery topic buffers.
 
+**State topics (published by the bridge):**
+
+| Topic | Content |
+|---|---|
+| `availability` | `online` / `offline` (last will) |
+| `state` | JSON: `doorstate`, `doorposition`, `detailedState`, `lamp`, `vent`, `half`, `valid` |
+| `position` | door position as an integer 0–100 |
+| `sensor` | JSON with the enabled sensors: `temp`, `hum`, `pres`, `dist`, `free`, `motion`, `gas`, `gas_alarm` |
+| `io` | JSON with the enabled digital channels: `in1`, `in2`, `out1`, `out2` |
+| `debug` | JSON: `restart_reason`, `debug`, plus `sensor_error` / `io_error` when something failed |
+
+**Command topics (subscribed by the bridge):**
+
+| Topic | Payloads |
+|---|---|
+| `command/door` | `open`, `close`, `stop`, `step` |
+| `command/lamp` | `true`, `false`, anything else toggles |
+| `command/vent` | `venting` |
+| `command/half` | `half` |
+| `command/step` | `step` (impulse: open ↔ stop ↔ close) |
+| `command/set_position` | `0` … `100` |
+| `command/out1`, `command/out2` | `true`, `false`, anything else toggles |
+
+Example:
+
+```bash
+mosquitto_pub -h broker -t 'hormann/hcpbridge/command/door' -m 'open'
+mosquitto_pub -h broker -t 'hormann/hcpbridge/command/set_position' -m '50'
+mosquitto_sub -h broker -t 'hormann/hcpbridge/#' -v
+```
 
 ### Home Assistant (MQTT Auto Discovery)
-The project publishes Home Assistant discovery messages for:
-- cover (shutter) entity with position support  
-- binary_sensor for light / door open  
-- sensors for temperature / humidity (if present)
+Discovery messages are published **once at boot** (not on every reconnect) and adapt to what is actually enabled:
 
-Example `configuration.yaml` is not required when discovery is enabled.
+- `cover` — the garage door, with position support
+- `switch` — light, vent, half position, and each enabled digital output
+- `button` — impulse / toggle
+- `sensor` — door status, detailed status, position, plus temperature / humidity / pressure / distance / gas for the enabled sensors, and the debug entities
+- `binary_sensor` — light, parking space, motion, gas alarm, and each enabled digital input
+
+Entities of sensors or I/O channels you switch off are removed again by clearing their retained discovery topic. No manual `configuration.yaml` entries are needed.
+
+> If you change the **Device ID**, Home Assistant will create a new set of entities — the old ones stay behind as unavailable and have to be deleted manually.
 
 ---
 
 ## Configuration
-You can configure:
-- Wi-Fi (hotspot or STA)  
-- MQTT broker settings (host, port, user, password, base topic)  
-- Device name and ID  
-- Sensor thresholds and mapping  
+Everything is configured in the Web UI and stored in the ESP32's flash — there is no config file to edit and **no separate firmware build per feature**. The compile-time values in `src/configuration.h` only provide the defaults for the very first boot.
 
-Configuration can be done via the Web UI.
+The Web UI is split into four forms, each with its own *Save & Restart* button:
+
+| Form | Contains |
+|---|---|
+| **Basic Configuration** | Wi-Fi (hotspot or client, "connect to strongest AP"), MQTT broker/credentials, Device ID (**max. 14 characters**) and device name, serial debug, web password |
+| **Sensor Configuration** | Which sensors are active, their GPIOs, the polling interval and the publish thresholds |
+| **I/O Configuration** | The In1/In2/Out1/Out2 channels: enable, GPIO, pull mode, inversion, local action, name |
+| **Expert Configuration** | RS485 GPIOs and the entity names used for MQTT discovery |
+
+**System information** shows firmware version, build environment, IP, Wi-Fi signal strength, free memory, reset reason and the state of every sensor and I/O channel, and links to the OTA update and factory reset pages.
 
 ---
 
 ## Sensors (optional)
-Sensors are **manually enabled** via the Web UI under **Sensor Configuration**. Each sensor can be individually activated with a checkbox — no auto-detection. If an enabled sensor is not connected or fails to initialize, the ESP will continue booting normally and report the error via the debug MQTT entity.
+Sensors are enabled via the Web UI under **Sensor Configuration** — one checkbox per sensor, with its GPIOs and thresholds next to it. If an enabled sensor is not connected or fails to initialize, the ESP will continue booting normally and report the error via the debug MQTT entity.
+
+> **There is only one firmware per board any more.** Older releases shipped separate `…a` (without sensors) and `…b` (with sensors) binaries — those are gone. Flash `esp32-vX.Y.Z.bin`, `HCP_Giffordv2-vX.Y.Z.bin` or `HCP_Giffordv3-vX.Y.Z.bin` for your board and switch the sensors on in the Web UI.
 
 Supported sensors:
 - **BME280** (I2C) — temperature, humidity, pressure
@@ -189,8 +233,32 @@ The HC-SR04 ultrasonic sensor can be used to detect available parking space. The
 
 ---
 
+## Digital Inputs & Outputs (optional)
+The prebuilt HCP PCBs have four screw terminals — **In1**, **In2**, **Out1**, **Out2** — that are plain 3.3 V ESP32 GPIOs (the **HCP mini does not have them**). They are **disabled by default** and enabled per channel in the Web UI under **I/O Configuration**.
+
+- **In1 / In2** — **≈5 V voltage inputs**, not dry-contact inputs: each sits behind a fixed 1.2 kΩ / 2.2 kΩ divider, so a signal of about 4–5 V against board GND reads as HIGH and the on-board 2.2 kΩ pulls the input LOW when nothing is applied. A push button therefore has to *switch 5 V* onto the terminal. **Never feed 12 V or 24 V in** — that destroys the GPIO. Each input becomes a Home Assistant `binary_sensor` and can additionally run a **local action** — toggle door, open, close, stop, **toggle light**, vent, half position — which keeps working when Wi-Fi/MQTT is down.
+- **Out1 / Out2** — **high-side switches** (optocoupler-driven MOSFET). Switched on they *source* the voltage selected with the on-board `5V | – | 3V` jumper (minus about one MOSFET threshold), switched off they are high impedance. Suitable for PLC inputs, active-high relay module inputs and logic inputs; **not** for driving relays, lamps or motors directly. Each output becomes a Home Assistant `switch`.
+
+| Terminal | HCP PCB v2 | HCP PCB v3.x |
+|---|---|---|
+| In1 | GPIO12 | GPIO12 |
+| In2 | GPIO14 | GPIO14 |
+| Out1 | GPIO37 | GPIO25 |
+| Out2 | GPIO35 | GPIO22 |
+
+MQTT: state on `hormann/<device_id>/io`, commands on `hormann/<device_id>/command/out1` and `/out2` (`true` / `false` / `toggle`). HTTP: `GET /io?output=1&state=toggle`.
+
+➡️ **Full wiring details, electrical limits, all settings and examples: [Digital Inputs & Outputs](docs/inputs_outputs.md)**
+
+---
+
+## Wi-Fi in multi-AP networks
+If the same SSID is broadcast by several access points (UniFi, mesh, repeaters), enable **Connect to strongest AP** in the basic configuration (default: on). The device then scans all channels and associates with the AP with the best signal, instead of the first one it happens to find. Turn it off to get the slightly faster (but signal-agnostic) fast scan on single-AP networks.
+
+---
+
 ## Ventilation (vent) position
-A small implementation supports a ventilation (vent) position and custom positioning. The vent behaviour uses a configured numeric position value. You can set custom positions with MQTT `SET_POSITION`.
+Besides fully open and closed, the door can be driven to the ventilation and half-open positions, and to any position in between. Use the buttons in the Web UI, the `vent` / `half` switches in Home Assistant, or publish to `command/vent`, `command/half` and `command/set_position` (0–100).
 
 ---
 
@@ -198,6 +266,8 @@ A small implementation supports a ventilation (vent) position and custom positio
 - **No BUS devices found:** check wiring, test +24V, try "jump start" with motor connector +24V. For old HW, ensure DIP-based scan is toggled.  
 - **Cannot reach Web UI:** connect to hotspot `HCPBRIDGE` / try http://192.168.4.1. Check firewall or captive-portal on client device.  
 - **MQTT messages not arriving:** verify broker settings, credentials, and that device is connected to Wi-Fi. Use a local MQTT client (mosquitto_sub) to debug.  
+- **Entities missing or duplicated in Home Assistant:** discovery is only sent at boot — restart the bridge after enabling a sensor or I/O channel. Check that the **Device ID** is at most 14 characters; a longer ID truncates the discovery topics.  
+- **Connection drops / slow Web UI:** open **System information** and check the signal strength. Yellow (−68 … −80 dBm) is workable, red (below −80 dBm) is not — move the antenna or see [Wi-Fi in multi-AP networks](#wi-fi-in-multi-ap-networks).  
 - **OTA fails:** confirm OTA credentials (admin/admin) and sufficient flash space. Use serial logs to inspect errors.
 
 If you need help, start a discussion in the repo.
@@ -228,4 +298,5 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 ---
 
 ## More docs
-- [Rollmatic v2 notes](docs/rollmatic_v2.md)  
+- [Rollmatic v2 notes](docs/rollmatic_v2.md)
+- [Digital Inputs & Outputs (In1/In2/Out1/Out2)](docs/inputs_outputs.md)  

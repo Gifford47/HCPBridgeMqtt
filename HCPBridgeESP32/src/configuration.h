@@ -11,7 +11,7 @@
     #define DBG_PRINTF(...)   do { if (debugEnabled) Serial.printf(__VA_ARGS__); } while(0)
 
     // Please change on every new firmware builds!
-    inline const char *HA_VERSION = "1.0.1";
+    inline const char *HA_VERSION = "1.0.2";
 
     // WIFI Hostname
     inline const char HOSTNAME[]   = "HCPBRIDGE";
@@ -45,8 +45,13 @@
         #define PIN_TXD 19
         #define PIN_RXD 18
     #else
-        #define PIN_TXD 17 // UART 2 TXT - G17
-        #define PIN_RXD 16 // UART 2 RXD - G16
+        #if defined(M5STACKATOMLITE)
+            #define PIN_TXD 22
+            #define PIN_RXD 19
+        #else
+            #define PIN_TXD 17 // UART 2 TXT - G17
+            #define PIN_RXD 16 // UART 2 RXD - G16
+        #endif
     #endif
 
     // MQTT
@@ -77,6 +82,10 @@
     inline const char GS_GAS_ALARM[] = "Gas Alarm";
     inline const char GD_DEBUG[] = "Debug";
     inline const char GD_DEBUG_RESTART[] = "Restart Reason";
+    inline const char GIO_IN1[] = "Input 1";
+    inline const char GIO_IN2[] = "Input 2";
+    inline const char GIO_OUT1[] = "Output 1";
+    inline const char GIO_OUT2[] = "Output 2";
 
     //OpenHab as SmartHome if uncommented. Comment for homeassistant
     //#define AlignToOpenHab
@@ -97,12 +106,12 @@
 
     // NOTICE: Breadboards should have 2k2 or 3k3 PullUp resistor between SCL and SDA! If not: interferences
     //BME280
-    #if defined(HCP_Giffordv2)
+   #if defined(HCP_Giffordv2) || defined(HCP_Giffordv3)
         #define I2C_SDA 21
         #define I2C_SCL 33
-    #elif defined(HCP_Giffordv3)
-        #define I2C_SDA 21
-        #define I2C_SCL 33
+   #elif defined(M5STACKATOMLITE) 
+        #define I2C_SDA 25
+        #define I2C_SCL 21
     #else
         #define I2C_SDA 21
         #define I2C_SCL 22
@@ -140,6 +149,10 @@
     #endif
 
     //digital in- and outputs
+    // In1/In2 and Out1/Out2 are the screw terminals on the prebuilt HCP PCBs.
+    // They are only pre-filled as defaults here - the feature stays disabled until
+    // enabled in the WebUI, because board variants without those terminals
+    // (e.g. HCP mini, which uses the HCP_Giffordv3 env) share the same firmware.
     #if defined(HCP_Giffordv2)
         #define LED1 13
         #define INPUT1 12
@@ -158,9 +171,35 @@
         #define MQ4_ANALOG_PIN 35
         #define MQ4_DIGITAL_PIN 15
     #else
+        #define INPUT1 0
+        #define INPUT2 0
+        #define OUTPUT1 0
+        #define OUTPUT2 0
         #define MQ4_ANALOG_PIN 0
         #define MQ4_DIGITAL_PIN 0
     #endif
+
+    // Input pull mode (io_inX_pull)
+    #define IO_PULL_NONE 0
+    #define IO_PULL_UP   1
+    #define IO_PULL_DOWN 2
+
+    // Local action executed on an input's active edge (io_inX_act)
+    #define IO_ACTION_NONE          0
+    #define IO_ACTION_TOGGLE_DOOR   1
+    #define IO_ACTION_OPEN          2
+    #define IO_ACTION_CLOSE         3
+    #define IO_ACTION_STOP          4
+    #define IO_ACTION_TOGGLE_LIGHT  5
+    #define IO_ACTION_VENT          6
+    #define IO_ACTION_HALF          7
+    #define IO_ACTION_TOGGLE_OUT1   8
+    #define IO_ACTION_TOGGLE_OUT2   9
+
+    // Input debounce in ms
+    #define IO_DEBOUNCE_MS 50
+    // Input polling interval in ms (IoTask)
+    #define IO_POLL_INTERVAL_MS 20
 
     // MQTT strings
     #define HA_DISCOVERY_BIN_SENSOR "homeassistant/binary_sensor/%s/%s/config"
