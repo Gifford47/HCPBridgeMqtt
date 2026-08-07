@@ -13,12 +13,9 @@ If you want to connect **temperature sensors** or any other sensors, follow thes
    Make sure the pins are properly aligned and the solder joints are clean and solid.
 2. **Attach the sensors** to the corresponding pin headers according to the pinout.
 3. **Reinstall the PCB** into your **SupraMatic** unit.
-4. **Upload the correct firmware** to your board:
+4. **Enable the sensors in the Web UI** under **Sensor Configuration** — tick the sensor you connected, check its GPIO pins and save. The device restarts and the sensor appears in the status area and in Home Assistant.
 
-   - Without sensors → `HCP_Giffordv2a.bin` or `HCP_Giffordv3a.bin`  
-   - With sensors (any type) → `HCP_Giffordv2b.bin` or `HCP_Giffordv3b.bin`
-
-⚠️ **Note:** The “b” firmware variant is required whenever sensors are present — even if only one is connected.
+⚠️ **Note:** There are no separate firmware variants for sensors any more. Older releases had `…a` (without sensors) and `…b` (with sensors) binaries — since the sensors became configurable in the Web UI there is **one firmware per board**: `HCP_Giffordv2-vX.Y.Z.bin` or `HCP_Giffordv3-vX.Y.Z.bin`. If you are still running an `a`/`b` build, update via **OTA Update** in the Web UI.
 
 ## 🔘 Using the In1 / In2 / Out1 / Out2 terminals
 
