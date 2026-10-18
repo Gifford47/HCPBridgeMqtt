@@ -1,412 +1,464 @@
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML><html lang="en">
 <head>
   <title>Garage Door Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:,">
   <style>
 	:root {
-		--bg: #f0f2f5; --card: #fff; --accent: #b30000;
-		--border: #d0d4da; --text: #1a1a1a; --muted: #666;
-		--shadow: 0 2px 8px rgba(0,0,0,.07); --radius: 10px;
+		--bg: #eef1f5; --card: #fff; --card2: #f6f8fb; --text: #1d2330; --muted: #6b7483;
+		--border: #dde2ea; --accent: #c62f2f; --accent-soft: rgba(198,47,47,.1);
+		--ok: #2e9d6a; --warn: #d99a00; --err: #e5484d; --off: #c5ccd6;
+		--shadow: 0 1px 2px rgba(16,24,40,.05), 0 4px 16px rgba(16,24,40,.06);
+		--radius: 14px;
+		/* garage scene */
+		--g-sky: #e3e9f1; --g-ground: #d3dae3; --g-drive: #c6ced9;
+		--g-wall: #efe9e0; --g-wall-side: #d9d1c5; --g-roof: #4a5361; --g-roof-side: #373e4a;
+		--g-ridge: #2a3039; --g-fascia: #2f3540; --g-frame: #3a414d;
+		--g-door: #5f6878; --g-door-line: #4c5462; --g-door-hi: #6d7787; --g-glass: #9fb4c8;
+		--g-in: #2b3039; --g-in-wall: #353b46; --g-floor: #424955;
+		--g-car: #4f7cac; --g-car-d: #3c6290; --g-tyre: #1e2229;
 	}
-	html {font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; display: inline-block; text-align: center; color: var(--text);}
-	h2 {font-size: 2.4rem; font-weight: 700;}
-	h4 {margin: 0.6rem 0;}
-	h5 {color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 1rem 0 0.4rem;}
-	p {font-size: 1rem;}
-	body {max-width: 600px; margin:0 auto; padding: 0 0.5rem 25px; background: var(--bg);}
-	hr {border: none; border-top: 1px solid var(--border); margin: 1rem 0;}
-	.switch {position: relative; display: inline-block; width: 80px; height: 48px}
-	.switch input {display: none}
-	.slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px; transition: background-color .3s}
-	.slider:before {position: absolute; content: ""; height: 32px; width: 32px; left: 8px; bottom: 8px; background-color: #fff; transition: .3s; border-radius: 3px}
-	input:checked+.slider {background-color: var(--accent)}
-	input:checked+.slider:before {transform: translateX(32px)}
-
-	.btn {
-		background: var(--card);
-		border: 1px solid var(--border);
-		color: var(--text);
-		text-align: center;
-		text-decoration: none;
-		display: inline-block;
-		font-size: 1rem;
-		margin: 4px 2px;
-		cursor: pointer;
-		border-radius: var(--radius);
-		padding: 8px 16px;
-		transition: background .2s, box-shadow .2s;
-		&:hover { background: #e8eaed; box-shadow: var(--shadow); }
-		&:active { background: #d4d7dc; }
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #10141a; --card: #191f28; --card2: #1f2631; --text: #e5e8ed; --muted: #97a0ae;
+			--border: #2a313c; --accent: #e5534b; --accent-soft: rgba(229,83,75,.14); --off: #3a4350;
+			--shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+			--g-sky: #1b222c; --g-ground: #232a34; --g-drive: #2b333e;
+			--g-wall: #a9a39a; --g-wall-side: #8c867d; --g-roof: #3a414d; --g-roof-side: #2b313b;
+			--g-ridge: #1d2129; --g-fascia: #22272f; --g-frame: #2a3039;
+			--g-door: #555e6d; --g-door-line: #444b58; --g-door-hi: #616a7a;
+			--g-in: #161a20; --g-in-wall: #1e232b; --g-floor: #2a3039;
+		}
 	}
+	* {box-sizing: border-box;}
+	html {font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: var(--text); -webkit-text-size-adjust: 100%;}
+	body {max-width: 640px; margin: 0 auto; padding: 12px 12px 32px; background: var(--bg); line-height: 1.4;}
+	h1 {font-size: 1.35rem; margin: 0; font-weight: 700; letter-spacing: -.01em;}
+	h5 {color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 6px;}
+	a {color: inherit;}
 
-	.btn-round {
-		border-width: 3px;
-		border-style: solid;
-		height: 90px;
-		width: 90px;
-		border-radius: 50%;
-		font-weight: 600;
-	}
+	.top {display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 4px 14px;}
+	.pill {display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); color: var(--muted); white-space: nowrap;}
+	.pill i {width: 8px; height: 8px; border-radius: 50%; background: var(--off);}
+	.pill.ok i {background: var(--ok); box-shadow: 0 0 0 3px rgba(46,157,106,.18);}
+	.pill.warn i {background: var(--warn);}
+	.pill.err i {background: var(--err);}
 
-	.hbox {
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.5rem 0;
-	}
+	.card {background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;}
 
-	.sensor-tile {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		background: var(--card);
-		border-radius: var(--radius);
-		box-shadow: var(--shadow);
-		padding: 0.5rem 0.8rem;
-		min-width: 65px;
-	}
-	.sensor-val {font-size: 1.1rem; font-weight: 600;}
-	.sensor-lbl {font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;}
-	.sensor-tile.failed .sensor-val {color: #ED5961;}
+	/* ---------- garage scene ---------- */
+	.hero {padding: 0 0 16px; overflow: hidden;}
+	.scene {background: linear-gradient(var(--g-sky), var(--card)); padding: 14px 10px 0;}
+	#garage {display: block; width: 100%; max-width: 460px; height: auto; margin: 0 auto; transition: filter .4s, opacity .4s;}
+	#garage .gr {fill: var(--g-ground);} #garage .dr {fill: var(--g-drive);}
+	#garage .w {fill: var(--g-wall);} #garage .ws {fill: var(--g-wall-side);}
+	#garage .r {fill: var(--g-roof);} #garage .rs {fill: var(--g-roof-side);}
+	#garage .rl {stroke: var(--g-ridge);} #garage .rd {fill: var(--g-ridge);} #garage .fa {fill: var(--g-fascia);}
+	#garage .fr {stroke: var(--g-frame);} #garage .frf {fill: var(--g-frame);}
+	#garage .in {fill: var(--g-in);} #garage .iw {fill: var(--g-in-wall);} #garage .fl {fill: var(--g-floor);}
+	#garage .dd {fill: var(--g-door);} #garage .dl {stroke: var(--g-door-line);} #garage .dlf {fill: var(--g-door-line);} #garage .dh {stroke: var(--g-door-hi);}
+	#garage .gl {fill: var(--g-glass);} #garage .c {fill: var(--g-car);} #garage .cd {fill: var(--g-car-d);} #garage .ty {fill: var(--g-tyre);}
+	#garage.off {filter: grayscale(.9); opacity: .55;}
+	#gDoor {transition: transform .9s ease-out;}
+	#gCar {opacity: 0; transform: translateY(6px); transition: opacity .7s, transform .7s;}
+	#garage.car #gCar {opacity: 1; transform: none;}
+	.glow {opacity: 0; transition: opacity .5s;}
+	#garage.lit .glow {opacity: 1;}
+	#gLampIn, #gLampOut {fill: #8a919c; transition: fill .4s;}
+	#garage.lit #gLampIn, #garage.lit #gLampOut {fill: #ffe9a8;}
+	#gWin {fill: var(--g-glass); transition: fill .5s;}
+	#garage.lit #gWin {fill: #f3d88c;}
+	#gWarn {fill: #7c6a3a;}
+	#garage.moving #gWarn {fill: #ffb21a; animation: blink 1s steps(2, start) infinite;}
+	@keyframes blink {to {visibility: hidden;}}
 
-	.btn-red {border-color: #ED5961;}
-	.btn-yellow {border-color: #fcca00;}
-	.btn-orange {border-color: #ffa500;}
-	.btn-green {border-color: #48bd81;}
-	.btn-black {border-color: #000;}
+	.state {display: flex; align-items: baseline; justify-content: center; gap: 10px; padding: 14px 16px 4px; flex-wrap: wrap;}
+	#status {font-size: 1.3rem; margin: 0; font-weight: 700;}
+	#pos {font-size: .95rem; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums;}
+	.state.moving #status {color: var(--warn);}
+	.state.na #status {color: var(--muted);}
 
-	.link-gray {
-		font-size: 0.9rem;
-		color: var(--muted);
-		padding: 6px 12px;
-		border-radius: 6px;
-		text-decoration: none;
-		transition: all .2s;
-		&:hover { color: #fff; background: #4e5664; }
-	}
+	.hbox {display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px 14px 0;}
+	.sensor-tile {display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; min-width: 76px;}
+	.sensor-val {font-size: 1.05rem; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap;}
+	.sensor-lbl {font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px;}
+	.sensor-tile.failed .sensor-val {color: var(--err);}
+	.sensor-tile.hl {border-color: var(--warn);}
+	.sensor-tile.alarm {border-color: var(--err); background: var(--accent-soft);}
+	.sensor-tile.alarm .sensor-val {color: var(--err);}
+	.sensor-tile .btn {padding: 3px 12px; margin: 0; font-size: .85rem; font-weight: 650; min-width: 54px;}
+	.sensor-tile .btn.on {background: var(--ok); border-color: var(--ok); color: #fff;}
+	.sensor-tile.in-on .sensor-val {color: var(--ok);}
 
-	input[type=text], input[type=number], select {
-		width: 100%;
-		padding: 8px 10px;
-		margin: 6px 0;
-		box-sizing: border-box;
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		font-size: 1rem;
-		transition: border-color .2s;
-		outline: none;
-		&:focus { border-color: #4a90d9; }
-	}
+	/* ---------- controls ---------- */
+	.controls {display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;}
+	.ctl {display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 74px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card2); color: var(--text); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: transform .1s, background .2s, border-color .2s; -webkit-tap-highlight-color: transparent;}
+	.ctl:hover {border-color: var(--muted);}
+	.ctl:active {transform: scale(.96);}
+	.ctl svg {width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;}
+	.ctl.stop {color: var(--accent); background: var(--accent-soft); border-color: transparent;}
+	.ctl.stop svg {fill: currentColor;}
+	.lightrow {display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);}
+	.lightrow span {display: flex; align-items: center; gap: 10px; font-weight: 600;}
+	.lightrow svg {width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--muted);}
 
-	.card {
-		background: var(--card);
-		border-radius: var(--radius);
-		box-shadow: var(--shadow);
-		padding: 0.5rem 0;
-		margin-bottom: 0.5rem;
-	}
+	/* ---------- switches ---------- */
+	input[type=checkbox] {-webkit-appearance: none; appearance: none; position: relative; flex: none; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: var(--off); cursor: pointer; transition: background .2s; outline: none;}
+	input[type=checkbox]::before {content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s;}
+	input[type=checkbox]:checked {background: var(--accent);}
+	input[type=checkbox]:checked::before {transform: translateX(18px);}
+	input[type=checkbox]:focus-visible {box-shadow: 0 0 0 3px var(--accent-soft);}
+	#light {width: 52px; height: 30px; border-radius: 15px;}
+	#light::before {width: 24px; height: 24px;}
+	#light:checked {background: #e8a400;}
+	#light:checked::before {transform: translateX(22px);}
 
-	.flex label {min-width: 11rem; text-align: left;}
-	.flex .form-label {min-width: 11rem; text-align: left;}
-	.form-label small {display: block; color: var(--muted); font-size: 0.8rem;}
+	/* ---------- buttons & forms ---------- */
+	.btn {background: var(--card); border: 1px solid var(--border); color: var(--text); text-align: center; text-decoration: none; display: inline-block; font: inherit; font-size: .95rem; cursor: pointer; border-radius: 10px; padding: 9px 16px; transition: background .2s, border-color .2s;}
+	.btn:hover {border-color: var(--muted);}
+	.btn-primary {display: block; width: 100%; margin-top: 18px; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 650;}
+	.btn-primary:hover {filter: brightness(1.07); border-color: var(--accent);}
 
-	.flex {
-		display: flex;
-		align-items: center;
-		padding: 0.15rem 1rem;
-	}
+	.acc {padding: 0; overflow: hidden;}
+	.acc-head {display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 16px; background: none; border: 0; color: var(--text); font: inherit; font-size: 1rem; font-weight: 650; text-align: left; cursor: pointer;}
+	.acc-head small {display: block; font-size: .78rem; font-weight: 400; color: var(--muted); margin-top: 1px;}
+	.acc-head::after {content: ""; flex: none; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s;}
+	.acc-head.open::after {transform: rotate(-135deg);}
+	.acc form, .acc .panel {padding: 0 16px 16px; border-top: 1px solid var(--border);}
 
-	.flex.justify-between {
-		justify-content: space-between;
-		padding: 0 0.5rem;
-	}
+	.row {display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0;}
+	.row label {flex: 0 0 42%; font-size: .93rem;}
+	.row label small {display: block; color: var(--muted); font-size: .76rem; margin-top: 1px;}
+	.row.cb label {flex: 1;}
+	input[type=text], input[type=number], select {flex: 1; min-width: 0; width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--card2); color: var(--text); font: inherit; font-size: .95rem; outline: none; transition: border-color .2s, box-shadow .2s;}
+	input[type=text]:focus, input[type=number]:focus, select:focus {border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);}
 
-	.subtitle {
-		text-align: left;
-		padding: 0 1rem;
-	}
+	.si {width: 100%; border-collapse: collapse; font-size: .9rem;}
+	.si td {padding: 6px 4px; border-bottom: 1px solid var(--border);}
+	.si tr:last-child td {border-bottom: 0;}
+	.si td:first-child {color: var(--muted); width: 42%;}
+	.si .good, .si .active {color: var(--ok); font-weight: 650;}
+	.si .fair {color: var(--warn); font-weight: 650;}
+	.si .weak, .si .disabled {color: var(--err); font-weight: 650;}
+	.si .none {color: var(--muted);}
+	.links {display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;}
+	.links a {font-size: .88rem; padding: 7px 12px;}
+	.links a.danger {color: var(--err);}
+
+	#swversion {text-align: center; color: var(--muted); font-size: .8rem; margin: 18px 0 0;}
+	#toast {position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 40px); opacity: 0; pointer-events: none; background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .9rem; transition: opacity .3s, transform .3s; max-width: calc(100% - 32px); text-align: center;}
+	#toast.show {opacity: 1; transform: translate(-50%, 0);}
 
 	@media (max-width: 480px) {
-		h2 {font-size: 1.8rem;}
-		.btn-round {height: 70px; width: 70px; font-size: 0.85rem;}
-		.flex {flex-wrap: wrap;}
-		.flex label, .flex .form-label {min-width: auto; width: 100%;}
-		input[type=text], input[type=number], select {font-size: 0.95rem;}
+		body {padding: 8px 8px 24px;}
+		.card {padding: 14px 12px;}
+		.card.hero {padding: 0 0 14px;}
+		.card.acc {padding: 0;}
+		.controls {gap: 6px;}
+		.ctl {min-height: 64px; font-size: .74rem;}
+		.ctl svg {width: 22px; height: 22px;}
+		.row {flex-wrap: wrap; gap: 4px;}
+		.row label {flex: 1 0 100%;}
+		.row.cb {flex-wrap: nowrap;}
+		.row.cb label {flex: 1;}
+		.acc form, .acc .panel {padding: 0 12px 14px;}
+		.acc-head {padding: 14px 12px;}
 	}
-
+	@media (prefers-reduced-motion: reduce) {
+		* {transition: none !important; animation: none !important;}
+	}
   </style>
 </head>
 <body>
-  <h2 id="collapse">Garage Door</h2>  
-	<canvas width="250px" height="250px" id="dc"></canvas>
-	<h3 id="status">Waiting connection.</h3>
-	<div class="hbox" style="display: none;" id="sensors">
-	</div>
-	<div class="hbox" style="display: none;" id="io">
+	<div class="top">
+		<h1 id="collapse">Garage Door</h1>
+		<span id="conn" class="pill"><i></i><span id="conn_txt">Connecting…</span></span>
 	</div>
 
-	
-	<hr/>
-	<button class="btn btn-round btn-red" onclick="doCommand(1)">Up</button>
-	<button class="btn btn-round btn-yellow" onclick="doCommand(4)">Half</button>
-	<button class="btn btn-round btn-orange" onclick="doCommand(3)">Vent</button>
-	<button class="btn btn-round btn-black" onclick="doCommand(2)">Stop</button>
-	<button class="btn btn-round btn-green" onclick="doCommand(0)">Down</button>
-	<hr/>
-	<div class="hbox">
-		<div>
-			<h4>Light</h4><label class="switch"><input type="checkbox" onchange="doCommand(5)" id="light"><span class="slider"></span></label>
+	<div class="card hero">
+		<div class="scene">
+		<svg id="garage" class="off" viewBox="12 46 324 204" role="img" aria-label="Garage door">
+			<defs>
+				<clipPath id="gClip"><rect x="85" y="150" width="140" height="76"/></clipPath>
+				<radialGradient id="gGlowIn" cx="50%" cy="0%" r="95%">
+					<stop offset="0" stop-color="#ffe6a0" stop-opacity=".75"/>
+					<stop offset="1" stop-color="#ffe6a0" stop-opacity="0"/>
+				</radialGradient>
+				<radialGradient id="gGlowOut">
+					<stop offset="0" stop-color="#ffe6a0" stop-opacity=".9"/>
+					<stop offset="1" stop-color="#ffe6a0" stop-opacity="0"/>
+				</radialGradient>
+				<linearGradient id="gShade" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0" stop-color="#000" stop-opacity=".2"/>
+					<stop offset=".35" stop-color="#000" stop-opacity="0"/>
+				</linearGradient>
+			</defs>
+			<!-- ground and driveway -->
+			<ellipse class="gr" cx="172" cy="228" rx="166" ry="10"/>
+			<polygon class="dr" points="85,226 225,226 252,248 58,248"/>
+			<!-- side wall with window -->
+			<polygon class="ws" points="250,118 300,94 300,202 250,226"/>
+			<polygon id="gWin" points="265,146 286,136 286,158 265,168"/>
+			<path class="fr" d="M265 146L286 136V158L265 168ZM275.5 141V163" fill="none" stroke-width="2"/>
+			<!-- front wall with plinth -->
+			<rect class="w" x="40" y="118" width="210" height="108"/>
+			<rect class="ws" x="40" y="220" width="210" height="6"/>
+			<!-- hip roof: front slope, right hip, ridge and fascia -->
+			<polygon class="rs" points="262,120 316,94 244,57"/>
+			<polygon class="r" points="28,120 262,120 244,57 100,57"/>
+			<path class="rl" d="M46.3 104H257.4M64.6 88H252.9M82.9 72H248.3" stroke-opacity=".3"/>
+			<path class="rl" d="M244 57L262 120M244 57L316 94" stroke-width="1.5" stroke-linecap="round"/>
+			<path class="rl" d="M100 57H244" stroke-width="3" stroke-linecap="round"/>
+			<polygon class="fa" points="28,120 262,120 262,125 28,125"/>
+			<polygon class="rd" points="262,120 316,94 316,99 262,125"/>
+			<!-- interior, visible through the door opening -->
+			<g clip-path="url(#gClip)">
+				<rect class="in" x="85" y="150" width="140" height="76"/>
+				<rect class="iw" x="101" y="157" width="108" height="55"/>
+				<polygon class="fl" points="85,226 225,226 209,212 101,212"/>
+				<rect id="gLampIn" x="140" y="151" width="30" height="3" rx="1.5"/>
+				<rect class="glow" x="85" y="150" width="140" height="76" fill="url(#gGlowIn)"/>
+				<g id="gCar">
+					<ellipse cx="155" cy="224" rx="54" ry="4" fill="#000" opacity=".35"/>
+					<rect class="ty" x="109" y="210" width="16" height="14" rx="3"/>
+					<rect class="ty" x="185" y="210" width="16" height="14" rx="3"/>
+					<polygon class="cd" points="119,191 191,191 181,169 129,169"/>
+					<polygon class="gl" points="125,189 185,189 177,173 133,173"/>
+					<rect class="cd" x="98" y="182" width="9" height="6" rx="2"/>
+					<rect class="cd" x="203" y="182" width="9" height="6" rx="2"/>
+					<rect class="c" x="103" y="189" width="104" height="27" rx="9"/>
+					<rect x="110" y="197" width="18" height="7" rx="3.5" fill="#f4efcf"/>
+					<rect x="182" y="197" width="18" height="7" rx="3.5" fill="#f4efcf"/>
+					<rect class="cd" x="137" y="198" width="36" height="7" rx="2"/>
+					<rect x="144" y="208" width="22" height="5" rx="1" fill="#eef1f4"/>
+				</g>
+				<rect x="85" y="150" width="140" height="76" fill="url(#gShade)"/>
+				<!-- sectional door, slides up into the ceiling -->
+				<g id="gDoor">
+					<rect class="dd" x="85" y="150" width="140" height="76"/>
+					<path class="dl" d="M85 169H225M85 188H225M85 207H225" stroke-width="2"/>
+					<path class="dh" d="M85 151H225M85 170H225M85 189H225M85 208H225"/>
+					<rect class="gl" x="94" y="155" width="25" height="8" rx="1.5" opacity=".8"/>
+					<rect class="gl" x="126" y="155" width="25" height="8" rx="1.5" opacity=".8"/>
+					<rect class="gl" x="159" y="155" width="25" height="8" rx="1.5" opacity=".8"/>
+					<rect class="gl" x="191" y="155" width="25" height="8" rx="1.5" opacity=".8"/>
+					<rect class="dlf" x="146" y="215" width="18" height="3" rx="1.5"/>
+				</g>
+			</g>
+			<path class="fr" d="M83 226V148H227V226" fill="none" stroke-width="4"/>
+			<!-- outdoor lamp and movement warning light -->
+			<circle class="glow" cx="155" cy="138" r="22" fill="url(#gGlowOut)"/>
+			<rect class="frf" x="147" y="133" width="16" height="5" rx="2"/>
+			<rect id="gLampOut" x="149" y="137" width="12" height="3" rx="1.5"/>
+			<circle id="gWarn" cx="238" cy="141" r="3.5"/>
+		</svg>
+		</div>
+		<div id="state" class="state na">
+			<h3 id="status">Waiting connection.</h3>
+			<span id="pos"></span>
+		</div>
+		<div class="hbox" style="display: none;" id="sensors"></div>
+		<div class="hbox" style="display: none;" id="io"></div>
+	</div>
+
+	<div class="card">
+		<div class="controls">
+			<button class="ctl" onclick="doCommand(1)"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Open</button>
+			<button class="ctl" onclick="doCommand(4)"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 12h16M4 16.5h16"/></svg>Half</button>
+			<button class="ctl" onclick="doCommand(3)"><svg viewBox="0 0 24 24"><path d="M3 8h10a3 3 0 1 0-3-3M3 16h13a3 3 0 1 1-3 3M3 12h16"/></svg>Vent</button>
+			<button class="ctl stop" onclick="doCommand(2)"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
+			<button class="ctl" onclick="doCommand(0)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Close</button>
+		</div>
+		<div class="lightrow">
+			<span><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>Light</span>
+			<input type="checkbox" onchange="doCommand(5)" id="light" aria-label="Light">
 		</div>
 	</div>
-	<hr>
-	<br>
-	<div class="flex justify-between">
-		<h4>Basic Configuration</h4>
-		<button id="toggle_basic_conf" class="btn">show</button>
-	</div>
-	<form id="basic_conf_form" class="card" style="display: none">
-		<div class="subtitle">
-			<h5>Wifi</h5>
-			<div class="flex">
-				<label for="wifi_ap_enabled">Enable Wifi AP</label>
+
+	<div class="card acc">
+		<button id="toggle_basic_conf" class="acc-head" type="button"><span>Basic Configuration<small>Wi-Fi, MQTT, device, web password</small></span></button>
+		<form id="basic_conf_form" style="display: none">
+			<h5>Wi-Fi</h5>
+			<div class="row cb">
+				<label for="wifi_ap_enabled">Enable Wi-Fi access point<small>Hotspot for setup and direct access</small></label>
 				<input type="checkbox" id="wifi_ap_enabled" name="wifi_ap_enabled">
 			</div>
-			<div class="flex">
-				<label for="wifi_ssid">WIFI SSID</label>
+			<div class="row">
+				<label for="wifi_ssid">Wi-Fi SSID</label>
 				<input type="text" id="wifi_ssid" name="wifi_ssid">
-			</div>	
-			<div class="flex">
-				<label for="wifi_pass">WIFI Password</label>
+			</div>
+			<div class="row">
+				<label for="wifi_pass">Wi-Fi password</label>
 				<input type="text" id="wifi_pass" name="wifi_pass">
 			</div>
-			<div class="flex">
-				<label for="wifi_ap_pass">WIFI AP Password</label>
+			<div class="row">
+				<label for="wifi_ap_pass">Access point password<small>min. 8 characters</small></label>
 				<input type="text" id="wifi_ap_pass" name="wifi_ap_pass">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="wifi_best_ap">Connect to strongest AP</label>
-					<small>Scan all channels (multi-AP / mesh networks)</small>
-				</div>
+			<div class="row cb">
+				<label for="wifi_best_ap">Connect to strongest AP<small>Scan all channels (multi-AP / mesh networks)</small></label>
 				<input type="checkbox" id="wifi_best_ap" name="wifi_best_ap">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="hostname">Hostname</label>
 				<input type="text" id="hostname" name="hostname">
 			</div>
-		</div>
-		<div class="subtitle">
 			<h5>MQTT</h5>
-			<div class="flex">
-				<label for="mqtt_server">MQTT Server</label>
+			<div class="row">
+				<label for="mqtt_server">MQTT server</label>
 				<input type="text" id="mqtt_server" name="mqtt_server">
 			</div>
-			<div class="flex">
-				<label for="mqtt_port">MQTT Port</label>
+			<div class="row">
+				<label for="mqtt_port">MQTT port</label>
 				<input type="number" id="mqtt_port" name="mqtt_port" min="1" max="65535" step="1">
 			</div>
-			<div class="flex">
-				<label for="mqtt_user">MQTT User</label>
+			<div class="row">
+				<label for="mqtt_user">MQTT user</label>
 				<input type="text" id="mqtt_user" name="mqtt_user">
 			</div>
-			<div class="flex">
-				<label for="mqtt_pass">MQTT Password</label>
+			<div class="row">
+				<label for="mqtt_pass">MQTT password</label>
 				<input type="text" id="mqtt_pass" name="mqtt_pass">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="device_id">Device ID</label>
-					<small>max. 14 characters - longer IDs truncate the MQTT discovery topics</small>
-				</div>
+			<div class="row">
+				<label for="device_id">Device ID<small>max. 14 characters - longer IDs truncate the MQTT discovery topics</small></label>
 				<input type="text" id="device_id" name="device_id" maxlength="14">
 			</div>
-			<div class="flex">
-				<label for="device_name">Device Name</label>
+			<div class="row">
+				<label for="device_name">Device name</label>
 				<input type="text" id="device_name" name="device_name">
 			</div>
-		</div>
-		<div class="subtitle">
 			<h5>Debug</h5>
-			<div class="flex">
-				<label for="debug_enabled">Enable Serial Debug</label>
+			<div class="row cb">
+				<label for="debug_enabled">Enable serial debug<small>Log output on the USB serial port (9600 baud)</small></label>
 				<input type="checkbox" id="debug_enabled" name="debug_enabled">
 			</div>
-		</div>
-		<div class="subtitle">
-			<h5>WEB UI</h5>
-			<div class="flex">
-				<label for="www_pass">Web Password</label>
+			<h5>Web UI</h5>
+			<div class="row">
+				<label for="www_pass">Web password<small>User "admin" - empty = no login</small></label>
 				<input type="text" id="www_pass" name="www_pass">
 			</div>
-		</div>
-		<br>
-		<button type="submit" class="btn">Save & Restart</button>
-	</form>
-
-	<div class="flex justify-between">
-		<h4>Sensor Configuration</h4>
-		<button id="toggle_sensor_conf" class="btn">show</button>
+			<button type="submit" class="btn btn-primary">Save &amp; Restart</button>
+		</form>
 	</div>
-	<form id="sensor_conf_form" class="card" style="display: none">
-		<div class="subtitle">
-			<h5>Sensor Selection</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_bme_en">Temperatur / Feuchte / Druck</label>
-					<small>BME280 (I2C)</small>
-				</div>
+
+	<div class="card acc">
+		<button id="toggle_sensor_conf" class="acc-head" type="button"><span>Sensor Configuration<small>Sensors, GPIOs, publish thresholds</small></span></button>
+		<form id="sensor_conf_form" style="display: none">
+			<h5>Sensor selection</h5>
+			<div class="row cb">
+				<label for="sen_bme_en">Temperature / humidity / pressure<small>BME280 (I2C)</small></label>
 				<input type="checkbox" id="sen_bme_en" name="sen_bme_en">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_ds18_en">Temperatur</label>
-					<small>DS18X20 (OneWire)</small>
-				</div>
+			<div class="row cb">
+				<label for="sen_ds18_en">Temperature<small>DS18X20 (OneWire)</small></label>
 				<input type="checkbox" id="sen_ds18_en" name="sen_ds18_en">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_dht_en">Temperatur / Feuchte</label>
-					<small>DHT22</small>
-				</div>
+			<div class="row cb">
+				<label for="sen_dht_en">Temperature / humidity<small>DHT22</small></label>
 				<input type="checkbox" id="sen_dht_en" name="sen_dht_en">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_sr04_en">Entfernung</label>
-					<small>HC-SR04 (Ultraschall)</small>
-				</div>
+			<div class="row cb">
+				<label for="sen_sr04_en">Distance / parking space<small>HC-SR04 (ultrasonic)</small></label>
 				<input type="checkbox" id="sen_sr04_en" name="sen_sr04_en">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_sr501_en">Bewegungsmelder</label>
-					<small>HC-SR501 (PIR)</small>
-				</div>
+			<div class="row cb">
+				<label for="sen_sr501_en">Motion<small>HC-SR501 (PIR)</small></label>
 				<input type="checkbox" id="sen_sr501_en" name="sen_sr501_en">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_mq4_en">Gassensor</label>
-					<small>MQ4 (Methan / Erdgas)</small>
-				</div>
+			<div class="row cb">
+				<label for="sen_mq4_en">Gas<small>MQ4 (methane / natural gas)</small></label>
 				<input type="checkbox" id="sen_mq4_en" name="sen_mq4_en">
 			</div>
-		</div>
-		<div class="subtitle">
-			<h5>Pin Definition</h5>
-			<div class="flex">
+			<h5>Pin definition</h5>
+			<div class="row">
 				<label for="sen_i2c_sda">I2C SDA</label>
 				<input type="number" id="sen_i2c_sda" name="sen_i2c_sda" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_i2c_scl">I2C SCL</label>
 				<input type="number" id="sen_i2c_scl" name="sen_i2c_scl" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_dhtdatapin">DHT data</label>
 				<input type="number" id="sen_dhtdatapin" name="sen_dhtdatapin" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_ds18x20pin">DS18X20</label>
 				<input type="number" id="sen_ds18x20pin" name="sen_ds18x20pin" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_sr04trigpin">SR04 trigger</label>
 				<input type="number" id="sen_sr04trigpin" name="sen_sr04trigpin" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_sr04echopin">SR04 echo</label>
 				<input type="number" id="sen_sr04echopin" name="sen_sr04echopin" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_sr501pin">SR501</label>
 				<input type="number" id="sen_sr501pin" name="sen_sr501pin" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
-				<label for="sen_mq4analog">MQ4 Analog</label>
+			<div class="row">
+				<label for="sen_mq4analog">MQ4 analog</label>
 				<input type="number" id="sen_mq4analog" name="sen_mq4analog" min="0" max="48" step="1">
 			</div>
-			<div class="flex">
-				<label for="sen_mq4digital">MQ4 Digital</label>
+			<div class="row">
+				<label for="sen_mq4digital">MQ4 digital<small>0 = not used</small></label>
 				<input type="number" id="sen_mq4digital" name="sen_mq4digital" min="0" max="48" step="1">
 			</div>
-		</div>
-		<div class="subtitle">
-			<h5>Sensor Adjustments</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_StInterval">Sensor Query interval</label>
-					<small>Interval in seconds</small>
-				</div>
+			<h5>Sensor adjustments</h5>
+			<div class="row">
+				<label for="sen_StInterval">Sensor query interval<small>Interval in seconds</small></label>
 				<input type="number" id="sen_StInterval" name="sen_StInterval" min="1" step="1">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_temp_thresh">Temperature threshold</label>
-					<small>in °C when to update mqtt</small>
-				</div>
+			<div class="row">
+				<label for="sen_temp_thresh">Temperature threshold<small>in °C when to update MQTT</small></label>
 				<input type="number" step="0.1" id="sen_temp_thresh" name="sen_temp_thresh">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_hum_thresh">Humidity threshold</label>
-					<small>in % when to update mqtt</small>
-				</div>
+			<div class="row">
+				<label for="sen_hum_thresh">Humidity threshold<small>in % when to update MQTT</small></label>
 				<input type="number" id="sen_hum_thresh" name="sen_hum_thresh" step="1">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_pres_thresh">Pressure threshold</label>
-					<small>in mbar when to update mqtt</small>
-				</div>
+			<div class="row">
+				<label for="sen_pres_thresh">Pressure threshold<small>in mbar when to update MQTT</small></label>
 				<input type="number" id="sen_pres_thresh" name="sen_pres_thresh" step="1">
 			</div>
-			<div class="flex">
-				<label for="sen_prox_thresh">Proximity threshold</label>
+			<div class="row">
+				<label for="sen_prox_thresh">Proximity threshold<small>in cm - also the parking detection margin</small></label>
 				<input type="number" id="sen_prox_thresh" name="sen_prox_thresh" min="1" step="1">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="sen_gas_thresh">Gas threshold</label>
-					<small>analog delta when to update mqtt</small>
-				</div>
+			<div class="row">
+				<label for="sen_gas_thresh">Gas threshold<small>analog delta when to update MQTT</small></label>
 				<input type="number" id="sen_gas_thresh" name="sen_gas_thresh" min="1" step="1">
 			</div>
-			<div class="flex">
-				<label for="sen_sr04maxdist">SR04 Max Dist</label>
+			<div class="row">
+				<label for="sen_sr04maxdist">SR04 max. distance<small>in cm</small></label>
 				<input type="number" id="sen_sr04maxdist" name="sen_sr04maxdist" min="1" step="1">
 			</div>
-		</div>
-		<br>
-		<button type="submit" class="btn">Save & Restart</button>
-	</form>
-
-	<div class="flex justify-between">
-		<h4>I/O Configuration</h4>
-		<button id="toggle_io_conf" class="btn">show</button>
+			<button type="submit" class="btn btn-primary">Save &amp; Restart</button>
+		</form>
 	</div>
-	<form id="io_conf_form" class="card" style="display: none">
-		<div class="subtitle">
+
+	<div class="card acc">
+		<button id="toggle_io_conf" class="acc-head" type="button"><span>I/O Configuration<small>In1 / In2 / Out1 / Out2 terminals</small></span></button>
+		<form id="io_conf_form" style="display: none">
 			<h5>Input 1</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_in1_en">Enable Input 1</label>
-					<small>Screw terminal In1</small>
-				</div>
+			<div class="row cb">
+				<label for="io_in1_en">Enable Input 1<small>Screw terminal In1</small></label>
 				<input type="checkbox" id="io_in1_en" name="io_in1_en">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in1_name">Name</label>
 				<input type="text" id="io_in1_name" name="io_in1_name">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in1_pin">GPIO</label>
 				<input type="number" id="io_in1_pin" name="io_in1_pin" min="0" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in1_pull">Pull resistor</label>
 				<select id="io_in1_pull" name="io_in1_pull">
 					<option value="0">none (external) - HCP PCB</option>
@@ -414,14 +466,11 @@
 					<option value="2">internal pull-down</option>
 				</select>
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_in1_inv">Active low</label>
-					<small>Only for a button to GND + pull-up</small>
-				</div>
+			<div class="row cb">
+				<label for="io_in1_inv">Active low<small>Only for a button to GND + pull-up</small></label>
 				<input type="checkbox" id="io_in1_inv" name="io_in1_inv">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in1_act">Local action</label>
 				<select id="io_in1_act" name="io_in1_act">
 					<option value="0">none (MQTT only)</option>
@@ -436,25 +485,20 @@
 					<option value="9">toggle Output 2</option>
 				</select>
 			</div>
-		</div>
-		<div class="subtitle">
 			<h5>Input 2</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_in2_en">Enable Input 2</label>
-					<small>Screw terminal In2</small>
-				</div>
+			<div class="row cb">
+				<label for="io_in2_en">Enable Input 2<small>Screw terminal In2</small></label>
 				<input type="checkbox" id="io_in2_en" name="io_in2_en">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in2_name">Name</label>
 				<input type="text" id="io_in2_name" name="io_in2_name">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in2_pin">GPIO</label>
 				<input type="number" id="io_in2_pin" name="io_in2_pin" min="0" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in2_pull">Pull resistor</label>
 				<select id="io_in2_pull" name="io_in2_pull">
 					<option value="0">none (external) - HCP PCB</option>
@@ -462,14 +506,11 @@
 					<option value="2">internal pull-down</option>
 				</select>
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_in2_inv">Active low</label>
-					<small>Only for a button to GND + pull-up</small>
-				</div>
+			<div class="row cb">
+				<label for="io_in2_inv">Active low<small>Only for a button to GND + pull-up</small></label>
 				<input type="checkbox" id="io_in2_inv" name="io_in2_inv">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_in2_act">Local action</label>
 				<select id="io_in2_act" name="io_in2_act">
 					<option value="0">none (MQTT only)</option>
@@ -484,181 +525,190 @@
 					<option value="9">toggle Output 2</option>
 				</select>
 			</div>
-		</div>
-		<div class="subtitle">
 			<h5>Output 1</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out1_en">Enable Output 1</label>
-					<small>Screw terminal Out1</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out1_en">Enable Output 1<small>Screw terminal Out1</small></label>
 				<input type="checkbox" id="io_out1_en" name="io_out1_en">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_out1_name">Name</label>
 				<input type="text" id="io_out1_name" name="io_out1_name">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_out1_pin">GPIO</label>
 				<input type="number" id="io_out1_pin" name="io_out1_pin" min="0" max="48" step="1">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out1_inv">Active low</label>
-					<small>Only if ON/OFF end up swapped</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out1_inv">Active low<small>Only if ON/OFF end up swapped</small></label>
 				<input type="checkbox" id="io_out1_inv" name="io_out1_inv">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out1_rst">Restore after reboot</label>
-					<small>Off = always off after power loss</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out1_rst">Restore after reboot<small>Off = always off after power loss</small></label>
 				<input type="checkbox" id="io_out1_rst" name="io_out1_rst">
 			</div>
-		</div>
-		<div class="subtitle">
 			<h5>Output 2</h5>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out2_en">Enable Output 2</label>
-					<small>Screw terminal Out2</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out2_en">Enable Output 2<small>Screw terminal Out2</small></label>
 				<input type="checkbox" id="io_out2_en" name="io_out2_en">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_out2_name">Name</label>
 				<input type="text" id="io_out2_name" name="io_out2_name">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="io_out2_pin">GPIO</label>
 				<input type="number" id="io_out2_pin" name="io_out2_pin" min="0" max="48" step="1">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out2_inv">Active low</label>
-					<small>Only if ON/OFF end up swapped</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out2_inv">Active low<small>Only if ON/OFF end up swapped</small></label>
 				<input type="checkbox" id="io_out2_inv" name="io_out2_inv">
 			</div>
-			<div class="flex">
-				<div class="form-label">
-					<label for="io_out2_rst">Restore after reboot</label>
-					<small>Off = always off after power loss</small>
-				</div>
+			<div class="row cb">
+				<label for="io_out2_rst">Restore after reboot<small>Off = always off after power loss</small></label>
 				<input type="checkbox" id="io_out2_rst" name="io_out2_rst">
 			</div>
-		</div>
-		<br>
-		<button type="submit" class="btn">Save &amp; Restart</button>
-	</form>
-
-	<div class="flex justify-between">
-		<h4>Expert Configuration</h4>
-		<button id="toggle_expert_conf" class="btn">show</button>
+			<button type="submit" class="btn btn-primary">Save &amp; Restart</button>
+		</form>
 	</div>
-	<form id="expert_conf_form" class="card" style="display: none">
-		<div class="subtitle">
-			<h5>RS485 Pins</h5>
-			<div class="flex">
+
+	<div class="card acc">
+		<button id="toggle_expert_conf" class="acc-head" type="button"><span>Expert Configuration<small>RS485 pins, Home Assistant entity names</small></span></button>
+		<form id="expert_conf_form" style="display: none">
+			<h5>RS485 pins</h5>
+			<div class="row">
 				<label for="rs485_txd">RS485 TXD</label>
 				<input type="number" id="rs485_txd" name="rs485_txd" min="1" max="48" step="1">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="rs485_rxd">RS485 RXD</label>
 				<input type="number" id="rs485_rxd" name="rs485_rxd" min="1" max="48" step="1">
 			</div>
-		</div>
-		<div class="subtitle">
-			<h5>Text Definition</h5>
-			<div class="flex">
-				<label for="gd_debug_string">Debug String</label>
+			<h5>Entity names</h5>
+			<div class="row">
+				<label for="gd_debug_string">Debug string</label>
 				<input type="text" id="gd_debug_string" name="gd_debug_string">
 			</div>
-			<div class="flex">
-				<label for="gd_dg_rst_reas">Restart Reason</label>
+			<div class="row">
+				<label for="gd_dg_rst_reas">Restart reason</label>
 				<input type="text" id="gd_dg_rst_reas" name="gd_dg_rst_reas">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sensor_temp">Temperature</label>
 				<input type="text" id="sensor_temp" name="sensor_temp">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sensor_humidity">Humidity</label>
 				<input type="text" id="sensor_humidity" name="sensor_humidity">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sensor_atmpress">Pressure</label>
 				<input type="text" id="sensor_atmpress" name="sensor_atmpress">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sensor_freedist">Free distance</label>
 				<input type="text" id="sensor_freedist" name="sensor_freedist">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_park_avail">Park availability</label>
 				<input type="text" id="sen_park_avail" name="sen_park_avail">
 			</div>
-			<div class="flex">
+			<div class="row">
 				<label for="sen_motion">Motion</label>
 				<input type="text" id="sen_motion" name="sen_motion">
 			</div>
-			<div class="flex">
-				<label for="sensor_gas">Gas Level</label>
+			<div class="row">
+				<label for="sensor_gas">Gas level</label>
 				<input type="text" id="sensor_gas" name="sensor_gas">
 			</div>
-			<div class="flex">
-				<label for="sen_gas_alarm">Gas Alarm</label>
+			<div class="row">
+				<label for="sen_gas_alarm">Gas alarm</label>
 				<input type="text" id="sen_gas_alarm" name="sen_gas_alarm">
 			</div>
-		</div>
-		<br>
-		<button type="submit" class="btn">Save & Restart</button>
-	</form>
-
-	<div class="flex justify-between">
-		<h4>System information</h4>
-		<button id="toogle_sysinfo" class="btn">show</button>
+			<button type="submit" class="btn btn-primary">Save &amp; Restart</button>
+		</form>
 	</div>
-	<div id="sysinfo_panel" class="card" style="display: none; text-align: left; padding: 0.5rem 1rem;">
-		<table id="sysinfo_table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-			<tr><td style="padding:4px 8px; color:#666;">Version</td><td id="si_version" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">Build</td><td id="si_buildenv" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">Hostname</td><td id="si_hostname" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">IP</td><td id="si_ip" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">WiFi</td><td id="si_wifi" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">Signal</td><td id="si_rssi" style="padding:4px 8px; font-weight:bold;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">MQTT</td><td id="si_mqtt" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">Free Memory</td><td id="si_mem" style="padding:4px 8px;"></td></tr>
-			<tr><td style="padding:4px 8px; color:#666;">Reset Reason</td><td id="si_reset" style="padding:4px 8px;"></td></tr>
-		</table>
-		<h5 style="margin:12px 0 4px 0;">Sensors</h5>
-		<table id="si_sensors" style="width:100%; border-collapse:collapse; font-size:0.9rem;"></table>
-		<div style="margin-top:12px;">
-			<a class="link-gray" href="update" target="_blank">OTA Update</a>
-			<a class="link-gray" href="reset" target="_blank">Factory Reset</a>
+
+	<div class="card acc">
+		<button id="toogle_sysinfo" class="acc-head" type="button"><span>System information<small>Firmware, network, sensors, OTA update</small></span></button>
+		<div id="sysinfo_panel" class="panel" style="display: none;">
+			<table id="sysinfo_table" class="si">
+				<tr><td>Version</td><td id="si_version"></td></tr>
+				<tr><td>Build</td><td id="si_buildenv"></td></tr>
+				<tr><td>Hostname</td><td id="si_hostname"></td></tr>
+				<tr><td>IP</td><td id="si_ip"></td></tr>
+				<tr><td>Wi-Fi</td><td id="si_wifi"></td></tr>
+				<tr><td>Signal</td><td id="si_rssi"></td></tr>
+				<tr><td>MQTT</td><td id="si_mqtt"></td></tr>
+				<tr><td>Free memory</td><td id="si_mem"></td></tr>
+				<tr><td>Reset reason</td><td id="si_reset"></td></tr>
+			</table>
+			<h5>Sensors</h5>
+			<table id="si_sensors" class="si"></table>
+			<h5>Digital I/O</h5>
+			<table id="si_io" class="si"></table>
+			<div class="links">
+				<a class="btn" href="update" target="_blank">OTA Update</a>
+				<a class="btn danger" href="reset" target="_blank" onclick="return confirm('Reset all settings to factory defaults?')">Factory Reset</a>
+			</div>
 		</div>
 	</div>
 
 	<p id="swversion"></p>
-		
+	<div id="toast"></div>
+
 	<script>
-	document.getElementById("toogle_sysinfo").onclick = function() {
-		collapse('sysinfo_panel');
+	function $(id) { return document.getElementById(id); }
+
+	$("toogle_sysinfo").onclick = function() {
+		collapse('sysinfo_panel', this);
 		loadSysinfo();
 	};
-	document.getElementById("toggle_basic_conf").onclick = function() {collapse('basic_conf_form')};
-	document.getElementById("toggle_sensor_conf").onclick = function() {collapse('sensor_conf_form')};
-	document.getElementById("toggle_io_conf").onclick = function() {collapse('io_conf_form')};
-	document.getElementById("toggle_expert_conf").onclick = function() {collapse('expert_conf_form')};
+	$("toggle_basic_conf").onclick = function() {collapse('basic_conf_form', this)};
+	$("toggle_sensor_conf").onclick = function() {collapse('sensor_conf_form', this)};
+	$("toggle_io_conf").onclick = function() {collapse('io_conf_form', this)};
+	$("toggle_expert_conf").onclick = function() {collapse('expert_conf_form', this)};
 
-	function collapse(elementId) {
-		var x = document.getElementById(elementId);
-		if (x.style.display === "none") {
-		x.style.display = "block";
-		} else {
-		x.style.display = "none";
+	function collapse(elementId, btn) {
+		var x = $(elementId);
+		var show = x.style.display === "none";
+		x.style.display = show ? "block" : "none";
+		if (btn) btn.classList.toggle("open", show);
+	}
+
+	var toastTimer;
+	function toast(msg) {
+		var t = $("toast");
+		t.textContent = msg;
+		t.classList.add("show");
+		clearTimeout(toastTimer);
+		toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 4000);
+	}
+
+	// esp_reset_reason_t names (ESP-IDF)
+	var resetReasons = ["unknown","power-on","external pin","software","exception / panic","interrupt watchdog","task watchdog","other watchdog","deep sleep","brownout","SDIO"];
+
+	function statusRow(tbl, name, st) {
+		var tr = document.createElement("tr");
+		var a = document.createElement("td");
+		var b = document.createElement("td");
+		a.textContent = name;
+		b.className = st === "active" ? "active" : (st === "disabled" ? "disabled" : "none");
+		b.textContent = st === "active" ? "Active" : (st === "disabled" ? "Disabled" : "Off");
+		tr.appendChild(a);
+		tr.appendChild(b);
+		tbl.appendChild(tr);
+		return st !== "off";
+	}
+
+	function fillStatusTable(tbl, list, labels, emptyText) {
+		tbl.innerHTML = "";
+		var hasActive = false;
+		if (list) {
+			for (var name in list) {
+				if (statusRow(tbl, labels[name] || name, list[name])) hasActive = true;
+			}
 		}
+		if (!hasActive) tbl.innerHTML = "<tr><td class='none' colspan='2'>" + emptyText + "</td></tr>";
 	}
 
 	function loadSysinfo() {
@@ -666,109 +716,73 @@
 		xhr.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
 				var info = JSON.parse(this.responseText);
-				document.getElementById("si_version").textContent = "v" + (info.swversion || "?");
-				document.getElementById("si_buildenv").textContent = info.buildenv || "?";
-				document.getElementById("si_hostname").textContent = info.hostname || "?";
-				document.getElementById("si_ip").textContent = info.ip || "?";
-				document.getElementById("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
-				var rssiEl = document.getElementById("si_rssi");
+				$("si_version").textContent = "v" + (info.swversion || "?");
+				$("si_buildenv").textContent = info.buildenv || "?";
+				$("si_hostname").textContent = info.hostname || "?";
+				$("si_ip").textContent = info.ip || "?";
+				$("si_wifi").textContent = info.wifistatus == 3 ? "Connected" : "Disconnected";
+				var rssiEl = $("si_rssi");
 				if (info.wifistatus == 3 && info.rssi < 0) {
 					// -67 dBm and better is comfortable, below -80 dBm gets unreliable
 					var good = info.rssi >= -67, fair = info.rssi >= -80;
 					rssiEl.textContent = info.rssi + " dBm (" + (good ? "good" : fair ? "fair" : "weak") + ")";
-					rssiEl.style.color = good ? "#48bd81" : fair ? "#fcca00" : "#ED5961";
+					rssiEl.className = good ? "good" : fair ? "fair" : "weak";
 				} else {
 					rssiEl.textContent = "-";
-					rssiEl.style.color = "#999";
+					rssiEl.className = "none";
 				}
-				document.getElementById("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
-				document.getElementById("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
-				document.getElementById("si_reset").textContent = info.restart_reason || "?";
-				var tbl = document.getElementById("si_sensors");
-				tbl.innerHTML = "";
-				var hasActive = false;
-				if (info.sensors) {
-					for (var name in info.sensors) {
-						var st = info.sensors[name];
-						if (st !== "off") hasActive = true;
-						var color = st === "active" ? "#48bd81" : (st === "disabled" ? "#ED5961" : "#999");
-						var label = st === "active" ? "Active" : (st === "disabled" ? "Disabled" : "Off");
-						tbl.innerHTML += "<tr><td style='padding:2px 8px;'>" + name + "</td><td style='padding:2px 8px;color:" + color + ";font-weight:bold;'>" + label + "</td></tr>";
-					}
-				}
-				if (!hasActive) {
-					tbl.innerHTML = "<tr><td style='padding:4px 8px;color:#999;' colspan='2'>No sensors enabled.</td></tr>";
-				}
+				$("si_mqtt").textContent = info.mqttstatus ? "Connected" : "Disconnected";
+				$("si_mqtt").className = info.mqttstatus ? "good" : "weak";
+				$("si_mem").textContent = info.freemem ? (Math.round(info.freemem/1024) + " KB") : "?";
+				var rr = info.restart_reason;
+				$("si_reset").textContent = (rr === undefined) ? "?" : (rr + (resetReasons[rr] ? " (" + resetReasons[rr] + ")" : ""));
+				fillStatusTable($("si_sensors"), info.sensors, {}, "No sensors enabled.");
+				fillStatusTable($("si_io"), info.io, ioLabels, "No I/O channel enabled.");
 			}
 		};
 		xhr.open("GET", "/sysinfo", true);
 		xhr.send();
 	}
 
-	doorpos = 10;
-	dir = -1;
-	isconnected = false;
-	var animation;
-	function startDoorAnimation() {
-		if(!animation){
-			animation = setInterval(Draw, 200);
-		}
-		
+	// ---------------------------------------------------------------- garage scene
+	var DOOR_H = 76;          // door height in SVG units
+	var firstPaint = true;
+	var isconnected = false;
+	var parkFree = null, parkFailed = false;
+
+	// position: 0 (closed) .. 100 (open), mode: "moving" | "rest"
+	function drawGarage(position, mode, light, valid) {
+		var g = $("garage"), d = $("gDoor");
+		var p = Math.max(0, Math.min(100, position || 0));
+		// While moving, glide linearly between the 3 s status polls
+		d.style.transition = firstPaint ? "none" : (mode === "moving" ? "transform 3s linear" : "transform .9s ease-out");
+		d.style.transform = "translateY(" + (-p / 100 * DOOR_H) + "px)";
+		firstPaint = false;
+		g.classList.toggle("moving", mode === "moving");
+		g.classList.toggle("lit", !!light);
+		g.classList.toggle("off", !valid);
 	}
-	function stopDoorAnimation() {
-		if(animation){
-			clearInterval(animation);
-		}
-		animation = null;
+
+	// HC-SR04 "free": "true" = parking space available, "false" = occupied -> car is shown
+	function updateCar() {
+		$("garage").classList.toggle("car", parkFree === "false" && !parkFailed);
 	}
-	
-	function Draw(){		
-		var dc = document.getElementById("dc");		
-		var ctx = dc.getContext("2d");
-		width = dc.width;
-		height = dc.height;
-		ctx.clearRect(0, 0, width, height);		
-		xa= [18,18,10,3,174,347,340,332,332,297,297,52,52,18];
-		ya= [327,114,117,100,22,100,117,114,327,327,112,112,327,327];
-		
-		ctx.fillStyle = "black";
-		ctx.beginPath();
-		for (i =0;i<xa.length;i++){			
-			if(i==0){
-				ctx.moveTo((xa[i]/350) * width , (ya[i]/350)*width);
-			}else{
-				ctx.lineTo((xa[i]/350) * width, (ya[i]/350)*width);
-			}
-		}
-		ctx.fill();
-		
-		for(i=0;i<doorpos;i++){			
-			ctx.fillRect((62/350) * width, ((120+21*i)/350) * width, (225/350) * width, (18/350) * width);
-		}
-		doorpos+=dir;	
-		
-		if(dir<0 && doorpos<=0){
-			dir=dir*-1;			
-		}
-		if(dir>0 &&doorpos>=10){
-			dir=dir*-1;			
-		}
-	}
-	
+
 	function doCommand(action, position) {
-      if(!isconnected && action != 6)
-	  	return;		// only early return when not connected AND action cmd !=6 (=restart ESP)
-	  
-	  var xhr = new XMLHttpRequest();
+		if(!isconnected && action != 6)
+			return;		// only early return when not connected AND action cmd !=6 (=restart ESP)
 
-	  if(action == 7)
-	  	xhr.open("GET", "/command?action="+action+"&position="+position, true); 	  
-	  else
-	  	xhr.open("GET", "/command?action="+action, true); 	  
+		var xhr = new XMLHttpRequest();
 
-	  xhr.send();
+		if(action == 7)
+			xhr.open("GET", "/command?action="+action+"&position="+position, true);
+		else
+			xhr.open("GET", "/command?action="+action, true);
+
+		xhr.send();
 	}
 
+	// ---------------------------------------------------------------- digital I/O
 	var ioLabels = {in1:"In 1",in2:"In 2",out1:"Out 1",out2:"Out 2"};
 
 	function doIo(key) {
@@ -779,12 +793,12 @@
 	}
 
 	function renderIo(io){
-		var idiv = document.getElementById("io");
+		var idiv = $("io");
 		idiv.style.display = 'flex';
 		Object.keys(io).forEach(function(key){
 			var isOut = key.indexOf("out") === 0;
 			var on = io[key] === true || io[key] === "true";
-			var tile = document.getElementById("io_" + key);
+			var tile = $("io_" + key);
 			if (tile === null){
 				tile = document.createElement('div');
 				tile.id = "io_" + key;
@@ -793,7 +807,6 @@
 				if (isOut){
 					valDiv.type = 'button';
 					valDiv.className = 'btn';
-					valDiv.style.padding = '2px 10px';
 					valDiv.onclick = function(){ doIo(key); };
 				} else {
 					valDiv.className = 'sensor-val';
@@ -806,48 +819,89 @@
 				idiv.appendChild(tile);
 			}
 			tile.children[0].textContent = on ? "ON" : "OFF";
+			if (isOut) tile.children[0].classList.toggle("on", on);
+			else tile.classList.toggle("in-on", on);
 		});
 	}
 
+	// ---------------------------------------------------------------- sensors
+	var sLabels = {temp:"Temp",hum:"Humidity",pres:"Pressure",dist:"Distance",free:"Parking",motion:"Motion",gas:"Gas",gas_alarm:"Gas Alarm"};
+
+	function fmtSensor(key, v) {
+		if (key === "free") return v === "true" ? "Free" : (v === "false" ? "Occupied" : v);
+		if (key === "motion") return v === "true" ? "Detected" : (v === "false" ? "None" : v);
+		if (key === "gas_alarm") return v === "true" ? "Alarm" : (v === "false" ? "OK" : v);
+		return v;
+	}
+
+	function setSensor(key, value, failed) {
+		var sdiv = $("sensors");
+		var tile = $("s_" + key);
+		if (tile === null) {
+			tile = document.createElement('div');
+			tile.id = "s_" + key;
+			var valDiv = document.createElement('div');
+			valDiv.className = 'sensor-val';
+			var lblDiv = document.createElement('div');
+			lblDiv.className = 'sensor-lbl';
+			lblDiv.textContent = sLabels[key] || key;
+			tile.appendChild(valDiv);
+			tile.appendChild(lblDiv);
+			sdiv.appendChild(tile);
+			sdiv.style.display = 'flex';
+		}
+		if (failed !== undefined) tile.dataset.failed = failed ? "1" : "";
+		tile.children[0].textContent = fmtSensor(key, value);
+		tile.className = 'sensor-tile' + (tile.dataset.failed ? ' failed' : '') +
+			(key === "motion" && value === "true" ? ' hl' : '') +
+			(key === "gas_alarm" && value === "true" ? ' alarm' : '');
+		if (key === "free") {
+			parkFree = value;
+			parkFailed = !!tile.dataset.failed;
+			updateCar();
+		}
+	}
+
+	// ---------------------------------------------------------------- config forms
 	function getConfig() {
-	  	//get current config
-	  	var xmlhttp = new XMLHttpRequest();
+		//get current config
+		var xmlhttp = new XMLHttpRequest();
 		xmlhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
-			var config = JSON.parse(this.responseText);	
-			console.log(config)
-			// access objects by key/value pair
-			for (const key in config){
-				var el = document.getElementById(key);
-				if(el) {		// if element exists in doc...
-					if (el.type === 'checkbox') {
-						el.checked = config[key] === true;
+				var config = JSON.parse(this.responseText);
+				// access objects by key/value pair
+				for (const key in config){
+					var el = $(key);
+					if(el) {		// if element exists in doc...
+						if (el.type === 'checkbox') {
+							el.checked = config[key] === true;
+						}
+						else {
+							el.value = config[key]
+						}
 					}
 					else {
-						el.value = config[key]
+						console.error('ID ' + key + ' doesnt exist!')
 					}
 				}
-				else {
-					console.error('ID ' + key + ' doesnt exist!')
+				if (config.device_name) {
+					$("collapse").textContent = config.device_name;
+					document.title = config.device_name;
 				}
+				return;
 			}
-			return;
-			}
-		};			
+		};
 		xmlhttp.open("GET", "/config", true);
 		xmlhttp.send();
-	}  
+	}
 
 	function handleSubmitConf(event) {
 		event.preventDefault();
-		console.log('form submitted');
 
-		if (confirm("Changing the Configuration will restart your Device! \n\nIf your Garage Motor is connected you will need to start the BusScan again to clear the resulting Error") != true) 
+		if (confirm("Changing the Configuration will restart your Device! \n\nIf your Garage Motor is connected you will need to start the BusScan again to clear the resulting Error") != true)
 		{
 			return;
 		}
-
-		console.log("User confirmed Saving Conf")
 
 		const data = new FormData(event.target);
 		const json = Object.fromEntries(data.entries());
@@ -858,103 +912,76 @@
 		xhr.open('POST', '/config')
 		xhr.setRequestHeader('Content-Type', 'application/json')
 		xhr.send(JSON.stringify(json))
+		toast("Configuration saved - the bridge is restarting…");
 	}
 
-	const basicConfForm = document.getElementById('basic_conf_form');
-	basicConfForm.addEventListener('submit', handleSubmitConf);
+	$('basic_conf_form').addEventListener('submit', handleSubmitConf);
+	$('sensor_conf_form').addEventListener('submit', handleSubmitConf);
+	$('io_conf_form').addEventListener('submit', handleSubmitConf);
+	$('expert_conf_form').addEventListener('submit', handleSubmitConf);
 
-	const sensorConfForm = document.getElementById('sensor_conf_form');
-	sensorConfForm.addEventListener('submit', handleSubmitConf);
+	// ---------------------------------------------------------------- door status
+	// [text, mode] per translated door state
+	var doorStates = {
+		"open":      ["Door open", "rest"],
+		"closed":    ["Door closed", "rest"],
+		"open h":    ["Door partially open", "rest"],
+		"stopped":   ["Door partially open", "rest"],
+		"closing":   ["Door closing", "moving"],
+		"opening":   ["Door opening", "moving"],
+		"opening h": ["Door opening", "moving"],
+		"opening v": ["Door opening", "moving"],
+		"venting":   ["Door venting", "rest"]
+	};
 
-	const ioConfForm = document.getElementById('io_conf_form');
-	ioConfForm.addEventListener('submit', handleSubmitConf);
-
-	const expertConfForm = document.getElementById('expert_conf_form');
-	expertConfForm.addEventListener('submit', handleSubmitConf);
-	
-	function setDoorState(state){
-		stopDoorAnimation();		
-		if(state == 0) {doorpos = 10;dir = -1};
-		if(state == 1) {doorpos = 0; dir = 1};		
-		if(state == 2) {doorpos = 5; dir = 1};		
-		Draw();		
-		if(state == 3) startDoorAnimation();
+	function setConn(cls, text) {
+		$("conn").className = "pill " + cls;
+		$("conn_txt").textContent = text;
 	}
-	
-	function getStatusText(id){
-		result = "Door "
-		switch(id)
-		{
-			case "open": setDoorState(1); return result+"open";
-			case "closed": setDoorState(0); return result+"closed";
-			case "open h": setDoorState(2); return result+"partially open";
-			case "stopped": setDoorState(2); return result+"partially open";
-			case "closing": setDoorState(3); return result+"closing";
-			case "opening": setDoorState(3); return result+"opening";
-			case "opening h": setDoorState(3); return result+"opening";
-			case "opening v": setDoorState(3); return result+"opening";
-			case "venting": setDoorState(2); return result+id;
-			case "NA": setDoorState(0); return "not connected";
-			default: return "unknown status: " + id;
-		}    
-	}
-	
+
 	function updateData(){
-			var xmlhttp = new XMLHttpRequest();
-			xmlhttp.onreadystatechange = function() {
-			  if (this.readyState == 4 && this.status == 200) {
-				var status = JSON.parse(this.responseText);	
-                isconnected = status.valid;
-				document.getElementById("status").innerHTML = getStatusText(status.valid?status.doorstate:"NA");
-				document.getElementById("light").checked = status.light && status.valid;
-				document.getElementById("swversion").innerHTML = "v" + status.swversion;
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (this.readyState != 4) return;
+			if (this.status == 200) {
+				var status = JSON.parse(this.responseText);
+				isconnected = status.valid;
+				var st = status.valid ? doorStates[status.doorstate] : null;
+				var text = !status.valid ? "Not connected" : (st ? st[0] : "unknown status: " + status.doorstate);
+				var mode = st ? st[1] : "rest";
+				$("status").textContent = text;
+				$("state").className = "state" + (status.valid ? (mode === "moving" ? " moving" : "") : " na");
+				$("pos").textContent = status.valid ? status.currentPosition + " %" : "";
+				drawGarage(status.valid ? status.currentPosition : 0, mode, status.light && status.valid, status.valid);
+				$("light").checked = status.light && status.valid;
+				$("swversion").textContent = "HCPBridge v" + status.swversion;
+				setConn(status.valid ? "ok" : "warn", status.valid ? "Connected" : "No bus");
 				if (status.hasOwnProperty('sensors')) {
-					var sdiv = document.getElementById("sensors")
-					sdiv.style.display = 'flex';
-					var sLabels = {temp:"Temp",hum:"Humidity",pres:"Pressure",dist:"Distance",free:"Parking",motion:"Motion",gas:"Gas",gas_alarm:"Gas Alarm"};
 					var failedKeys = status.sensors._failed || [];
 					Object.keys(status.sensors).forEach(function(key){
 						if (key === '_failed') return;
-						var isFailed = failedKeys.indexOf(key) >= 0;
-						var div = document.getElementById("s_"+key);
-						if (div === null){
-							var tile = document.createElement('div');
-							tile.id = "s_"+key;
-							tile.className = 'sensor-tile' + (isFailed ? ' failed' : '');
-							var valDiv = document.createElement('div');
-							valDiv.className = 'sensor-val';
-							valDiv.textContent = status.sensors[key];
-							var lblDiv = document.createElement('div');
-							lblDiv.className = 'sensor-lbl';
-							lblDiv.textContent = sLabels[key] || key;
-							tile.appendChild(valDiv);
-							tile.appendChild(lblDiv);
-							sdiv.appendChild(tile);
-						} else {
-							div.children[0].textContent = status.sensors[key];
-							div.className = 'sensor-tile' + (isFailed ? ' failed' : '');
-						}
+						setSensor(key, status.sensors[key], failedKeys.indexOf(key) >= 0);
 					});
 				}
 				if (status.hasOwnProperty('io')) {
 					renderIo(status.io);
 				}
 				return;
-			  }
-			  isconnected= false;
-			};			
-			xmlhttp.open("GET", "/status", true);
-			xmlhttp.send();
+			}
+			isconnected = false;
+			setConn("err", "Offline");
+		};
+		xmlhttp.open("GET", "/status", true);
+		xmlhttp.send();
 	}
 
 	getConfig();
-	Draw();
 	updateData();
 	setInterval(updateData, 3000);
 
 	// Keep the signal strength live while the sysinfo panel is open
 	setInterval(function() {
-		if (document.getElementById("sysinfo_panel").style.display !== "none") loadSysinfo();
+		if ($("sysinfo_panel").style.display !== "none") loadSysinfo();
 	}, 5000);
 
 	// SSE: immediate sensor updates (only changed values)
@@ -962,15 +989,12 @@
 	evtSource.addEventListener('sensor', function(e) {
 		var d = JSON.parse(e.data);
 		for (var key in d) {
-			var el = document.getElementById("s_"+key);
-			if (el) el.children[0].textContent = d[key];
+			if ($("s_" + key)) setSensor(key, d[key]);
 		}
 	});
 	evtSource.addEventListener('io', function(e) {
 		renderIo(JSON.parse(e.data));
 	});
-	
-	
-</script>
+	</script>
 </body>
 </html>

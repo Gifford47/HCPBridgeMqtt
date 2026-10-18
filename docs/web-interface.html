@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web interface · HCPBridge</title>
+  <meta name="description" content="How to use the HCPBridge web interface: live garage animation, door controls, light, sensors, digital I/O, configuration forms and system information.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Web interface</h1>
+    <p class="lead">Everything the bridge can do is available in the browser at <code>http://&lt;device-ip&gt;/</code> – on the phone as well as on the desktop, in light and dark mode.</p>
+
+    <figure><img src="Images/webinterface.png" alt="HCPBridge web interface on a phone" loading="lazy" width="380"></figure>
+
+    <h2>Access</h2>
+    <ul>
+      <li>In your network: <code>http://&lt;device-ip&gt;/</code></li>
+      <li>Via the hotspot <code>HCPBRIDGE</code>: <a href="http://192.168.4.1">http://192.168.4.1</a></li>
+      <li>No login by default. If a <em>Web password</em> is set in the basic configuration, the browser asks for user <code>admin</code> and that password (HTTP basic authentication, applies to the page and the API).</li>
+    </ul>
+
+    <h2>Status area</h2>
+    <h3>Garage animation</h3>
+    <p>The garage illustration mirrors the real door:</p>
+    <table>
+      <thead><tr><th>Element</th><th>Shows</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Sectional door</td><td>Slides up into the garage exactly as far as the door is open (0–100&nbsp;%). While the door moves, the animation glides smoothly between the status updates.</td><td><code>currentPosition</code></td></tr>
+        <tr><td>Amber light next to the door</td><td>Blinks while the door is opening or closing.</td><td><code>doorstate</code></td></tr>
+        <tr><td>Ceiling lamp, outdoor lamp, side window</td><td>Glow warm when the operator light is on.</td><td><code>light</code></td></tr>
+        <tr><td>Car inside the garage</td><td>Visible when the HC-SR04 parking sensor reports the space as <strong>occupied</strong>; hidden when it is free, when the sensor is not enabled or has failed. The car is behind the door, so you see it as the door opens.</td><td>sensor <code>free</code> = <code>"false"</code></td></tr>
+        <tr><td>Greyed-out scene</td><td>No valid communication with the operator (bus not connected, no bus scan yet).</td><td><code>valid</code></td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><span class="t">Parking sensor logic</span>The sensor value is called <code>free</code> and means <em>parking space available</em>: <code>"true"</code> = free (no car), <code>"false"</code> = occupied (car shown). In the sensor tiles it is displayed as <em>Free</em> / <em>Occupied</em>. How the sensor decides is explained under <a href="sensors.html#parking-space-detection-hc-sr04">Sensors</a>.</div>
+
+    <h3>Status line and connection badge</h3>
+    <p>Below the garage the door state and position are shown (<em>Door open</em>, <em>Door closing</em>, <em>Door partially open</em>, <em>Door venting</em> …). The badge at the top right shows:</p>
+    <table>
+      <thead><tr><th>Badge</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge ok">Connected</span></td><td>The bridge receives data from the operator.</td></tr>
+        <tr><td><span class="badge">No bus</span></td><td>The web server answers, but there is no valid bus communication. Check the cable and run the bus scan.</td></tr>
+        <tr><td><span class="badge no">Offline</span></td><td>The browser cannot reach the bridge.</td></tr>
+      </tbody>
+    </table>
+    <p>The page polls <code>/status</code> every 3 seconds. Sensor changes and digital I/O changes are additionally pushed instantly via server-sent events (<code>/events</code>).</p>
+
+    <h3>Sensor and I/O tiles</h3>
+    <p>Every enabled sensor gets a tile (temperature, humidity, pressure, distance, parking, motion, gas, gas alarm). A sensor that failed is shown with its last value in red. Enabled digital channels appear in a second row: inputs show <em>ON/OFF</em>, outputs are buttons that toggle the output.</p>
+
+    <h2>Door controls</h2>
+    <table>
+      <thead><tr><th>Button</th><th>Action</th><th>HTTP</th></tr></thead>
+      <tbody>
+        <tr><td>Open</td><td>Open completely</td><td><code>/command?action=1</code></td></tr>
+        <tr><td>Half</td><td>Drive to the half-open position</td><td><code>/command?action=4</code></td></tr>
+        <tr><td>Vent</td><td>Drive to the ventilation position</td><td><code>/command?action=3</code></td></tr>
+        <tr><td>Stop</td><td>Stop a moving door</td><td><code>/command?action=2</code></td></tr>
+        <tr><td>Close</td><td>Close completely</td><td><code>/command?action=0</code></td></tr>
+        <tr><td>Light switch</td><td>Toggle the operator light</td><td><code>/command?action=5</code></td></tr>
+      </tbody>
+    </table>
+    <p>Commands are ignored while there is no bus connection. Half and vent positions are the positions programmed in the operator.</p>
+
+    <h2>Configuration forms</h2>
+    <p>The configuration is split into four collapsible forms. Each has its own <em>Save &amp; Restart</em> button and only saves its own fields. After saving the bridge restarts – if the operator then shows an error, run the bus scan again.</p>
+    <table>
+      <thead><tr><th>Form</th><th>Contains</th></tr></thead>
+      <tbody>
+        <tr><td>Basic Configuration</td><td>Wi-Fi, access point, MQTT, device ID and name, serial debug, web password</td></tr>
+        <tr><td>Sensor Configuration</td><td>Which sensors are used, their GPIOs, polling interval and publish thresholds</td></tr>
+        <tr><td>I/O Configuration</td><td>In1/In2 and Out1/Out2: enable, name, GPIO, pull mode, inversion, local action, restore</td></tr>
+        <tr><td>Expert Configuration</td><td>RS485 GPIOs and the names of the Home Assistant entities</td></tr>
+      </tbody>
+    </table>
+    <p>Every field is described in the <a href="configuration.html">configuration reference</a>. Password fields show <code>*</code> when a password is stored; leave the <code>*</code> to keep it.</p>
+
+    <h2>System information</h2>
+    <p>Shows firmware version, build environment, hostname, IP address, Wi-Fi state and signal strength, MQTT connection, free memory, the reason of the last restart, and the state of every sensor and digital channel (<em>Active</em>, <em>Disabled</em> = failed, <em>Off</em>). While the panel is open it refreshes every 5 seconds, so you can use it to align the antenna.</p>
+    <table>
+      <thead><tr><th>Signal</th><th>Rating</th></tr></thead>
+      <tbody>
+        <tr><td>−67 dBm or better</td><td><span class="badge ok">good</span></td></tr>
+        <tr><td>−68 … −80 dBm</td><td><span class="badge">fair</span> – usable</td></tr>
+        <tr><td>below −80 dBm</td><td><span class="badge no">weak</span> – expect drop-outs</td></tr>
+      </tbody>
+    </table>
+    <p>The panel also links to <strong>OTA Update</strong> (<code>/update</code>, user <code>admin</code> / password <code>admin</code>) and <strong>Factory Reset</strong> (<code>/reset</code>, asks for confirmation, erases all settings and restarts).</p>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

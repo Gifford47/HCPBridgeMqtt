@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MQTT & Home Assistant · HCPBridge</title>
+  <meta name="description" content="MQTT topic reference of HCPBridge: state and command topics, JSON payloads, Home Assistant auto discovery entities, multiple doors, openHAB and automation examples.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>MQTT &amp; Home Assistant</h1>
+    <p class="lead">The bridge publishes everything under <code>hormann/&lt;device_id&gt;/</code> and announces itself to Home Assistant via MQTT discovery. No YAML configuration is needed.</p>
+
+    <h2>Quick start</h2>
+    <ol class="steps">
+      <li><strong>Have an MQTT broker</strong>e.g. the Mosquitto add-on in Home Assistant, with the MQTT integration set up.</li>
+      <li><strong>Enter the broker</strong>in the bridge's <em>Basic Configuration</em> (server, port, user, password) and save.</li>
+      <li><strong>Done</strong>After the restart the device <em>Garage Door</em> (your <em>Device name</em>) appears under <em>Settings → Devices &amp; services → MQTT</em>.</li>
+    </ol>
+    <div class="callout"><span class="t">Discovery is sent once per boot</span>Discovery messages are published after the first successful MQTT connection after a restart – not on every reconnect. They are retained on the broker. After enabling a sensor or I/O channel the bridge restarts anyway, so new entities appear automatically; disabled ones are removed by clearing their retained discovery topic.</div>
+
+    <h2>State topics</h2>
+    <p>Published by the bridge. <code>&lt;id&gt;</code> is the <em>Device ID</em> (default <code>hcpbridge</code>).</p>
+    <table>
+      <thead><tr><th>Topic</th><th>Retained</th><th>Payload</th></tr></thead>
+      <tbody>
+        <tr><td><code>hormann/&lt;id&gt;/availability</code></td><td>yes</td><td><code>online</code> / <code>offline</code> (last will)</td></tr>
+        <tr><td><code>hormann/&lt;id&gt;/state</code></td><td>yes</td><td>JSON door state – see below</td></tr>
+        <tr><td><code>hormann/&lt;id&gt;/position</code></td><td>yes</td><td>Door position as integer <code>0</code> (closed) … <code>100</code> (open)</td></tr>
+        <tr><td><code>hormann/&lt;id&gt;/sensor</code></td><td>no*</td><td>JSON with the values of the enabled, working sensors</td></tr>
+        <tr><td><code>hormann/&lt;id&gt;/io</code></td><td>yes</td><td>JSON with the enabled digital channels</td></tr>
+        <tr><td><code>hormann/&lt;id&gt;/debug</code></td><td>yes</td><td>JSON diagnostics</td></tr>
+      </tbody>
+    </table>
+    <p class="small">* Motion changes are published immediately as a separate retained <code>{"motion":"true"}</code> message on the same topic.</p>
+
+    <h3>state</h3>
+<pre><code>{
+  "valid": true,
+  "doorposition": 100,
+  "lamp": "false",
+  "doorstate": "open",
+  "detailedState": "open",
+  "vent": "close",
+  "half": "close"
+}</code></pre>
+    <table>
+      <thead><tr><th>Field</th><th>Values</th></tr></thead>
+      <tbody>
+        <tr><td><code>valid</code></td><td><code>true</code> once the operator talks to the bridge</td></tr>
+        <tr><td><code>doorposition</code></td><td>0 … 100</td></tr>
+        <tr><td><code>lamp</code></td><td><code>"true"</code> / <code>"false"</code></td></tr>
+        <tr><td><code>doorstate</code></td><td>Cover state for Home Assistant: <code>open</code>, <code>closed</code>, <code>opening</code>, <code>closing</code>, <code>stopped</code></td></tr>
+        <tr><td><code>detailedState</code></td><td><code>open</code>, <code>closed</code>, <code>opening</code>, <code>closing</code>, <code>open h</code> (half open), <code>opening h</code> (moving to half), <code>opening v</code> (moving to vent), <code>venting</code>, <code>stopped</code></td></tr>
+        <tr><td><code>vent</code></td><td><code>venting</code> in the ventilation position, otherwise <code>close</code></td></tr>
+        <tr><td><code>half</code></td><td><code>half</code> in the half-open position, otherwise <code>close</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>sensor</h3>
+<pre><code>{"temp":"21.4","hum":"48.0","pres":"1013.2","dist":"142","free":"true","motion":"false","gas":"412","gas_alarm":"false"}</code></pre>
+    <p>Only enabled, working sensors are included. Values are strings. <code>free</code> is <code>"true"</code> when the parking space is <strong>available</strong>. The message is published when a value changes by more than its threshold, after each MQTT connect and at least every 2 hours.</p>
+
+    <h3>io</h3>
+<pre><code>{"in1":"true","in2":"false","out1":"false","out2":"true"}</code></pre>
+
+    <h3>debug</h3>
+<pre><code>{"restart_reason":1,"debug":"initial","sensor_error":"HC-SR04: no valid response","io_error":"out1: invalid pin 34"}</code></pre>
+    <p><code>restart_reason</code> is the ESP-IDF reset reason (1 power-on, 3 software, 4 panic, 5–7 watchdog, 9 brownout). <code>sensor_error</code> and <code>io_error</code> only appear when something failed.</p>
+
+    <h2>Command topics</h2>
+    <p>Subscribed by the bridge (<code>hormann/&lt;id&gt;/command/#</code>).</p>
+    <table>
+      <thead><tr><th>Topic</th><th>Payload</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>command/door</code></td><td><code>open</code>, <code>close</code>, <code>stop</code>, <code>step</code>, <code>half</code>, <code>venting</code></td><td>Drive the door</td></tr>
+        <tr><td><code>command/step</code></td><td><code>step</code></td><td>Impulse: closed → open, open → close, moving → stop, stopped → reverse direction</td></tr>
+        <tr><td><code>command/half</code></td><td><code>half</code></td><td>Half-open position</td></tr>
+        <tr><td><code>command/vent</code></td><td><code>venting</code></td><td>Ventilation position</td></tr>
+        <tr><td><code>command/set_position</code></td><td><code>0</code> … <code>100</code></td><td>Drive to a position. ≤ 5 closes, ≥ 95 opens completely.</td></tr>
+        <tr><td><code>command/lamp</code></td><td><code>true</code>, <code>false</code>, anything else toggles</td><td>Operator light</td></tr>
+        <tr><td><code>command/out1</code>, <code>command/out2</code></td><td><code>true</code>, <code>false</code>, anything else toggles</td><td>Digital outputs (if enabled)</td></tr>
+      </tbody>
+    </table>
+<pre><code># watch everything
+mosquitto_sub -h broker -u mqtt -P password -t 'hormann/hcpbridge/#' -v
+
+# open the door, drive to 50 %, toggle the light
+mosquitto_pub -h broker -u mqtt -P password -t 'hormann/hcpbridge/command/door' -m 'open'
+mosquitto_pub -h broker -u mqtt -P password -t 'hormann/hcpbridge/command/set_position' -m '50'
+mosquitto_pub -h broker -u mqtt -P password -t 'hormann/hcpbridge/command/lamp' -m 'toggle'</code></pre>
+
+    <h2>Home Assistant entities</h2>
+    <p>Discovery topics follow <code>homeassistant/&lt;component&gt;/&lt;device_id&gt;/&lt;key&gt;/config</code>. All entities belong to one device and use <code>availability</code>.</p>
+    <table>
+      <thead><tr><th>Entity</th><th>Component</th><th>Created when</th></tr></thead>
+      <tbody>
+        <tr><td>Garage door (named after <em>Device name</em>)</td><td><code>cover</code> (garage, with position)</td><td>always</td></tr>
+        <tr><td>Light</td><td><code>switch</code> + <code>binary_sensor</code></td><td>always</td></tr>
+        <tr><td>Vent, Half Open</td><td><code>switch</code></td><td>always</td></tr>
+        <tr><td>Toggle (impulse)</td><td><code>button</code></td><td>always</td></tr>
+        <tr><td>Status, Detailed Status, Position, Available</td><td><code>sensor</code></td><td>always</td></tr>
+        <tr><td>Debug, Restart Reason</td><td><code>sensor</code></td><td>always</td></tr>
+        <tr><td>Temperature</td><td><code>sensor</code> (°C)</td><td>BME280, DS18X20 or DHT22 active</td></tr>
+        <tr><td>Humidity</td><td><code>sensor</code> (%)</td><td>BME280 or DHT22 active</td></tr>
+        <tr><td>Ambient pressure</td><td><code>sensor</code> (hPa)</td><td>BME280 active</td></tr>
+        <tr><td>Free distance, Park available</td><td><code>sensor</code> (cm) + <code>binary_sensor</code></td><td>HC-SR04 active</td></tr>
+        <tr><td>Motion</td><td><code>binary_sensor</code></td><td>HC-SR501 active</td></tr>
+        <tr><td>Gas Level, Gas Alarm</td><td><code>sensor</code> + <code>binary_sensor</code></td><td>MQ4 active</td></tr>
+        <tr><td>Input 1 / Input 2</td><td><code>binary_sensor</code></td><td>channel enabled</td></tr>
+        <tr><td>Output 1 / Output 2</td><td><code>switch</code></td><td>channel enabled</td></tr>
+      </tbody>
+    </table>
+    <p>Sensor and I/O entity names can be changed in the web interface (<em>Expert</em> and <em>I/O Configuration</em>). The device page links back to the bridge's web interface.</p>
+    <div class="callout warn"><span class="t">Changing the Device ID</span>A new Device ID creates a new set of entities. The old ones remain as <em>unavailable</em> and have to be deleted in Home Assistant.</div>
+
+    <h2>Several doors</h2>
+    <p>Use one bridge per operator and give each a unique <em>Device ID</em> <strong>and</strong> <em>Device name</em> (the name is used as the Home Assistant device identifier), e.g. <code>garage_left</code> / <em>Garage left</em> and <code>garage_right</code> / <em>Garage right</em>.</p>
+
+    <h2>Automation examples</h2>
+    <p>Entity IDs depend on your names – check them under <em>Settings → Entities</em>.</p>
+    <h3>Close the door in the evening</h3>
+<pre><code>automation:
+  - alias: "Close the garage door at 22:00"
+    triggers:
+      - trigger: time
+        at: "22:00:00"
+    conditions:
+      - condition: state
+        entity_id: cover.garage_door
+        state: "open"
+    actions:
+      - action: cover.close_cover
+        target:
+          entity_id: cover.garage_door</code></pre>
+    <h3>Notify when the door was left open</h3>
+<pre><code>automation:
+  - alias: "Garage door open for 15 minutes"
+    triggers:
+      - trigger: state
+        entity_id: cover.garage_door
+        to: "open"
+        for: "00:15:00"
+    actions:
+      - action: notify.notify
+        data:
+          message: "The garage door has been open for 15 minutes."</code></pre>
+
+    <h2>openHAB and other systems</h2>
+    <p>Any MQTT client can use the topics above. For openHAB the firmware can be built with <code>#define AlignToOpenHab</code> in <code>src/configuration.h</code>: the cover then reports <code>UP</code> / <code>DOWN</code> / <code>STOP</code> and uses the position as its value.</p>
+
+    <h2>ESPHome instead of MQTT</h2>
+    <p>If you prefer the native Home Assistant API, use the ESPHome configuration <a href="https://github.com/Gifford47/HCPBridgeMqtt/blob/master/HCPBridgeESP32/esphome_hcpbridge.yaml"><code>esphome_hcpbridge.yaml</code></a> with the <a href="https://github.com/Gifford47/esphome-hcpbridge">esphome-hcpbridge</a> component instead of this firmware. It provides cover, light, vent/half switches and buttons, a state text sensor and the position, and contains ready-to-uncomment blocks for the I/O terminals and sensors.</p>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

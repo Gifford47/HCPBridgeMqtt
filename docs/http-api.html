@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTTP API · HCPBridge</title>
+  <meta name="description" content="HTTP endpoints of HCPBridge: door status, commands, digital outputs, configuration, system information, server-sent events, factory reset and OTA update.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>HTTP API</h1>
+    <p class="lead">The web interface uses a small JSON API on port 80. You can use it for scripts and other home automation systems as well.</p>
+    <div class="callout"><span class="t">Authentication</span>Without a web password the API is open in your network. With a password every endpoint below (except <code>/events</code>) requires HTTP basic authentication with user <code>admin</code>. The OTA page has its own login (<code>admin</code> / <code>admin</code>).</div>
+
+    <h2>Overview</h2>
+    <table>
+      <thead><tr><th>Route</th><th>Method</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>GET</td><td>Web interface</td></tr>
+        <tr><td><a href="#status"><code>/status</code></a></td><td>GET</td><td>Door state, sensors, digital I/O</td></tr>
+        <tr><td><a href="#statush"><code>/statush</code></a></td><td>GET</td><td>Raw door state</td></tr>
+        <tr><td><a href="#command"><code>/command</code></a></td><td>GET</td><td>Door and light commands</td></tr>
+        <tr><td><a href="#io"><code>/io</code></a></td><td>GET</td><td>Switch a digital output</td></tr>
+        <tr><td><a href="#config"><code>/config</code></a></td><td>GET / POST</td><td>Read / write the configuration</td></tr>
+        <tr><td><a href="#sysinfo"><code>/sysinfo</code></a></td><td>GET</td><td>Diagnostics</td></tr>
+        <tr><td><a href="#events"><code>/events</code></a></td><td>GET (SSE)</td><td>Live sensor and I/O changes</td></tr>
+        <tr><td><code>/reset</code></td><td>GET</td><td>Factory reset: erases all settings and restarts</td></tr>
+        <tr><td><code>/update</code></td><td>GET / POST</td><td>OTA firmware update page (ElegantOTA)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="status">GET /status</h2>
+<pre><code>{
+  "doorstate": "open",
+  "valid": true,
+  "targetPosition": 100,
+  "currentPosition": 100,
+  "light": false,
+  "state": 0,
+  "busResponseAge": 0,
+  "lastModbusRespone": 123456,
+  "swversion": "1.1.0",
+  "sensors": { "_failed": [], "temp": "21.4 °C", "dist": "38 cm", "free": "false" },
+  "sensor_status": { "BME280": "active", "DS18X20": "off", "DHT22": "off",
+                     "HC-SR04": "active", "HC-SR501": "off", "MQ4": "off" },
+  "io": { "in1": false, "out1": true },
+  "lastCommandTopic": "hormann/hcpbridge/command/door",
+  "lastCommandPayload": "open"
+}</code></pre>
+    <table>
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>doorstate</code></td><td>Detailed state: <code>open</code>, <code>closed</code>, <code>opening</code>, <code>closing</code>, <code>open h</code>, <code>opening h</code>, <code>opening v</code>, <code>venting</code>, <code>stopped</code></td></tr>
+        <tr><td><code>valid</code></td><td><code>true</code> once the operator has talked to the bridge</td></tr>
+        <tr><td><code>currentPosition</code> / <code>targetPosition</code></td><td>0 (closed) … 100 (open)</td></tr>
+        <tr><td><code>light</code></td><td>Operator light on</td></tr>
+        <tr><td><code>state</code></td><td>Numeric state: 0 open, 1 opening, 2 closed, 3 closing, 4 half open, 5 moving to vent, 6 vent, 7 moving to half, 8 stopped</td></tr>
+        <tr><td><code>busResponseAge</code></td><td>Seconds since the last bus request (−1 = none yet)</td></tr>
+        <tr><td><code>sensors</code></td><td>Values of the enabled sensors incl. unit; keys of failed sensors are listed in <code>_failed</code>. <code>free</code>: <code>"true"</code> = parking space available.</td></tr>
+        <tr><td><code>sensor_status</code></td><td><code>active</code>, <code>disabled</code> (failed) or <code>off</code> per sensor</td></tr>
+        <tr><td><code>io</code></td><td>Only present when at least one channel is enabled</td></tr>
+        <tr><td><code>lastCommandTopic</code> / <code>…Payload</code></td><td>Last MQTT command received</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="statush">GET /statush</h2>
+    <p>Compact door state straight from the bus handler: <code>valid</code> (<code>"true"</code> if the last bus request is younger than 2 s), <code>targetPosition</code>, <code>currentPosition</code>, <code>light</code>, <code>state</code> (text) and <code>busResponseAge</code>.</p>
+
+    <h2 id="command">GET /command</h2>
+    <table>
+      <thead><tr><th><code>action</code></th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Close</td></tr>
+        <tr><td>1</td><td>Open</td></tr>
+        <tr><td>2</td><td>Stop (only while moving)</td></tr>
+        <tr><td>3</td><td>Ventilation position</td></tr>
+        <tr><td>4</td><td>Half-open position</td></tr>
+        <tr><td>5</td><td>Toggle light</td></tr>
+        <tr><td>6</td><td>Restart the bridge</td></tr>
+        <tr><td>7</td><td>Drive to <code>position</code> (0–100; ≤ 5 closes, ≥ 95 opens)</td></tr>
+        <tr><td>8</td><td>Toggle: open if not fully open, otherwise close</td></tr>
+      </tbody>
+    </table>
+<pre><code>curl "http://192.168.1.42/command?action=1"
+curl "http://192.168.1.42/command?action=7&amp;position=40"
+curl -u admin:secret "http://192.168.1.42/command?action=5"   # with web password</code></pre>
+    <p>Returns <code>OK</code> (text/plain).</p>
+
+    <h2 id="io">GET /io</h2>
+    <p>Parameters <code>output</code> (<code>1</code> or <code>2</code>) and <code>state</code> (<code>on</code>/<code>1</code>/<code>true</code>, <code>off</code>, <code>toggle</code>). Returns <code>200 OK</code>, <code>400</code> when a parameter is missing and <code>404</code> when the output is not enabled.</p>
+<pre><code>curl "http://192.168.1.42/io?output=1&amp;state=toggle"</code></pre>
+
+    <h2 id="config">GET / POST /config</h2>
+    <p><code>GET</code> returns all settings as JSON (keys as in the <a href="configuration.html">configuration reference</a>); passwords are returned as <code>"*"</code> when set.</p>
+    <p><code>POST</code> with <code>Content-Type: application/json</code> saves settings and restarts the bridge. It behaves like the web forms:</p>
+    <ul>
+      <li>A group is only saved when its marker field is present: <code>device_id</code> (basic), <code>sen_StInterval</code> (sensors), <code>io_in1_pin</code> (I/O), <code>rs485_txd</code> (expert).</li>
+      <li>Check boxes of a saved group are <code>true</code> only with the value <code>"on"</code>; a missing check box is saved as <code>false</code>.</li>
+      <li>Password value <code>"*"</code> keeps the stored password.</li>
+    </ul>
+<pre><code>curl -X POST -H "Content-Type: application/json" \
+  -d '{"sen_StInterval":"30","sen_sr04_en":"on","sen_sr04trigpin":"5","sen_sr04echopin":"27"}' \
+  http://192.168.1.42/config</code></pre>
+    <div class="callout warn">The example saves the <em>whole</em> sensor group: every sensor not listed as <code>"on"</code> is disabled and missing numeric fields keep their values. Read the configuration first and send the complete group.</div>
+
+    <h2 id="sysinfo">GET /sysinfo</h2>
+<pre><code>{
+  "freemem": 187432, "hostname": "HCPBRIDGE", "ip": "192.168.1.42",
+  "wifistatus": 3, "rssi": -61, "mqttstatus": true, "restart_reason": 1,
+  "swversion": "1.1.0", "buildenv": "HCP_Giffordv3",
+  "sensors": { "BME280": "active", "DS18X20": "off", "DHT22": "off", "HC-SR04": "off", "HC-SR501": "off", "MQ4": "off" },
+  "io": { "in1": "active", "in2": "off", "out1": "off", "out2": "off" }
+}</code></pre>
+    <p><code>wifistatus</code> 3 = connected; <code>rssi</code> is 0 when not connected.</p>
+
+    <h2 id="events">GET /events (server-sent events)</h2>
+    <p>The web interface subscribes to <code>/events</code> for instant updates:</p>
+    <table>
+      <thead><tr><th>Event</th><th>Data</th></tr></thead>
+      <tbody>
+        <tr><td><code>sensor</code></td><td>One changed value incl. unit, e.g. <code>{"temp":"21.6 °C"}</code> or <code>{"motion":"true"}</code></td></tr>
+        <tr><td><code>io</code></td><td>Full I/O state, e.g. <code>{"in1":"true","out1":"false"}</code></td></tr>
+      </tbody>
+    </table>
+<pre><code>curl -N http://192.168.1.42/events</code></pre>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>
