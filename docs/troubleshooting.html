@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Troubleshooting & FAQ · HCPBridge</title>
+  <meta name="description" content="Solutions for common HCPBridge problems: bus scan and error 04, Wi-Fi, MQTT, Home Assistant entities, sensors, digital I/O, OTA, reset button and serial debugging.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Troubleshooting &amp; FAQ</h1>
+    <p class="lead">Most problems fall into one of the categories below. If you are stuck, open a <a href="https://github.com/Gifford47/HCPBridgeMqtt/discussions">discussion</a> or an <a href="https://github.com/Gifford47/HCPBridgeMqtt/issues">issue</a> and include the output of <em>System information</em>.</p>
+
+    <h2>Operator and bus</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause / solution</th></tr></thead>
+      <tbody>
+        <tr><td>Operator shows <strong>error 04</strong></td><td>An accessory was added or removed without a bus scan, or the bridge restarted while the operator expected it. Run the <a href="getting-started.html#4-connect-to-the-operator-and-run-the-bus-scan">bus scan</a> again.</td></tr>
+        <tr><td>Bus scan does not find the bridge (display <code>00</code>/<code>01</code>)</td><td>Check the RJ12 wiring (A/B), the 120&nbsp;Ω resistor and the RS485 pins under <em>Expert Configuration</em>; swap TX/RX. Make sure the converter switches direction automatically.</td></tr>
+        <tr><td>Web interface shows <em>No bus</em> / greyed garage</td><td>No valid bus communication yet – run the bus scan; check the cable.</td></tr>
+        <tr><td>No 24 V on the bus (older hardware)</td><td>Some operators switch off the bus supply when no accessory is registered. Trigger the scan with the DIP switch (ON → OFF); if needed power the bridge temporarily from the operator's 24&nbsp;V terminal for the scan.</td></tr>
+        <tr><td>Vent position shown as "stopped"</td><td>The firmware detects the vent position when the door stops at position <code>0x08</code>. Other operators may use a different vent position.</td></tr>
+        <tr><td>Commands are ignored</td><td>Only one command can be pending; send the next one after the door reacted. <em>Stop</em> only works while the door is moving.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Wi-Fi and web interface</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause / solution</th></tr></thead>
+      <tbody>
+        <tr><td>Cannot reach the web interface</td><td>Connect to the hotspot <code>HCPBRIDGE</code> (password <code>gifford47</code>) and open <a href="http://192.168.4.1">http://192.168.4.1</a>. Disable mobile data / captive-portal checks on the phone.</td></tr>
+        <tr><td>Hotspot missing</td><td>The access point was disabled. Connect via your Wi-Fi, or do a factory reset (5 × boot button).</td></tr>
+        <tr><td>Drop-outs, slow UI</td><td>Check the signal in <em>System information</em>: below −80 dBm is too weak. In mesh / multi-AP networks keep <em>Connect to strongest AP</em> enabled.</td></tr>
+        <tr><td>Wi-Fi does not connect</td><td>Check SSID and password (printable ASCII only). 2.4 GHz is required.</td></tr>
+        <tr><td>Login prompt</td><td>A web password is set: user <code>admin</code>. Forgot it? Factory reset.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>MQTT and Home Assistant</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause / solution</th></tr></thead>
+      <tbody>
+        <tr><td>MQTT shows <em>Disconnected</em></td><td>Check server, port (plain MQTT, default 1883), user and password. Test with <code>mosquitto_sub -h broker -u user -P pass -t 'hormann/#' -v</code>.</td></tr>
+        <tr><td>No entities in Home Assistant</td><td>The MQTT integration must be set up with discovery prefix <code>homeassistant</code>. Discovery is sent once after boot – restart the bridge.</td></tr>
+        <tr><td>Entities missing or broken topics</td><td>The <em>Device ID</em> must be at most 14 characters.</td></tr>
+        <tr><td>Duplicate / unavailable entities</td><td>The Device ID was changed – delete the old entities. With several bridges use unique Device IDs <strong>and</strong> Device names.</td></tr>
+        <tr><td>Sensor entity missing</td><td>The sensor failed at boot (see <code>sensor_error</code> in the Debug entity) or is not enabled.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Sensors and I/O</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause / solution</th></tr></thead>
+      <tbody>
+        <tr><td>Sensor shown as <em>Disabled</em></td><td>No plausible reading at boot or 5 failed readings in a row. Check wiring and GPIOs, then restart.</td></tr>
+        <tr><td>All sensors suddenly off</td><td>The ESP32 crashed and the crash protection disabled all sensors. Re-enable them one by one to find the culprit.</td></tr>
+        <tr><td>Parking space always "Free"</td><td>The reference distance is learned after each restart – if the car was parked during the restart it becomes the reference. Drive out once. See <a href="sensors.html#parking-space-detection-hc-sr04">parking detection</a>.</td></tr>
+        <tr><td>Values update slowly</td><td>Lower the <em>Sensor query interval</em> or the thresholds.</td></tr>
+        <tr><td>Input always ON / never changes</td><td>On the HCP PCBs the pull mode must be <em>none (external)</em> and <em>Active low</em> off; the input needs ≈5&nbsp;V. Details: <a href="inputs-outputs.html">Digital I/O</a>.</td></tr>
+        <tr><td><code>io_error</code> in the debug entity</td><td>The configured GPIO cannot be used on this chip; the channel was disabled.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Firmware and updates</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Cause / solution</th></tr></thead>
+      <tbody>
+        <tr><td>OTA login fails</td><td>The update page uses <code>admin</code> / <code>admin</code>, independent of the web password.</td></tr>
+        <tr><td>OTA update fails or the bridge does not start afterwards</td><td>Make sure the binary matches the board – e.g. v2 needs <code>HCP_Giffordv2-…bin</code> (ESP32-S3), v3 <code>HCP_Giffordv3-…bin</code>. If the bridge no longer starts, flash it via USB with PlatformIO.</td></tr>
+        <tr><td>Old <code>…a</code>/<code>…b</code> firmware</td><td>Update to the single firmware per board and enable sensors in the web interface.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="reset-button">Reset button and recovery</h2>
+    <p>The boot button (GPIO&nbsp;0) counts presses within 6 seconds:</p>
+    <table>
+      <thead><tr><th>Presses</th><th>Action</th><th>LED (HCP v2/v3)</th></tr></thead>
+      <tbody>
+        <tr><td>3 ×</td><td>Disable all sensors and restart – use this when a sensor prevents a normal start</td><td>blinks 3 times</td></tr>
+        <tr><td>5 ×</td><td>Factory reset: erase all settings and restart with the default hotspot</td><td>restarts immediately</td></tr>
+      </tbody>
+    </table>
+    <p>After a crash (panic or watchdog) the bridge disables all sensors automatically on the next boot.</p>
+
+    <h2>Serial debugging</h2>
+    <ol>
+      <li>Enable <em>Enable serial debug</em> in the basic configuration and save.</li>
+      <li>Connect USB and open a terminal at <strong>9600 baud</strong> (<code>pio device monitor</code>).</li>
+      <li>The log shows Wi-Fi events, MQTT connection, sensor and I/O initialisation and commands.</li>
+    </ol>
+
+    <h2>FAQ</h2>
+    <h3>Does the bridge need internet or a cloud?</h3>
+    <p>No. Everything runs locally; only your MQTT broker and browser talk to it.</p>
+    <h3>Can I still use the original Hörmann remote controls and buttons?</h3>
+    <p>Yes. The bridge is an additional bus accessory; state changes from remotes and buttons are reported to it.</p>
+    <h3>Can one bridge control two doors?</h3>
+    <p>No – one bridge per operator. Several bridges can share one broker; see <a href="home-assistant.html#several-doors">Several doors</a>.</p>
+    <h3>Is the configuration lost after a firmware update?</h3>
+    <p>No. Settings are stored in NVS and survive OTA updates. Only a factory reset clears them.</p>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

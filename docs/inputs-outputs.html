@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Digital inputs & outputs · HCPBridge</title>
+  <meta name="description" content="The In1/In2/Out1/Out2 terminals of the prebuilt HCP PCBs: electrical limits, wiring, local actions, Home Assistant entities, MQTT and HTTP control.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Digital inputs &amp; outputs</h1>
+    <p class="lead">The prebuilt HCP PCBs (v2 and v3.x) have four extra screw terminals: <strong>In1</strong>, <strong>In2</strong>, <strong>Out1</strong> and <strong>Out2</strong>. They are disabled by default and enabled per channel under <em>I/O Configuration</em>.</p>
+    <div class="callout warn"><span class="t">HCP mini</span>The HCP mini uses the same <code>HCP_Giffordv3</code> firmware but has no In/Out terminals – leave the channels disabled there.</div>
+
+    <h2>Electrical limits – read first</h2>
+    <h3>Inputs In1 / In2</h3>
+    <table>
+      <tbody>
+        <tr><th>Type</th><td><strong>≈5 V voltage input</strong> through a fixed divider (1.2&nbsp;kΩ series, 2.2&nbsp;kΩ to GND) – not a dry contact</td></tr>
+        <tr><th>HIGH</th><td>≈ 3.9 … 5.1 V at the terminal against board GND</td></tr>
+        <tr><th>Idle</th><td>LOW – the on-board 2.2&nbsp;kΩ pulls the input down</td></tr>
+        <tr><th>Maximum</th><td>≈ 5.1 V. <strong>Never apply 12 V or 24 V</strong> – that destroys the GPIO.</td></tr>
+        <tr><th>Pull mode</th><td>Keep <em>none (external)</em> – the internal pull-up cannot work against the on-board 2.2&nbsp;kΩ.</td></tr>
+        <tr><th>Debounce</th><td>50 ms</td></tr>
+      </tbody>
+    </table>
+    <p>A push button must therefore <em>switch about 5&nbsp;V</em> onto the terminal; a potential-free contact across the terminals does nothing. A 3.3&nbsp;V signal is not detected reliably.</p>
+
+    <h3>Outputs Out1 / Out2</h3>
+    <table>
+      <tbody>
+        <tr><th>Type</th><td><strong>High-side switch</strong> – optocoupler-driven N-channel MOSFET (source follower)</td></tr>
+        <tr><th>ON</th><td>Sources the rail selected by the <code>5V | – | 3V</code> jumper, minus about one MOSFET threshold (≈ 0.7–1.5 V)</td></tr>
+        <tr><th>OFF</th><td>High impedance (floating)</td></tr>
+        <tr><th>Suitable for</th><td>PLC inputs, active-HIGH relay module inputs, logic inputs</td></tr>
+        <tr><th>Not suitable for</th><td>Driving relays, lamps, motors or mains loads directly</td></tr>
+        <tr><th>Isolation</th><td>None – both sides of the optocoupler share the board GND</td></tr>
+      </tbody>
+    </table>
+    <p>Prefer the <strong>5&nbsp;V</strong> jumper position: with 3&nbsp;V selected the output only reaches about 2.3&nbsp;V.</p>
+
+    <h2>Pins</h2>
+    <table>
+      <thead><tr><th>Terminal</th><th>HCP PCB v2</th><th>HCP PCB v3.x</th><th>Other boards</th></tr></thead>
+      <tbody>
+        <tr><td>In1</td><td>GPIO12</td><td>GPIO12</td><td>any free GPIO</td></tr>
+        <tr><td>In2</td><td>GPIO14</td><td>GPIO14</td><td>any free GPIO</td></tr>
+        <tr><td>Out1</td><td>GPIO37</td><td>GPIO25</td><td>any free GPIO</td></tr>
+        <tr><td>Out2</td><td>GPIO35</td><td>GPIO22</td><td>any free GPIO</td></tr>
+      </tbody>
+    </table>
+    <p>The firmware rejects unusable pins and disables the channel, reporting it as <code>io_error</code> in the debug topic: <code>0</code> (not configured), the SPI flash pins (ESP32: 6–11, ESP32-S3: 26–32) and, as outputs, the input-only GPIO34–39 of the classic ESP32.</p>
+
+    <h2>Settings</h2>
+    <table>
+      <thead><tr><th>Setting</th><th>Inputs</th><th>Outputs</th></tr></thead>
+      <tbody>
+        <tr><td>Enable</td><td colspan="2">Activates the channel and its Home Assistant entity.</td></tr>
+        <tr><td>Name</td><td colspan="2">Entity name in Home Assistant.</td></tr>
+        <tr><td>GPIO</td><td colspan="2">Pin number (see above).</td></tr>
+        <tr><td>Pull resistor</td><td><em>none (external)</em> on the HCP PCBs; pull-up/-down only on self-built boards without divider</td><td>–</td></tr>
+        <tr><td>Active low</td><td>Only for a button to GND with pull-up on self-built boards</td><td>Only if ON/OFF end up swapped</td></tr>
+        <tr><td>Local action</td><td>Action executed by the bridge itself on the activating edge – works without Wi-Fi/MQTT</td><td>–</td></tr>
+        <tr><td>Restore after reboot</td><td>–</td><td>Off (default) = always off after a restart; on = last state is restored</td></tr>
+      </tbody>
+    </table>
+    <h3>Local actions</h3>
+    <table>
+      <thead><tr><th>Value</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>none – only publish the input state</td></tr>
+        <tr><td>1</td><td>impulse / toggle door (open if not fully open, otherwise close)</td></tr>
+        <tr><td>2 / 3 / 4</td><td>open / close / stop door</td></tr>
+        <tr><td>5</td><td>toggle the operator light</td></tr>
+        <tr><td>6 / 7</td><td>ventilation / half-open position</td></tr>
+        <tr><td>8 / 9</td><td>toggle Out1 / Out2</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Examples</h2>
+    <h3>Wall button toggles the light</h3>
+<pre><code>+5V ────o/ o──── In1     (button, bridge GND shared)</code></pre>
+    <p>I/O Configuration → Input 1: enable, GPIO 12, pull <em>none (external)</em>, active low off, local action <em>toggle light</em>. The button now switches the light directly on the bus, and the press is also available as <code>binary_sensor</code> in Home Assistant.</p>
+    <h3>Out1 drives a relay module</h3>
+    <p>Relay module <code>IN</code> → Out1, module GND → bridge GND, module VCC → its own 5&nbsp;V supply, jumper on 5&nbsp;V. The module must be <strong>active HIGH</strong>; common active-LOW boards need an extra inverting stage. Output 1: enable, GPIO 25 (v3), active low off, restore off.</p>
+
+    <h2>MQTT and HTTP</h2>
+<pre><code># state (retained, only enabled channels)
+hormann/&lt;id&gt;/io                {"in1":"true","in2":"false","out1":"false","out2":"true"}
+
+# switch outputs: true | false | anything else toggles
+hormann/&lt;id&gt;/command/out1      true
+hormann/&lt;id&gt;/command/out2      toggle
+
+# HTTP: on | off | toggle   (404 if the output is not enabled)
+curl "http://&lt;device-ip&gt;/io?output=1&amp;state=on"</code></pre>
+    <p>Inputs become <code>binary_sensor</code>, outputs <code>switch</code> entities in Home Assistant.</p>
+    <p>Wiring diagrams, the complete electrical analysis and ESPHome snippets: <a href="https://github.com/Gifford47/HCPBridgeMqtt/blob/master/docs/inputs_outputs.md">inputs_outputs.md</a>.</p>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

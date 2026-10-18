@@ -1,6 +1,7 @@
 # :rocket: Buy a ready to use kit [here](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)
 [Discussion & orders](https://github.com/Gifford47/HCPBridgeMqtt/discussions/83)  
 [Getting started prebuild PCBs](docs/getting_started_prebuild_pcbs.md)  
+📖 **[Full documentation](https://gifford47.github.io/HCPBridgeMqtt/)** — installation, configuration, MQTT/Home Assistant, sensors, API, troubleshooting  
 
 ## Support this project
 
@@ -9,7 +10,7 @@ If you like HCPBridge and want to support its development, consider sponsoring m
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-181717?logo=GitHub)](https://github.com/sponsors/gifford47)
 
 # Hörmann hormann — MQTT + Home Assistant
-<img src="docs/Images/webinterface.png" width="600" alt="Web Interface">
+<img src="docs/Images/webinterface.png" width="400" alt="Web Interface">
 
 **Emulates Hörmann UAP1-HCP (HCP2) using an ESP32 + RS485 converter and exposes garage door controls via MQTT and a web UI.**
 
@@ -106,7 +107,7 @@ For performing OTA (Over-The-Air) updates, authentication uses a different set o
 - **Username:** `admin`  
 - **Password:** `admin`
 
-<img src="docs/Images/webinterface.png" width="400">
+<img src="docs/Images/webinterface.png" width="320" alt="Web Interface">
 
 ---
 
@@ -283,13 +284,19 @@ Contributions welcome! Please:
 ---
 
 ## License
-This project is licensed under the MIT License — see `LICENSE` for details.
+HCPBridge is licensed under the **[PolyForm Noncommercial License 1.0.0](LICENSE)**.
+
+- ✅ Free for personal, private and other noncommercial use — including modifications and sharing them under the same terms.
+- ❌ **Commercial use is not permitted**, also not for forks or modified versions: no selling of the firmware or of devices running it, no integration into commercial products or paid services.
+- The license text, including the `Required Notice` line, must be passed on with every copy.
+
+Releases up to and including v1.0.2 were distributed under the previous license file (AGPL-3.0 text with an added noncommercial clause). For commercial licensing please contact [@Gifford47](https://github.com/Gifford47).
 
 ---
 
 ## Screenshots
 <img src="docs/Images/antrieb-min.png" width="420" alt="Motor connection">
-<img src="docs/Images/webinterface.png" width="420" alt="Web UI">
+<img src="docs/Images/webinterface.png" width="320" alt="Web UI">
 <img src="docs/Images/hass_ov.png" width="420" alt="Hass">
 <img src="docs/Images/ha_shuttercard.png" width="420" alt="HA shutter card">
 
@@ -298,5 +305,6 @@ This project is licensed under the MIT License — see `LICENSE` for details.
 ---
 
 ## More docs
+- [Documentation website](https://gifford47.github.io/HCPBridgeMqtt/)
 - [Rollmatic v2 notes](docs/rollmatic_v2.md)
 - [Digital Inputs & Outputs (In1/In2/Out1/Out2)](docs/inputs_outputs.md)  

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration reference · HCPBridge</title>
+  <meta name="description" content="Every HCPBridge setting with its preference key, default value and meaning: Wi-Fi, MQTT, device, sensors, digital I/O, RS485 pins, entity names and compile-time options.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Configuration reference</h1>
+    <p class="lead">All settings are made in the web interface and stored in the ESP32's flash (NVS). This page lists every field with its key, default and effect.</p>
+
+    <h2>How settings are stored</h2>
+    <ul>
+      <li>Settings live in the NVS namespace <code>hcpbridgeesp32</code>. On the very first boot (and after a factory reset) the defaults from <code>src/configuration.h</code> are written; afterwards only the web interface changes them.</li>
+      <li>Each form saves <strong>only its own fields</strong>, then the device restarts.</li>
+      <li>Password fields are never sent back to the browser – they show <code>*</code> when set. Submitting <code>*</code> keeps the stored password.</li>
+      <li>The same data is available as JSON via <code>GET /config</code> and can be written with <code>POST /config</code> – see <a href="http-api.html#config">HTTP API</a>.</li>
+      <li>The <em>Key</em> column is the NVS key and the JSON field name.</li>
+    </ul>
+
+    <h2>Basic configuration</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Enable Wi-Fi access point</td><td><code>wifi_ap_enabled</code></td><td>on</td><td>Runs the hotspot in parallel to the Wi-Fi client. SSID = hostname, channel 1, max. 4 clients, IP <code>192.168.4.1</code>.</td></tr>
+        <tr><td>Wi-Fi SSID</td><td><code>wifi_ssid</code></td><td><em>empty</em></td><td>Network to join. Empty = no client connection (hotspot only).</td></tr>
+        <tr><td>Wi-Fi password</td><td><code>wifi_pass</code></td><td><em>empty</em></td><td>Printable ASCII only.</td></tr>
+        <tr><td>Access point password</td><td><code>wifi_ap_pass</code></td><td><code>gifford47</code></td><td>Hotspot password. Shorter than 8 characters → the default is used.</td></tr>
+        <tr><td>Connect to strongest AP</td><td><code>wifi_best_ap</code></td><td>on</td><td>Scans all channels and joins the access point with the best signal. Turn off on single-AP networks for a slightly faster (but signal-agnostic) connect.</td></tr>
+        <tr><td>Hostname</td><td><code>hostname</code></td><td><code>HCPBRIDGE</code></td><td>Wi-Fi hostname and hotspot SSID.</td></tr>
+        <tr><td>MQTT server</td><td><code>mqtt_server</code></td><td><code>192.168.1.100</code></td><td>Broker host name or IP.</td></tr>
+        <tr><td>MQTT port</td><td><code>mqtt_port</code></td><td><code>1883</code></td><td>Plain MQTT (no TLS).</td></tr>
+        <tr><td>MQTT user</td><td><code>mqtt_user</code></td><td><code>mqtt</code></td><td></td></tr>
+        <tr><td>MQTT password</td><td><code>mqtt_pass</code></td><td><code>password</code></td><td></td></tr>
+        <tr><td>Device ID</td><td><code>device_id</code></td><td><code>hcpbridge</code></td><td>Topic prefix <code>hormann/&lt;device_id&gt;/</code> and part of all Home Assistant unique IDs. <strong>Max. 14 characters</strong>; must be unique per bridge.</td></tr>
+        <tr><td>Device name</td><td><code>device_name</code></td><td><code>Garage Door</code></td><td>Home Assistant device name and name of the cover entity; also used as the device identifier, so use a different name per bridge. Shown as page title in the web interface.</td></tr>
+        <tr><td>Enable serial debug</td><td><code>debug_enabled</code></td><td>off</td><td>Log output on the USB serial port at 9600 baud.</td></tr>
+        <tr><td>Web password</td><td><code>www_pass</code></td><td><em>empty</em></td><td>Empty = no login. Otherwise HTTP basic auth with user <code>admin</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">MQTT server, user, password and the hostname are held in 64-byte buffers – keep them below 64 characters.</div>
+
+    <h2>Sensor configuration</h2>
+    <h3>Sensor selection</h3>
+    <p>All sensors are <strong>off</strong> by default.</p>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Sensor</th></tr></thead>
+      <tbody>
+        <tr><td>Temperature / humidity / pressure</td><td><code>sen_bme_en</code></td><td>BME280 (I²C, address 0x76 or 0x77)</td></tr>
+        <tr><td>Temperature</td><td><code>sen_ds18_en</code></td><td>DS18X20 (OneWire, first sensor on the bus)</td></tr>
+        <tr><td>Temperature / humidity</td><td><code>sen_dht_en</code></td><td>DHT22</td></tr>
+        <tr><td>Distance / parking space</td><td><code>sen_sr04_en</code></td><td>HC-SR04 ultrasonic</td></tr>
+        <tr><td>Motion</td><td><code>sen_sr501_en</code></td><td>HC-SR501 PIR</td></tr>
+        <tr><td>Gas</td><td><code>sen_mq4_en</code></td><td>MQ4 methane / natural gas</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="pin-defaults">Pin definition</h3>
+    <p>Defaults depend on the firmware environment. <code>0</code> means "not set".</p>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th><code>esp32</code> / v1 / M5Stack*</th><th>HCP v2</th><th>HCP v3</th></tr></thead>
+      <tbody>
+        <tr><td>I2C SDA</td><td><code>sen_i2c_sda</code></td><td>21</td><td>21</td><td>21</td></tr>
+        <tr><td>I2C SCL</td><td><code>sen_i2c_scl</code></td><td>22</td><td>33</td><td>33</td></tr>
+        <tr><td>DHT data</td><td><code>sen_dhtdatapin</code></td><td>27</td><td>27</td><td>26</td></tr>
+        <tr><td>DS18X20</td><td><code>sen_ds18x20pin</code></td><td>4</td><td>4</td><td>4</td></tr>
+        <tr><td>SR04 trigger</td><td><code>sen_sr04trigpin</code></td><td>5</td><td>5</td><td>5</td></tr>
+        <tr><td>SR04 echo</td><td><code>sen_sr04echopin</code></td><td>18</td><td>48</td><td>27</td></tr>
+        <tr><td>SR501</td><td><code>sen_sr501pin</code></td><td>34</td><td>34</td><td>32</td></tr>
+        <tr><td>MQ4 analog</td><td><code>sen_mq4analog</code></td><td>0</td><td>36</td><td>35</td></tr>
+        <tr><td>MQ4 digital</td><td><code>sen_mq4digital</code></td><td>0</td><td>15</td><td>15</td></tr>
+      </tbody>
+    </table>
+    <p class="small">* <code>m5stack-atom-lite</code> uses SDA 25 / SCL 21.</p>
+
+    <h3>Sensor adjustments</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Sensor query interval</td><td><code>sen_StInterval</code></td><td>120 s</td><td>How often all sensors except the motion sensor are read (the PIR is checked every 500&nbsp;ms).</td></tr>
+        <tr><td>Temperature threshold</td><td><code>sen_temp_thresh</code></td><td>0.5 °C</td><td>Minimum change before a new value is published.</td></tr>
+        <tr><td>Humidity threshold</td><td><code>sen_hum_thresh</code></td><td>1 %</td><td>Whole numbers.</td></tr>
+        <tr><td>Pressure threshold</td><td><code>sen_pres_thresh</code></td><td>1 mbar</td><td>Whole numbers.</td></tr>
+        <tr><td>Proximity threshold</td><td><code>sen_prox_thresh</code></td><td>10 cm</td><td>Distance change that triggers a publish, and the margin of the parking detection.</td></tr>
+        <tr><td>Gas threshold</td><td><code>sen_gas_thresh</code></td><td>50</td><td>Change of the raw analog value before publishing.</td></tr>
+        <tr><td>SR04 max. distance</td><td><code>sen_sr04maxdist</code></td><td>150 cm</td><td>Expected range; readings above twice this value are treated as invalid.</td></tr>
+      </tbody>
+    </table>
+    <p>Regardless of the thresholds, all sensor values are re-published at least every 2 hours. Details: <a href="sensors.html">Sensors</a>.</p>
+
+    <h2>I/O configuration</h2>
+    <p>All four channels are <strong>disabled</strong> by default. See <a href="inputs-outputs.html">Digital inputs &amp; outputs</a> for wiring.</p>
+    <h3>Inputs (In1 = <code>io_in1_*</code>, In2 = <code>io_in2_*</code>)</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Enable Input</td><td><code>io_in1_en</code></td><td>off</td><td>Activates the channel and its <code>binary_sensor</code>.</td></tr>
+        <tr><td>Name</td><td><code>io_in1_name</code></td><td><code>Input 1</code></td><td>Entity name in Home Assistant.</td></tr>
+        <tr><td>GPIO</td><td><code>io_in1_pin</code></td><td>12 / 14 on HCP v2/v3, otherwise 0</td><td>0 = not configured.</td></tr>
+        <tr><td>Pull resistor</td><td><code>io_in1_pull</code></td><td>0 – none</td><td>0 none (external, correct for the HCP PCBs), 1 internal pull-up, 2 internal pull-down.</td></tr>
+        <tr><td>Active low</td><td><code>io_in1_inv</code></td><td>off</td><td>Inverts the input.</td></tr>
+        <tr><td>Local action</td><td><code>io_in1_act</code></td><td>0 – none</td><td>0 none, 1 impulse/toggle door, 2 open, 3 close, 4 stop, 5 toggle light, 6 vent, 7 half, 8 toggle Out1, 9 toggle Out2.</td></tr>
+      </tbody>
+    </table>
+    <h3>Outputs (Out1 = <code>io_out1_*</code>, Out2 = <code>io_out2_*</code>)</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Enable Output</td><td><code>io_out1_en</code></td><td>off</td><td>Activates the channel and its <code>switch</code>.</td></tr>
+        <tr><td>Name</td><td><code>io_out1_name</code></td><td><code>Output 1</code></td><td>Entity name in Home Assistant.</td></tr>
+        <tr><td>GPIO</td><td><code>io_out1_pin</code></td><td>Out1: 37 (v2) / 25 (v3) · Out2: 35 (v2) / 22 (v3) · otherwise 0</td><td>0 = not configured.</td></tr>
+        <tr><td>Active low</td><td><code>io_out1_inv</code></td><td>off</td><td>Inverts the GPIO level.</td></tr>
+        <tr><td>Restore after reboot</td><td><code>io_out1_rst</code></td><td>off</td><td>On = the last state is stored and restored at boot. Off = always off after a restart.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Expert configuration</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>RS485 TXD</td><td><code>rs485_txd</code></td><td>17 (<code>esp32</code>, v1, v2) · 19 (v3) · 13 (StampS3) · 22 (Atom Lite)</td><td rowspan="2">UART pins of the RS485 converter (57600 baud, 8E1).</td></tr>
+        <tr><td>RS485 RXD</td><td><code>rs485_rxd</code></td><td>16 (<code>esp32</code>, v1) · 18 (v2, v3) · 15 (StampS3) · 19 (Atom Lite)</td></tr>
+      </tbody>
+    </table>
+    <h3>Entity names</h3>
+    <p>Names of the Home Assistant entities created by discovery. Changing a name only changes the display name; the unique ID stays the same.</p>
+    <table>
+      <thead><tr><th>Field</th><th>Key</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td>Debug string</td><td><code>gd_debug_string</code></td><td>Debug</td></tr>
+        <tr><td>Restart reason</td><td><code>gd_dg_rst_reas</code></td><td>Restart Reason</td></tr>
+        <tr><td>Temperature</td><td><code>sensor_temp</code></td><td>Temperature</td></tr>
+        <tr><td>Humidity</td><td><code>sensor_humidity</code></td><td>Humidity</td></tr>
+        <tr><td>Pressure</td><td><code>sensor_atmpress</code></td><td>Ambient pressure</td></tr>
+        <tr><td>Free distance</td><td><code>sensor_freedist</code></td><td>Free distance</td></tr>
+        <tr><td>Park availability</td><td><code>sen_park_avail</code></td><td>Park available</td></tr>
+        <tr><td>Motion</td><td><code>sen_motion</code></td><td>Motion</td></tr>
+        <tr><td>Gas level</td><td><code>sensor_gas</code></td><td>Gas Level</td></tr>
+        <tr><td>Gas alarm</td><td><code>sen_gas_alarm</code></td><td>Gas Alarm</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Compile-time options</h2>
+    <p>A few values are not configurable at runtime and are set in <code>src/configuration.h</code> before building:</p>
+    <table>
+      <thead><tr><th>Constant</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>OTA_USERNAME</code> / <code>OTA_PASSWD</code></td><td><code>admin</code> / <code>admin</code></td><td>Login of the OTA update page <code>/update</code>.</td></tr>
+        <tr><td><code>WWW_USER</code></td><td><code>admin</code></td><td>User name for the web password.</td></tr>
+        <tr><td><code>GD_LIGHT</code>, <code>GD_VENT</code>, <code>GD_HALF</code>, <code>GD_TOGGLE</code>, <code>GD_STATUS</code>, <code>GD_DET_STATUS</code>, <code>GD_POSITIOM</code>, <code>GD_AVAIL</code></td><td>Light, Vent, Half Open, Toggle, Status, Detailed Status, Position, Available</td><td>Names of the remaining Home Assistant entities.</td></tr>
+        <tr><td><code>READ_DELAY</code></td><td>2000 ms</td><td>Interval of the MQTT task that publishes door state changes.</td></tr>
+        <tr><td><code>AlignToOpenHab</code></td><td>not defined</td><td>Uncomment to use openHAB-style cover states (<code>UP</code>/<code>DOWN</code>/<code>STOP</code>) and the position as cover value.</td></tr>
+        <tr><td><code>IO_DEBOUNCE_MS</code> / <code>IO_POLL_INTERVAL_MS</code></td><td>50 ms / 20 ms</td><td>Debounce and polling of the digital inputs.</td></tr>
+        <tr><td><code>HA_VERSION</code></td><td>current version</td><td>Firmware version shown in the UI, in Home Assistant and in the release file name.</td></tr>
+      </tbody>
+    </table>
+    <p>All other values in <code>configuration.h</code> (Wi-Fi, MQTT, pins, thresholds) are only the first-boot defaults of the settings above.</p>
+
+    <h2>Resetting the configuration</h2>
+    <ul>
+      <li><strong>Web interface:</strong> <em>System information → Factory Reset</em> (<code>GET /reset</code>).</li>
+      <li><strong>Boot button:</strong> press it 5 times within 6 seconds (full reset) or 3 times (disable all sensors only) – see <a href="troubleshooting.html#reset-button">Reset button</a>.</li>
+    </ul>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>
