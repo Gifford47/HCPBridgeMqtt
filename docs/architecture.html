@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture & development · HCPBridge</title>
+  <meta name="description" content="Technical documentation of HCPBridge: firmware structure, FreeRTOS tasks, Hörmann HCP2 / Modbus RTU protocol, preference registry, web interface build, CI releases and contributing.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Architecture &amp; development</h1>
+    <p class="lead">How the firmware is built and how it talks to the operator – for contributors and the curious.</p>
+
+    <h2>System overview</h2>
+    <div class="flow">
+      <div class="lane"><span class="box">Hörmann operator<small>HCP2 bus master</small></span><span class="arrow">⇄</span><span class="box">RS485<small>57600 baud, 8E1</small></span><span class="arrow">⇄</span><span class="box">HoermannGarageEngine<small>Modbus RTU slave 2</small></span></div>
+      <div class="lane"><span class="box">HoermannGarageEngine</span><span class="arrow">→</span><span class="box">MqttHandler<small>AsyncMqttClient</small></span><span class="arrow">⇄</span><span class="box">MQTT broker</span><span class="arrow">⇄</span><span class="box">Home Assistant</span></div>
+      <div class="lane"><span class="box">SensorManager</span><span class="arrow">→</span><span class="box">MqttHandler + SSE</span><span class="box">IoManager<small>In1/In2 → local action</small></span><span class="arrow">→</span><span class="box">MqttHandler + SSE</span></div>
+      <div class="lane"><span class="box">Browser</span><span class="arrow">⇄</span><span class="box">AsyncWebServer :80<small>WebUI, JSON API, /events, OTA</small></span></div>
+    </div>
+
+    <h2>Repository layout</h2>
+<pre><code>HCPBridgeMqtt/
+├── docs/                         this website (GitHub Pages) + guides and images
+├── HCPBridgeESP32/
+│   ├── src/
+│   │   ├── main.cpp              setup, HTTP server, FreeRTOS tasks, Wi-Fi, reset button
+│   │   ├── configuration.h       compile-time defaults, pins per board, MQTT strings
+│   │   ├── hoermann.h            RS485 / Modbus RTU protocol and door state machine
+│   │   ├── mqtt_handler.*        MQTT client, Home Assistant discovery, commands
+│   │   ├── preferences_handler.* registry based NVS settings
+│   │   ├── sensor_manager.*      sensor init, polling, thresholds, fail-safe
+│   │   └── io_manager.*          In1/In2/Out1/Out2, debounce, local actions
+│   ├── WebUI/webpage/index.html  web interface source (HTML/CSS/JS in one file)
+│   ├── WebUI/webpage/compress.py pre-build: minify + zlib → WebUI/index_html.h
+│   ├── WebUI/index_html.h        generated, do not edit
+│   ├── build_output.py           copies firmware to fw/&lt;env&gt;-v&lt;version&gt;.bin
+│   ├── esphome_hcpbridge.yaml    alternative ESPHome configuration
+│   └── platformio.ini            build environments and libraries
+└── .github/workflows/            CI builds and releases</code></pre>
+
+    <h2>FreeRTOS tasks</h2>
+    <table>
+      <thead><tr><th>Task</th><th>Core</th><th>Priority</th><th>Cycle</th><th>Job</th></tr></thead>
+      <tbody>
+        <tr><td>ModBusTask</td><td>1</td><td>max − 1</td><td>1 ms</td><td>Serves the bus (<code>mb.task()</code>)</td></tr>
+        <tr><td>MqttTask</td><td>0</td><td>max − 3</td><td>2 s</td><td>Publishes door state and sensors, pending discovery, debug</td></tr>
+        <tr><td>SensorTask</td><td>0</td><td>max</td><td>500 ms / query interval</td><td>PIR every 500 ms, other sensors per interval; only started when a sensor is active</td></tr>
+        <tr><td>IoTask</td><td>0</td><td>max − 2</td><td>20 ms</td><td>Debounces inputs, runs local actions, publishes I/O; only started when a channel is enabled</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Boot sequence</h2>
+    <ol>
+      <li>Serial and preferences (needed for the RS485 pins).</li>
+      <li><strong>Modbus first:</strong> the operator scans for its slave right after power-on – the bridge has to answer before anything slow (Wi-Fi, sensors) starts. The Modbus task then runs independently on core 1.</li>
+      <li>Status LED, debug flag, reset-button interrupt, Wi-Fi/MQTT reconnect timers, access point.</li>
+      <li>Crash check: after a panic or watchdog reset all sensors are disabled and the ESP restarts.</li>
+      <li>Sensors and digital I/O are initialised <em>before</em> MQTT, so discovery knows which entities exist.</li>
+      <li>Wi-Fi connect, MQTT/sensor/I/O tasks, HTTP routes, OTA, server start.</li>
+    </ol>
+
+    <h2>Hörmann protocol</h2>
+    <p>The operator is the Modbus RTU master; the bridge registers as slave <strong>ID 2</strong> during the bus scan (UART2, 57600 baud, 8 data bits, even parity, 1 stop bit).</p>
+    <table>
+      <thead><tr><th>Register</th><th>Direction</th><th>Content</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x9C41</code></td><td>master writes</td><td>Command counter / request</td></tr>
+        <tr><td><code>0x9CB9</code></td><td>master reads</td><td>Response: the "key presses" of the bridge (command registers +2/+3), bus-scan identification</td></tr>
+        <tr><td><code>0x9D31</code></td><td>master broadcasts</td><td>+1 position (low byte current, high byte target, value/200), +2 state, +6 light</td></tr>
+      </tbody>
+    </table>
+    <p>A command is a simulated key press: the start value is returned on the next poll, the end value 100 ms later. Only one command can be pending at a time.</p>
+    <table>
+      <thead><tr><th>State byte</th><th>State</th><th>Detailed state</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x01</code></td><td>OPENING</td><td><code>opening</code></td></tr>
+        <tr><td><code>0x02</code></td><td>CLOSING</td><td><code>closing</code></td></tr>
+        <tr><td><code>0x05</code></td><td>MOVE_HALF</td><td><code>opening h</code></td></tr>
+        <tr><td><code>0x09</code></td><td>MOVE_VENTING</td><td><code>opening v</code></td></tr>
+        <tr><td><code>0x0A</code></td><td>VENT</td><td><code>venting</code></td></tr>
+        <tr><td><code>0x20</code></td><td>OPEN</td><td><code>open</code></td></tr>
+        <tr><td><code>0x40</code></td><td>CLOSED</td><td><code>closed</code></td></tr>
+        <tr><td><code>0x80</code></td><td>HALFOPEN</td><td><code>open h</code></td></tr>
+        <tr><td><code>0x00</code></td><td>STOPPED (or VENT, see below)</td><td><code>stopped</code></td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>Vent workaround:</strong> some operators never report <code>0x0A</code>. A stopped door at position <code>0x08</code> (current = target) is therefore treated as VENT.</li>
+      <li><strong>Light:</strong> on when the light byte is <code>0x10</code> or <code>0x14</code>.</li>
+      <li><strong>Set position:</strong> the bridge starts an open or close movement and sends stop once the reported position passes the target.</li>
+    </ul>
+
+    <h2>Preference registry</h2>
+    <p>All settings are defined once in <code>PREF_REGISTRY[]</code> (<code>preferences_handler.h</code>): key (max. 15 characters), type, redacted flag, group and default. The registry drives first-boot defaults, <code>GET /config</code> and saving.</p>
+    <ol>
+      <li>Add <code>#define preference_xxx "key"</code>.</li>
+      <li>Add a row to <code>PREF_REGISTRY[]</code> with type, group (<code>BASIC</code>, <code>SENSOR</code>, <code>IO</code>, <code>EXPERT</code> or <code>INTERNAL</code>) and default.</li>
+      <li>Add the form field with <code>id</code> and <code>name</code> = key to <code>index.html</code>.</li>
+      <li>Read it with <code>prefs-&gt;getString/getInt/getDouble/getBool(preference_xxx)</code>.</li>
+    </ol>
+    <div class="callout warn"><span class="t">Check boxes need one extra line</span>HTML forms send <code>"on"</code> or nothing, so the generic save loop skips all <code>BOOL</code> preferences. Every new boolean must be added to the <code>checkbox()</code> handling in <code>PreferenceHandler::saveConf()</code>, otherwise it is never saved.</div>
+
+    <h2>Web interface build</h2>
+    <p>The web interface is a single file, <code>WebUI/webpage/index.html</code>, without external resources (the bridge often runs without internet access). Before every build the PlatformIO pre-script <code>compress.py</code> minifies HTML and JavaScript (htmlmin, jsmin), compresses it with zlib level 9 and writes <code>WebUI/index_html.h</code>. The ESP serves it with <code>Content-Encoding: deflate</code>.</p>
+    <ul>
+      <li>Keep element IDs and <code>name</code> attributes in sync with the preference keys.</li>
+      <li>htmlmin removes whitespace between tags – use CSS gaps instead of spaces between inline elements.</li>
+      <li>Avoid JavaScript template literals; jsmin is conservative ES5-style.</li>
+      <li>The garage scene is inline SVG coloured via CSS variables, so light and dark mode work without extra assets.</li>
+    </ul>
+
+    <h2>Building, CI and releases</h2>
+<pre><code>cd HCPBridgeESP32
+pio run                        # all default environments
+pio run -e HCP_Giffordv3       # one board
+ls fw/                         # &lt;env&gt;-v&lt;version&gt;.bin</code></pre>
+    <ul>
+      <li><strong>test Build</strong> (manual workflow) builds all default environments.</li>
+      <li><strong>Build and release</strong> runs on every push to <code>master</code> that touches firmware files (changes under <code>docs/</code>, <code>.github/</code>, <code>tools/</code> and <code>*.md</code> are ignored). It reads <code>HA_VERSION</code> from <code>configuration.h</code>, uses it as tag and release name and attaches <code>fw/*.bin</code>.</li>
+      <li>Bump <code>HA_VERSION</code> (and the version in <code>esphome_hcpbridge.yaml</code>) for every release.</li>
+    </ul>
+
+    <h2>Contributing</h2>
+    <ol>
+      <li>Fork the repository and create a feature branch.</li>
+      <li>Keep changes in the existing structure: one manager per concern, settings through the registry.</li>
+      <li>If a feature also makes sense for the ESPHome variant, add a matching (commented) block to <code>esphome_hcpbridge.yaml</code>.</li>
+      <li>Update the documentation in <code>docs/</code> and open a pull request with a clear description.</li>
+    </ol>
+
+    <h2>Editing this documentation</h2>
+    <p>The site is plain HTML in <code>/docs</code>, published by GitHub Pages from the <code>master</code> branch – no build step, no dependencies. Shared styles live in <code>docs/assets/style.css</code>; the navigation, the "On this page" list and the copy buttons are generated by <code>docs/assets/site.js</code>. To add a page, copy an existing page, replace the content inside <code>&lt;main&gt;</code> and add one line to the <code>NAV</code> list in <code>site.js</code>. <code>docs/.nojekyll</code> makes GitHub serve the files unchanged.</p>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

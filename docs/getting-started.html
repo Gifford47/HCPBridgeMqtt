@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting started · HCPBridge</title>
+  <meta name="description" content="Step-by-step installation of HCPBridge: hardware, wiring, flashing the ESP32, first Wi-Fi and MQTT setup and the bus scan on SupraMatic, ProMatic and RollMatic operators.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Getting started</h1>
+    <p class="lead">From unboxing (or soldering) to a garage door in Home Assistant in about 15 minutes.</p>
+
+    <h2>Overview</h2>
+    <ol class="steps">
+      <li><strong>Get the hardware</strong>A prebuilt HCP PCB, or an ESP32 + RS485 converter + step-down converter.</li>
+      <li><strong>Flash the firmware</strong>Already done on prebuilt PCBs – otherwise with PlatformIO.</li>
+      <li><strong>First setup</strong>Join the <code>HCPBRIDGE</code> hotspot, enter Wi-Fi and MQTT in the web interface.</li>
+      <li><strong>Connect to the operator and run a bus scan</strong>Plug the RJ12 cable into the operator's bus socket and register the bridge.</li>
+      <li><strong>Use it</strong>Control the door in the browser, via MQTT or in Home Assistant.</li>
+    </ol>
+
+    <h2>1. Hardware</h2>
+    <h3>Option A – prebuilt HCP PCB</h3>
+    <p>The prebuilt boards (see the <a href="https://github.com/Gifford47/HCPBridgeMqtt/discussions/83">order thread</a>) come with the firmware installed and plug straight into the operator with an RJ12 cable. You need:</p>
+    <ul>
+      <li>the PCB and an RJ12 (6P6C) cable,</li>
+      <li>for configuring it on the desk: a USB-C power supply (PCB revision 3 and newer) or a 3.3&nbsp;V supply with at least 500&nbsp;mA.</li>
+    </ul>
+    <p>Board variants and the matching firmware:</p>
+    <table>
+      <thead><tr><th>Board</th><th>Firmware environment</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>HCP PCB v1</td><td><code>HCP_Giffordv1</code></td><td>Classic ESP32</td></tr>
+        <tr><td>HCP PCB v2</td><td><code>HCP_Giffordv2</code></td><td>ESP32-S3 with PSRAM</td></tr>
+        <tr><td>HCP PCB v3.x</td><td><code>HCP_Giffordv3</code></td><td>Classic ESP32, In1/In2/Out1/Out2 terminals</td></tr>
+        <tr><td>HCP mini</td><td><code>HCP_Giffordv3</code></td><td>Same firmware, but <strong>no</strong> In/Out terminals</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Option B – build it yourself</h3>
+    <ul>
+      <li>An ESP32 development board (ESP32 or ESP32-S3).</li>
+      <li>A <strong>TTL ↔ RS485 converter with automatic direction control</strong>. The firmware does not drive a DE/RE pin, so the module must switch between send and receive by itself (see <a href="https://github.com/Gifford47/HCPBridgeMqtt/blob/master/docs/UART%20TTL%20to%20RS485.pdf">UART TTL to RS485.pdf</a>).</li>
+      <li>A step-down converter from the bus supply (≈24&nbsp;V) to 5&nbsp;V for the ESP32.</li>
+      <li>A 120&nbsp;Ω resistor between A and B, and an RJ12 (6P6C) cable.</li>
+    </ul>
+    <p>RJ12 pin-out of the Hörmann bus socket:</p>
+    <table>
+      <thead><tr><th>RJ12 pin</th><th>Signal</th><th>Connect to</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>GND</td><td>GND of converter and step-down</td></tr>
+        <tr><td>2</td><td>GND</td><td>GND</td></tr>
+        <tr><td>3</td><td>B −</td><td>RS485 converter B</td></tr>
+        <tr><td>4</td><td>A +</td><td>RS485 converter A</td></tr>
+        <tr><td>5</td><td>+24 V</td><td>step-down converter input</td></tr>
+        <tr><td>6</td><td>+24 V</td><td>step-down converter input</td></tr>
+      </tbody>
+    </table>
+    <div class="figs">
+      <figure><img src="Images/esp32.png" alt="Wiring of ESP32, RS485 converter and step-down converter to the RJ12 plug" loading="lazy"><figcaption>Reference wiring: RJ12 → 120&nbsp;Ω across A/B → RS485 converter → ESP32 UART; 24&nbsp;V → step-down → 5&nbsp;V.</figcaption></figure>
+      <figure><img src="Images/plug-min.png" alt="RJ12 plug with numbered pins" loading="lazy"><figcaption>Pin numbering of the RJ12 plug.</figcaption></figure>
+    </div>
+    <div class="callout danger"><span class="t">Set the step-down converter before connecting the ESP32</span>The bus carries about 24&nbsp;V. Adjust the converter output to 5&nbsp;V first – 24&nbsp;V on the ESP32's 5&nbsp;V pin destroys it.</div>
+    <p>Default UART pins (configurable later under <em>Expert Configuration</em>):</p>
+    <table>
+      <thead><tr><th>Environment</th><th>RS485 TXD</th><th>RS485 RXD</th></tr></thead>
+      <tbody>
+        <tr><td><code>esp32</code>, <code>HCP_Giffordv1</code></td><td>GPIO17</td><td>GPIO16</td></tr>
+        <tr><td><code>HCP_Giffordv2</code> (ESP32-S3)</td><td>GPIO17</td><td>GPIO18</td></tr>
+        <tr><td><code>HCP_Giffordv3</code></td><td>GPIO19</td><td>GPIO18</td></tr>
+        <tr><td><code>m5stack-stamps3</code></td><td>GPIO13</td><td>GPIO15</td></tr>
+        <tr><td><code>m5stack-atom-lite</code></td><td>GPIO22</td><td>GPIO19</td></tr>
+      </tbody>
+    </table>
+    <div class="callout tip">If the bus scan does not find the bridge, swap TX and RX – converter modules label these pins inconsistently.</div>
+
+    <h2>2. Flash the firmware</h2>
+    <p>Skip this step on a prebuilt PCB – the firmware is already installed. For later updates see <a href="#updating">Updating</a>.</p>
+    <h3>Build and upload with PlatformIO</h3>
+    <ol class="steps">
+      <li><strong>Install the tools</strong>Install <a href="https://code.visualstudio.com/download">Visual Studio Code</a> and the <em>PlatformIO IDE</em> extension.</li>
+      <li><strong>Get the source</strong>Clone the repository or download it as ZIP from GitHub and open the folder <code>HCPBridgeESP32</code> in VS Code (PlatformIO → <em>Open Project</em>).</li>
+      <li><strong>Pick your board</strong>In the PlatformIO sidebar, open the environment for your board (table below) under <em>Project Tasks</em>.</li>
+      <li><strong>Upload</strong>Connect the ESP32 via USB and run <em>Upload</em>. PlatformIO installs all libraries, builds the web interface and flashes bootloader, partition table and firmware.</li>
+    </ol>
+    <table>
+      <thead><tr><th>Environment</th><th>Board</th><th>Built by default</th></tr></thead>
+      <tbody>
+        <tr><td><code>esp32</code></td><td>Generic ESP32 (NodeMCU-32S)</td><td>yes</td></tr>
+        <tr><td><code>HCP_Giffordv1</code></td><td>HCP PCB v1</td><td>yes</td></tr>
+        <tr><td><code>HCP_Giffordv2</code></td><td>HCP PCB v2 (ESP32-S3 + PSRAM)</td><td>yes</td></tr>
+        <tr><td><code>HCP_Giffordv3</code></td><td>HCP PCB v3.x / HCP mini</td><td>yes</td></tr>
+        <tr><td><code>m5stack-stamps3</code></td><td>M5Stack StampS3</td><td>no</td></tr>
+        <tr><td><code>m5stack-atom-lite</code></td><td>M5Stack Atom Lite</td><td>no</td></tr>
+      </tbody>
+    </table>
+    <p>Command line equivalent:</p>
+<pre><code>cd HCPBridgeESP32
+pio run -e HCP_Giffordv3 -t upload
+pio device monitor        # 9600 baud, only prints when serial debug is enabled</code></pre>
+    <div class="callout"><span class="t">No need to edit configuration.h</span>All settings are made in the web interface and stored on the ESP32. <code>src/configuration.h</code> only provides the defaults for the very first boot (and after a factory reset).</div>
+
+    <h3 id="updating">Updating (OTA)</h3>
+    <p>Each <a href="https://github.com/Gifford47/HCPBridgeMqtt/releases">release</a> contains one binary per board, named <code>&lt;environment&gt;-v&lt;version&gt;.bin</code> (for example <code>HCP_Giffordv3-v1.1.0.bin</code>).</p>
+    <ol class="steps">
+      <li><strong>Download</strong>the binary for your board from the latest release.</li>
+      <li><strong>Open the updater</strong>In the web interface open <em>System information → OTA Update</em> (or browse to <code>http://&lt;device-ip&gt;/update</code>) and log in with user <code>admin</code>, password <code>admin</code>.</li>
+      <li><strong>Upload</strong>Select the <code>.bin</code> file. The device restarts automatically; the configuration is kept.</li>
+    </ol>
+    <div class="callout warn">Release binaries contain only the application. Use them for OTA updates; a blank ESP32 has to be flashed once with PlatformIO, which also writes the bootloader and the partition table. Older releases had separate <code>…a</code> / <code>…b</code> binaries – there is only one firmware per board now.</div>
+
+    <h2>3. First setup</h2>
+    <ol class="steps">
+      <li><strong>Power the bridge</strong>via USB(-C) or 3.3&nbsp;V. On the HCP PCBs v2 and v3 the LED lights up during start-up and turns off when the bridge is ready.</li>
+      <li><strong>Join the hotspot</strong>Connect a phone or laptop to the Wi-Fi network <code>HCPBRIDGE</code>, password <code>gifford47</code>.</li>
+      <li><strong>Open the web interface</strong>Browse to <a href="http://192.168.4.1">http://192.168.4.1</a>. There is no login by default.</li>
+      <li><strong>Enter Wi-Fi and MQTT</strong>Open <em>Basic Configuration</em>, enter your Wi-Fi SSID/password and your MQTT broker (server, port, user, password). Keep the <em>Device ID</em> at 14 characters or less.</li>
+      <li><strong>Save &amp; Restart</strong>The bridge restarts and joins your network. Find its IP address in your router (hostname <code>HCPBRIDGE</code>) and open it in the browser.</li>
+      <li><strong>Secure it</strong>Once the bridge works in your network, untick <em>Enable Wi-Fi access point</em> or set your own access point password, and optionally set a <em>Web password</em>.</li>
+    </ol>
+    <figure><img src="Images/webinterface.png" alt="The HCPBridge web interface" loading="lazy" width="380"><figcaption>The web interface after the bus scan, with sensors and I/O enabled.</figcaption></figure>
+    <div class="callout"><span class="t">Hotspot details</span>The hotspot is named after the <em>Hostname</em> and runs in parallel to the normal Wi-Fi connection. An access point password shorter than 8 characters is ignored and the default <code>gifford47</code> is used instead. The Wi-Fi password must consist of printable ASCII characters (32–126).</div>
+
+    <h2>4. Connect to the operator and run the bus scan</h2>
+    <p>HCP2 operators only talk to accessories that were registered by a <strong>bus scan</strong>. Plugging in (or removing) an accessory without a scan leads to <strong>error 04</strong> on the operator display.</p>
+    <ol class="steps">
+      <li><strong>Disconnect the operator from mains power.</strong></li>
+      <li><strong>Plug in the bridge</strong>Connect the RJ12 cable to the operator's bus socket (green arrow below).</li>
+      <li><strong>Power the operator on</strong>The bridge is powered from the bus. It answers the operator immediately after boot – the Modbus handler is started before Wi-Fi.</li>
+      <li><strong>Start the bus scan</strong>as described for your operator below.</li>
+      <li><strong>Check</strong>The RS485 LEDs of the bridge blink rapidly and the web interface shows <em>Connected</em> and the door state.</li>
+    </ol>
+    <figure><img src="Images/antrieb-min.png" alt="Opened operator with the bus socket and the DIP switch marked" loading="lazy" width="520"><figcaption>Bus socket (green arrow) and bus-scan DIP switch on the ProMatic (blue arrow).</figcaption></figure>
+
+    <h3>SupraMatic E / P Series 4</h3>
+    <ol>
+      <li>Hold <kbd>PRG</kbd> until <code>00</code> is shown.</li>
+      <li>Select menu <code>37</code> with the arrow keys and confirm.</li>
+      <li>Select parameter <code>01</code>.</li>
+      <li>Hold <kbd>P</kbd> until <code>bS</code> appears, then release. <code>bS</code> blinks while scanning.</li>
+      <li>The display briefly shows <code>1</code> – the bridge has been registered.</li>
+    </ol>
+    <p>Illustrated guide: <a href="https://github.com/Gifford47/HCPBridgeMqtt/blob/master/docs/bus_scan_EN.md">bus scan (EN)</a> · <a href="https://github.com/Gifford47/HCPBridgeMqtt/blob/master/docs/bus_scan_DE.md">Bus-Scan (DE)</a>.</p>
+
+    <h3>ProMatic Series 4</h3>
+    <p>Set DIP switch <strong>H (no. 8)</strong> to <strong>ON</strong> – the scan starts – and back to <strong>OFF</strong>.</p>
+
+    <h3 id="rollmatic-v2">RollMatic v2</h3>
+    <ol>
+      <li>Remove mains power, plug in the RJ12 cable, power on and drive the door completely up or down once.</li>
+      <li>Hold <kbd>PRG</kbd> until <code>10</code> is shown, press <kbd>Down</kbd> until <code>37</code>, press <kbd>PRG</kbd> once (<code>00</code>).</li>
+      <li>Press <kbd>Up</kbd> once (<code>01</code>), then hold <kbd>PRG</kbd> until <code>B.S.</code> is shown. It blinks while scanning.</li>
+      <li><code>1</code> for a few seconds = registered; <code>01</code>/<code>00</code> = not found.</li>
+    </ol>
+
+    <div class="callout warn"><span class="t">Every configuration change restarts the bridge</span>Saving a form in the web interface reboots the ESP32. If the operator reports an error afterwards, run the bus scan again. To remove the bridge permanently, power the operator off, unplug the bridge and run another scan (the display briefly shows <code>0</code>).</div>
+
+    <h2>5. Next steps</h2>
+    <div class="cards">
+      <a class="card" href="home-assistant.html"><h3>Home Assistant</h3><p>The door appears automatically once MQTT is connected.</p></a>
+      <a class="card" href="sensors.html"><h3>Add sensors</h3><p>Temperature, parking space, motion, gas.</p></a>
+      <a class="card" href="inputs-outputs.html"><h3>Wall button &amp; outputs</h3><p>In1/In2 and Out1/Out2 on the HCP PCBs.</p></a>
+    </div>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>

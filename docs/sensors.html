@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensors · HCPBridge</title>
+  <meta name="description" content="Optional sensors for HCPBridge: BME280, DS18X20, DHT22, HC-SR04 parking space detection, HC-SR501 motion and MQ4 gas – wiring, pins, detection, thresholds and fail-safe behaviour.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="index.html"><img src="assets/favicon.svg" alt="">HCPBridge <small>Documentation</small></a>
+  <span class="spacer"></span>
+  <a class="gh" href="https://github.com/Gifford47/HCPBridgeMqtt"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+</header>
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Documentation"><noscript><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="web-interface.html">Web interface</a><a href="configuration.html">Configuration reference</a><a href="home-assistant.html">MQTT &amp; Home Assistant</a><a href="sensors.html">Sensors</a><a href="inputs-outputs.html">Digital inputs &amp; outputs</a><a href="http-api.html">HTTP API</a><a href="architecture.html">Architecture &amp; development</a><a href="troubleshooting.html">Troubleshooting &amp; FAQ</a></noscript></nav>
+  <main>
+    <h1>Sensors</h1>
+    <p class="lead">Up to six optional sensors can be connected to the bridge. They are enabled in the web interface – one firmware for all combinations.</p>
+
+    <h2>Supported sensors</h2>
+    <table>
+      <thead><tr><th>Sensor</th><th>Interface</th><th>Measures</th><th>MQTT keys</th></tr></thead>
+      <tbody>
+        <tr><td>BME280</td><td>I²C (0x76 / 0x77)</td><td>Temperature, humidity, pressure</td><td><code>temp</code>, <code>hum</code>, <code>pres</code></td></tr>
+        <tr><td>DS18X20</td><td>OneWire</td><td>Temperature (first sensor on the bus)</td><td><code>temp</code></td></tr>
+        <tr><td>DHT22</td><td>Single wire</td><td>Temperature, humidity</td><td><code>temp</code>, <code>hum</code></td></tr>
+        <tr><td>HC-SR04</td><td>Trigger / echo</td><td>Distance, parking space</td><td><code>dist</code>, <code>free</code></td></tr>
+        <tr><td>HC-SR501</td><td>Digital</td><td>Motion (PIR)</td><td><code>motion</code></td></tr>
+        <tr><td>MQ4</td><td>Analog (+ optional digital)</td><td>Methane / natural gas</td><td><code>gas</code>, <code>gas_alarm</code></td></tr>
+      </tbody>
+    </table>
+    <p>Default GPIOs per board are listed in the <a href="configuration.html#pin-defaults">configuration reference</a>.</p>
+
+    <h2>Enable a sensor</h2>
+    <ol class="steps">
+      <li><strong>Connect it</strong>with the board powered off. On the prebuilt PCBs solder pin headers to the sensor pads first.</li>
+      <li><strong>Open <em>Sensor Configuration</em></strong>tick the sensor and check its GPIO numbers.</li>
+      <li><strong>Save &amp; Restart</strong>The sensor is initialised at boot. If it works, it appears as a tile in the web interface and as an entity in Home Assistant.</li>
+      <li><strong>Check</strong><em>System information</em> lists every sensor as <em>Active</em>, <em>Disabled</em> (failed) or <em>Off</em>.</li>
+    </ol>
+
+    <h2>How sensors are read</h2>
+    <h3>Start-up detection</h3>
+    <p>Each enabled sensor gets up to <strong>3 attempts</strong> at boot. It only becomes active if it delivers a plausible reading:</p>
+    <table>
+      <thead><tr><th>Sensor</th><th>Accepted at start-up when …</th></tr></thead>
+      <tbody>
+        <tr><td>BME280</td><td>found at 0x76 or 0x77 and temperature −50…80 °C, humidity 0…&lt;99.9 %, pressure 300…1100 hPa</td></tr>
+        <tr><td>DS18X20</td><td>temperature −50…80 °C</td></tr>
+        <tr><td>DHT22</td><td>after a 2 s warm-up both temperature and humidity are valid</td></tr>
+        <tr><td>HC-SR04</td><td>an echo is received and the distance is &gt; 0 and ≤ 2 × <em>SR04 max. distance</em></td></tr>
+        <tr><td>HC-SR501</td><td>a pin is configured</td></tr>
+        <tr><td>MQ4</td><td>the analog value is between 1 and 4094 (not stuck at 0 or full scale)</td></tr>
+      </tbody>
+    </table>
+    <p>A sensor that fails is marked <em>Disabled</em>; the bridge keeps booting normally and the reason is published in <code>sensor_error</code> of the <a href="home-assistant.html#debug">debug topic</a>.</p>
+
+    <h3>Polling, thresholds and publishing</h3>
+    <ul>
+      <li>All sensors except the PIR are read every <em>Sensor query interval</em> (default 120 s). The PIR is checked every 500 ms.</li>
+      <li>A new MQTT message is only sent when a value changed by at least its threshold (temperature 0.5 °C, humidity 1 %, pressure 1 hPa, distance 10 cm, gas 50 – configurable), when the parking or gas-alarm state flips, or when the 2-hour forced update is due.</li>
+      <li>The web interface receives every changed value immediately via server-sent events.</li>
+    </ul>
+
+    <h3>Fail-safe</h3>
+    <ul>
+      <li><strong>5 consecutive invalid readings</strong> at runtime disable a sensor until the next restart. Its last value stays visible in red in the web interface, but it is no longer published.</li>
+      <li>If the ESP32 crashed (panic or watchdog), all sensors are switched off automatically on the next boot, so a faulty sensor cannot cause a boot loop. Re-enable them in the web interface after fixing the cause.</li>
+      <li>Pressing the boot button <strong>3 times</strong> within 6 seconds also disables all sensors and restarts.</li>
+    </ul>
+
+    <h3>Several temperature sensors</h3>
+    <p>Only one temperature and one humidity value is published. Priority: <strong>BME280 → DS18X20 → DHT22</strong>. If a BME280 is enabled, DS18X20 and DHT22 values are not used (even when the BME280 failed).</p>
+
+    <h2>Sensor details</h2>
+    <h3>BME280</h3>
+    <p>Connect VCC (3.3 V), GND, SDA and SCL. The address (0x76 or 0x77) is detected automatically. Pressure is shown in mbar in the web interface and published as hPa (same value).</p>
+    <h3>DS18X20</h3>
+    <p>Only the first sensor on the OneWire bus is read. Self-built boards need the usual 4.7&nbsp;kΩ pull-up between data and 3.3&nbsp;V.</p>
+    <h3>DHT22</h3>
+    <p>Reads temperature and humidity. If only one of both values is valid, that one is still used; only when both are invalid does it count as a failed reading.</p>
+
+    <h3 id="parking-space-detection-hc-sr04">Parking space detection (HC-SR04)</h3>
+    <p>Mount the sensor above the parking space, pointing down (or at the front wall, pointing at the car). It publishes the measured distance (<code>dist</code>, cm) and whether the space is free (<code>free</code>).</p>
+    <ul>
+      <li>The bridge remembers the <strong>largest distance measured since boot</strong> – that is the empty floor.</li>
+      <li><code>free</code> = <code>"true"</code> (space available) when <code>distance + proximity threshold &gt; largest distance</code>.</li>
+      <li><code>free</code> = <code>"false"</code> (occupied) when something is closer than that – a car. The web interface then shows the car in the garage.</li>
+    </ul>
+    <div class="callout warn"><span class="t">Calibration happens after every restart</span>The reference distance is not stored. If a car is parked while the bridge restarts, the car's roof becomes the reference and the space is reported as free until the car has left once. Also note that the parking state is only updated every <em>Sensor query interval</em> – lower it (e.g. 10–30 s) if you want a faster reaction.</div>
+    <p>Readings above twice the <em>SR04 max. distance</em> are treated as invalid. The HC-SR04 is a 5&nbsp;V module – on self-built boards bring its echo signal down to 3.3&nbsp;V with a voltage divider.</p>
+
+    <h3>HC-SR501 motion</h3>
+    <p>Polled every 500 ms; every change is published immediately as <code>{"motion":"true"}</code> / <code>{"motion":"false"}</code>. Hold time and sensitivity are set with the potentiometers on the module.</p>
+
+    <h3>MQ4 gas</h3>
+    <ul>
+      <li><code>gas</code> is the <strong>raw ADC value</strong> (0–4095) of the analog output. Home Assistant labels it with "ppm", but the value is not calibrated – use it for trends and relative thresholds.</li>
+      <li><code>gas_alarm</code> comes from the module's digital output (alarm when the output is LOW). Set <em>MQ4 digital</em> to 0 if it is not connected.</li>
+      <li>The heater of the MQ4 needs a warm-up time after power-on before readings are meaningful.</li>
+    </ul>
+  </main>
+  <aside id="toc" class="toc" aria-label="On this page"></aside>
+</div>
+</body>
+</html>
